@@ -54,7 +54,7 @@ async function fetchAiChipSuggestions({ step, picked, context, count = 6 }) {
       ? "short poll answer options (2-4 words, mutually exclusive)"
       : "distinct evaluation criteria for this decision (not overlapping with existing)";
     const prompt = `Business decision tool. Generate exactly ${count} ${typeHint}.\n${decisionCtx}${optsCtx}${critsCtx}${alreadyPicked}${typedCtx}\nRules: specific to context, 2-5 words, Title Case, no years unless user wrote one, professional.\nJSON only: {"chips":["item1","item2",...]}`;
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch("/api/ai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 150, messages: [{ role: "user", content: prompt }] })
