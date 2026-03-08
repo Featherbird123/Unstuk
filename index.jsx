@@ -626,7 +626,7 @@ function ResultsView({ results, dName, critCount, onDone, onBack, onImmediate, o
     "",
     "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500",
     "  Stuck on a decision? Try Unstuk free.",
-    "  unstuk.app/invite",
+    "  https://unstuk.app",
     "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500",
   ].join("\n");
 
@@ -1748,7 +1748,7 @@ function UnstukInner() {
               } else {
                 setOnboardPage(onboardPage + 1);
               }
-            }} style={{ flex: 1 }}>{isLast ? "Get started" : "Next"}</Btn>
+            }} style={{ minWidth: 100 }}>{isLast ? "Get started" : "Next"}</Btn>
           </div>
         </div>
       </div>
