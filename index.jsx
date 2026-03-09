@@ -169,10 +169,8 @@ const MULTI_ADV = [
 
 // ─── Content safety filter ───
 const BLOCKED_TERMS = [
-  "murder", "kill", "assassin", "rape", "assault", "attack", "bomb",
-  "terrorist", "kidnap", "torture", "stab", "shoot", "poison", "arson",
-  "trafficking", "abuse", "molest", "strangle", "weapon", "explosive",
-  "homicide", "manslaughter", "hijack", "hostage",
+  "murder", "assassinate", "rape", "molest", "terrorist",
+  "kidnap", "torture", "trafficking", "strangle", "homicide",
 ];
 
 function isBlockedContent(text) {
