@@ -937,7 +937,7 @@ function ShareSheet({ text, title, onClose }) {
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 14 }}>
           {channels.map(ch => (
-            <a key={ch.label} href={ch.href} target="_blank" rel="noopener noreferrer"
+            <a key={ch.label} href={ch.href} target="_blank" rel="noopener noreferrer" onClick={() => setTimeout(onClose, 400)}
               style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: "12px 4px", borderRadius: 12, border: `1px solid ${C.border}20`, background: ch.bg, textDecoration: "none", cursor: "pointer", transition: "all 0.15s" }}>
               <span style={{ fontSize: 20 }}>{ch.icon}</span>
               <span style={{ fontFamily: F.b, fontSize: 9, color: C.muted }}>{ch.label}</span>
@@ -1464,7 +1464,7 @@ function UnstukInner() {
               {/* Chip area — always reactive while question not done */}
               {!qvChipsDone && (
                 <div style={{ minHeight: 52 }}>
-                  <ChipPicker storageKey="qv-name" usedNames={qvQuestion ? [qvQuestion] : []} onPick={(name) => setQvQuestion(name)} aiContext={{ dName: "quick poll question", opts: [], crits: [], typed: qvQuestion }} />
+                  <ChipPicker storageKey="qv-name" usedNames={qvQuestion ? [qvQuestion] : []} onPick={(name) => { setQvQuestion(name); }} aiContext={{ dName: "quick poll question", opts: [], crits: [], typed: "" }} />
                 </div>
               )}
             </div>
@@ -1476,7 +1476,7 @@ function UnstukInner() {
                 <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
                   <span style={{ fontFamily: F.b, fontSize: 11, color: C.muted, width: 20, textAlign: "center", flexShrink: 0 }}>{i + 1}.</span>
                   <div style={{ flex: 1 }}>
-                    <TxtIn value={opt} onChange={(v) => { const n = [...qvOptions]; n[i] = v; setQvOptions(n); }} autoFocus={false} placeholder={i < 2 ? "Required" : "Optional"} maxLen={30} />
+                    <TxtIn value={opt} onChange={(v) => { const n = [...qvOptions]; n[i] = v; setQvOptions(n); }} autoFocus={false} placeholder={i < 2 ? "Required" : "Optional"} maxLen={30} inputId={`qvopt-${i}`} />
                   </div>
                   {i >= 2 && <button onClick={() => setQvOptions(qvOptions.filter((_, j) => j !== i))} style={{ fontFamily: F.b, fontSize: 14, color: C.border, background: "none", border: "none", cursor: "pointer", padding: "4px 8px", lineHeight: 1 }}>{"\u00D7"}</button>}
                 </div>
@@ -1489,7 +1489,12 @@ function UnstukInner() {
                 <div style={{ minHeight: 52 }}>
                   <ChipPicker storageKey="qv-opt" usedNames={qvOptions.filter(Boolean)} onPick={(name) => {
                     const emptyIdx = qvOptions.findIndex(o => !o.trim());
-                    if (emptyIdx >= 0) { const n = [...qvOptions]; n[emptyIdx] = name; setQvOptions(n); }
+                    if (emptyIdx >= 0) {
+                      const n = [...qvOptions]; n[emptyIdx] = name; setQvOptions(n);
+                      const nextEmpty = n.findIndex((o, i) => i > emptyIdx && !o.trim());
+                      const focusIdx = nextEmpty >= 0 ? nextEmpty : (n.length < 6 ? n.length : -1);
+                      if (focusIdx >= 0) setTimeout(() => { const el = document.getElementById(`qvopt-${focusIdx}`); if (el) el.focus(); }, 50);
+                    }
                     else if (qvOptions.length < 6) setQvOptions([...qvOptions, name]);
                   }} aiContext={{ dName: qvQuestion, opts: qvOptions.filter(Boolean).map(o => ({ name: o })), crits: [], typed: qvOptions.filter(Boolean).slice(-1)[0] || "" }} />
                 </div>
@@ -1828,7 +1833,7 @@ function UnstukInner() {
 
               {/* ── Pillar 3: Quick Poll ── */}
               <div style={{ display: "flex", gap: 8 }}>
-                <Btn v="secondary" onClick={() => { setScreen("qv_create"); trackEvent("qv_start"); }} style={{ flex: 1, padding: "13px 12px", fontSize: 13 }}>
+                <Btn v="secondary" onClick={() => { setQvQuestion(""); setQvOptions(["", ""]); setQvExpiry(0); setQvRequireCode(false); setScreen("qv_create"); trackEvent("qv_start"); }} style={{ flex: 1, padding: "13px 12px", fontSize: 13 }}>
                   {"\u26A1"} Quick Poll
                 </Btn>
                 <Btn v="secondary" onClick={() => { setScreen("qv_vote"); }} style={{ flex: 1, padding: "13px 12px", fontSize: 13 }}>
