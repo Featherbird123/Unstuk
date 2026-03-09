@@ -49,7 +49,7 @@ async function fetchAiChipSuggestions({ step, picked, context, count = 6 }) {
       : step === "opt"
       ? "concrete mutually-exclusive options tailored to this decision"
       : step === "qv-name"
-      ? "short poll questions (e.g. 'Best launch date?', 'Preferred office day?')"
+      ? "short poll questions as full sentences (e.g. 'Which launch date works best for the team?', 'What day should we hold the team offsite?', 'Which vendor should we move forward with?')"
       : step === "qv-opt"
       ? "short poll answer options (2-4 words, mutually exclusive)"
       : "distinct evaluation criteria for this decision (not overlapping with existing)";
@@ -169,8 +169,8 @@ const MULTI_ADV = [
 
 // ─── Content safety filter ───
 const BLOCKED_TERMS = [
-  "murder", "assassinate", "rape", "molest", "terrorist",
-  "kidnap", "torture", "trafficking", "strangle", "homicide",
+  "murder", "rape", "molest", "terrorist attack", "child abuse",
+  "sex trafficking", "genocide", "ethnic cleansing",
 ];
 
 function isBlockedContent(text) {
@@ -922,7 +922,7 @@ function ShareSheet({ text, title, onClose }) {
   const channels = [
     { label: "WhatsApp", icon: "\uD83D\uDCAC", href: `https://wa.me/?text=${encoded}`, bg: "#25D36612" },
     { label: "SMS", icon: "\uD83D\uDCF1", href: `sms:?&body=${encoded}`, bg: "#5B8DEF12" },
-    { label: "Email", icon: "\u2709\uFE0F", href: `mailto:?subject=${encodeURIComponent(title || "Unstuk")}&body=${encoded}%0A%0Ahttps%3A%2F%2Funstuk.app`, bg: "#EA433512" },
+    { label: "Email", icon: "\u2709\uFE0F", href: `mailto:?subject=${encodeURIComponent(title || "Unstuk")}&body=${encoded}%0A%0ATry%20Unstuk%20free%20%E2%86%92%20https%3A%2F%2Funstuk.app`, bg: "#EA433512" },
     { label: "Teams", icon: "\uD83D\uDCBC", href: `https://teams.microsoft.com/share?msgText=${encoded}`, bg: "#6264A712" },
     { label: "Telegram", icon: "\u2708", href: `https://t.me/share/url?text=${encoded}`, bg: "#229ED912" },
     { label: "X", icon: "\uD835\uDD4F", href: `https://twitter.com/intent/tweet?text=${encoded}`, bg: "#14171A12" },
@@ -1460,7 +1460,7 @@ function UnstukInner() {
             {/* Question */}
             <div style={{ marginTop: 16 }}>
               <Lbl>Your question</Lbl>
-              <TxtIn value={qvQuestion} onChange={setQvQuestion} placeholder="e.g. Which vendor should we shortlist?" maxLen={60} autoFocus={false} />
+              <TxtIn value={qvQuestion} onChange={setQvQuestion} placeholder="e.g. Which vendor should we shortlist?" maxLen={100} autoFocus={false} />
               {/* Chip area — always reactive while question not done */}
               {!qvChipsDone && (
                 <div style={{ minHeight: 52 }}>
@@ -1555,7 +1555,7 @@ function UnstukInner() {
                 }} style={{ flex: 1 }}>Share vote</Btn>
                 <Btn onClick={async () => {
                   const data = await loadQuickVoteResults(qvCode);
-                  if (data) { setQvResults(data); setScreen("qv_results"); }
+                  if (data) { setQvResults(data); setTimeout(() => setScreen("qv_results"), 0); }
                 }} style={{ flex: 1 }}>See results</Btn>
               </div>
               <button onClick={() => { setScreen("home"); setQvQuestion(""); setQvOptions(["", ""]); }} style={{ fontFamily: F.b, fontSize: 12, color: C.muted, background: "none", border: "none", cursor: "pointer", marginTop: 16 }}>Done</button>
@@ -1865,7 +1865,7 @@ function UnstukInner() {
                   if (!activeCode) { setQvLoading(false); return; }
                   const data = await loadQuickVoteResults(activeCode);
                   setQvLoading(false);
-                  if (data) { setQvResults(data); setScreen("qv_results"); }
+                  if (data) { setQvResults(data); setTimeout(() => setScreen("qv_results"), 0); }
                   else { setQvCode(null); try { window.storage.delete("unstuk_active_qvCode"); } catch(e) {} }
                 }}
                 style={{ width: "100%", padding: "13px 12px", fontSize: 13, opacity: qvCode ? 1 : 0.6 }}>
