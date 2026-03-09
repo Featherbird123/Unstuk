@@ -70,6 +70,7 @@ async function fetchAiChipSuggestions({ step, picked, context, count = 6 }) {
 function ChipPicker({ onPick, usedNames = [], storageKey, aiContext }) {
   const [chips, setChips] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [visible, setVisible] = useState(false);
   const mountedRef = useRef(true);
   const debounceRef = useRef(null);
   const lastContextRef = useRef(null);
@@ -81,17 +82,21 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext }) {
 
   const load = async (pickedSoFar = []) => {
     if (!mountedRef.current) return;
+    setVisible(false);
     setLoading(true);
     const suggestions = await fetchAiChipSuggestions({
       step: storageKey,
       picked: [...(usedNames || []), ...pickedSoFar],
       context: aiContext || { dName: "", opts: [], crits: [] },
-      count: 12,
+      count: 8,
     });
-    if (mountedRef.current) { setChips(suggestions); setLoading(false); }
+    if (mountedRef.current) {
+      setChips(suggestions);
+      setLoading(false);
+      setTimeout(() => { if (mountedRef.current) setVisible(true); }, 30);
+    }
   };
 
-  // Debounced reactive reload whenever aiContext changes meaningfully
   useEffect(() => {
     const ctxKey = JSON.stringify({
       dName: aiContext?.dName || "",
@@ -102,9 +107,8 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext }) {
     if (ctxKey === lastContextRef.current) return;
     lastContextRef.current = ctxKey;
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    // Immediate load on first mount, debounce subsequent changes
     const isFirst = chips.length === 0 && !loading;
-    debounceRef.current = setTimeout(() => { load(); }, isFirst ? 0 : 400);
+    debounceRef.current = setTimeout(() => { load(); }, isFirst ? 0 : 500);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [aiContext?.dName, aiContext?.typed, (aiContext?.opts||[]).length, (aiContext?.crits||[]).length]);
 
@@ -113,33 +117,64 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext }) {
     load([name]);
   };
 
-  if (loading) return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
-      {[80, 110, 90, 120, 70, 100].map((w, i) => (
-        <div key={i} style={{ height: 34, width: w, borderRadius: 22, background: `linear-gradient(90deg, ${C.accentLt}, ${C.bg}, ${C.accentLt})`, backgroundSize: "200% 100%", animation: "ustk-shimmer 1.2s infinite", border: `1px solid ${C.border}20` }} />
-      ))}
-      <style>{`@keyframes ustk-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
-    </div>
-  );
+  const visibleChips = chips.filter(ch => !usedNames.map(n => n.toLowerCase()).includes(ch.toLowerCase()));
 
   return (
-    <div style={{ marginTop: 10, marginBottom: 6 }}>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-        {chips.filter(ch => !usedNames.map(n => n.toLowerCase()).includes(ch.toLowerCase())).map((chip) => (
-          <button key={chip} onClick={() => handlePick(chip)} className="ustk-touch"
-            style={{ fontFamily: F.b, fontSize: 12, padding: "9px 14px", borderRadius: 22, border: `1.5px solid ${C.border}60`, background: C.card, color: C.text, cursor: "pointer", transition: "all 0.15s", lineHeight: 1.2 }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.sage; e.currentTarget.style.background = C.sageSoft; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.border + "60"; e.currentTarget.style.background = C.card; }}>
-            {chip}
-          </button>
-        ))}
-        {chips.length > 0 && (
-          <button onClick={() => load()} title="Refresh suggestions"
-            style={{ fontFamily: F.b, fontSize: 11, padding: "9px 12px", borderRadius: 22, border: `1.5px solid ${C.border}40`, background: "#fff", color: C.muted, cursor: "pointer", transition: "all 0.15s" }}>
-            ↻
-          </button>
-        )}
-      </div>
+    <div style={{ marginTop: 12, marginBottom: 4, minHeight: 44 }}>
+      <style>{`
+        @keyframes ustk-chip-in {
+          from { opacity: 0; transform: translateY(6px) scale(0.94); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes ustk-dot-pulse {
+          0%, 80%, 100% { opacity: 0.2; transform: scale(0.7); }
+          40% { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
+      {loading && (
+        <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 6, paddingLeft: 2 }}>
+          {[0, 0.18, 0.36].map((delay, i) => (
+            <div key={i} style={{
+              width: 6, height: 6, borderRadius: "50%",
+              background: C.sage,
+              opacity: 0.2,
+              animation: `ustk-dot-pulse 1.1s ease-in-out ${delay}s infinite`,
+            }} />
+          ))}
+        </div>
+      )}
+      {!loading && visibleChips.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+          {visibleChips.map((chip, i) => (
+            <button key={chip} onClick={() => handlePick(chip)} className="ustk-touch"
+              style={{
+                fontFamily: F.b, fontSize: 12, padding: "8px 14px",
+                borderRadius: 20,
+                border: `1.5px solid ${C.border}`,
+                background: "#fff",
+                color: C.text,
+                cursor: "pointer",
+                lineHeight: 1.2,
+                opacity: visible ? 1 : 0,
+                transform: visible ? "none" : "translateY(5px) scale(0.95)",
+                transition: `opacity 0.28s ease ${i * 0.04}s, transform 0.28s ease ${i * 0.04}s, border-color 0.15s, background 0.15s`,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.sage; e.currentTarget.style.background = C.sageSoft; e.currentTarget.style.color = C.sage; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = "#fff"; e.currentTarget.style.color = C.text; }}>
+              {chip}
+            </button>
+          ))}
+          <button onClick={() => load()} title="Refresh"
+            style={{
+              fontSize: 13, padding: "8px 11px", borderRadius: 20,
+              border: `1.5px solid ${C.border}40`, background: "transparent",
+              color: C.border, cursor: "pointer",
+              opacity: visible ? 0.7 : 0,
+              transition: `opacity 0.28s ease ${visibleChips.length * 0.04}s`,
+            }}>↻</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -686,60 +721,75 @@ function ResultsView({ results, dName, critCount, onDone, onBack, onImmediate, o
           </p>
         )}
 
-        {/* ── Gut check — seamless part of the results page ── */}
+        {/* ── Gut pulse — minimal, high-contrast, instant ── */}
         {!gutDone && gutVisible && !groupCreated && (
-          <div style={{
-            opacity: 1,
-            marginTop: 28,
-            transition: "opacity 0.6s ease",
-          }}>
-            <div style={{ width: 40, height: 2, background: `linear-gradient(90deg, transparent, ${C.sage}40, transparent)`, margin: "0 auto 20px", borderRadius: 1 }} />
-            <p style={{ fontFamily: F.d, fontSize: 17, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>
-              {"\u{1F4CB}"} Record your initial read
-            </p>
-            <p style={{ fontFamily: F.b, fontSize: 11, color: C.text, margin: "0 0 4px", lineHeight: 1.6 }}>
-              Research shows people who track their initial intuition against outcomes become measurably better decision-makers over time. This is the basis of calibration training used in fields like medicine and intelligence analysis.
-            </p>
-            <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, margin: "0 0 14px" }}>One tap. In <strong>3 days</strong> we'll check how it played out.</p>
-            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-              {[
-                { label: "Confident", emoji: "\u2714", value: "confident", bg: "#e8f5e9", color: "#2e7d32" },
-                { label: "Uncertain", emoji: "\u2022", value: "uncertain", bg: "#fff8e1", color: "#f57f17" },
-                { label: "Uneasy", emoji: "\u2716", value: "uneasy", bg: "#fce4ec", color: "#c62828" },
-              ].map((o) => (
-                <button key={o.value} onClick={() => {
-                  setGutPicked(o.value);
-                  setTimeout(() => { setGutDone(true); onImmediate && onImmediate(o.value); trackEvent("gut", { v: o.value }); }, 1200);
-                }}
-                  className="ustk-touch" style={{
-                    fontFamily: F.b, fontSize: 12, fontWeight: 500, padding: "12px 20px", cursor: "pointer", textAlign: "center",
-                    border: `2px solid ${gutPicked === o.value ? o.color : C.border}40`,
-                    borderRadius: 12,
-                    background: gutPicked === o.value ? o.bg : C.card,
-                    color: o.color,
-                    transition: "all 0.35s cubic-bezier(0.16,1,0.3,1)",
-                    transform: gutPicked === o.value ? "scale(1.06)" : gutPicked && gutPicked !== o.value ? "scale(0.94)" : "scale(1)",
-                    opacity: gutPicked && gutPicked !== o.value ? 0.3 : 1,
-                    boxShadow: gutPicked === o.value ? `0 2px 12px ${o.color}20` : "none",
-                    flex: 1,
-                  }}>
-                  <div style={{ fontSize: 18, marginBottom: 4 }}>{o.emoji}</div>
-                  {o.label}
-                  {gutPicked === o.value && <div style={{ marginTop: 4, fontSize: 10, color: "#9a8a72" }}>{"\u2713"}</div>}
-                </button>
-              ))}
-            </div>
-            {gutPicked && (
-              <p style={{
-                fontFamily: F.b, fontSize: 10, color: C.sage, margin: "12px 0 0",
-                opacity: 1, transition: "opacity 0.3s ease",
-              }}>
-                \u2713 Recorded — come back in 3 days to see how your instinct measured up.
+          <div style={{ marginTop: 32 }}>
+            <style>{`
+              @keyframes ustk-gut-in {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+              }
+              @keyframes ustk-gut-confirm {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.08); }
+                100% { transform: scale(1); }
+              }
+            `}</style>
+            <div style={{
+              animation: "ustk-gut-in 0.4s ease forwards",
+              borderTop: `1px solid ${C.border}`,
+              paddingTop: 20,
+            }}>
+              <p style={{ fontFamily: F.b, fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 6px", fontWeight: 600 }}>
+                Gut pulse
               </p>
-            )}
-            <p style={{ fontFamily: F.b, fontSize: 9, color: C.border, margin: "8px 0 0", lineHeight: 1.5, textAlign: "center" }}>
-              Kahneman & Klein (2009) found that structured reflection on predictions is the single most effective way to improve intuitive judgment.
-            </p>
+              <p style={{ fontFamily: F.d, fontSize: 19, fontWeight: 600, color: C.text, margin: "0 0 16px", lineHeight: 1.3 }}>
+                How does this feel?
+              </p>
+              <div style={{ display: "flex", gap: 8 }}>
+                {[
+                  { label: "Confident", value: "confident", accent: "#2e7d32", soft: "#f0f7f0" },
+                  { label: "Uncertain", value: "uncertain", accent: "#b45309", soft: "#fdf8f0" },
+                  { label: "Uneasy",    value: "uneasy",    accent: "#9a3412", soft: "#fdf4f2" },
+                ].map((o) => {
+                  const picked = gutPicked === o.value;
+                  const faded  = gutPicked && !picked;
+                  return (
+                    <button key={o.value} onClick={() => {
+                      setGutPicked(o.value);
+                      setTimeout(() => { setGutDone(true); onImmediate && onImmediate(o.value); trackEvent("gut", { v: o.value }); }, 900);
+                    }}
+                      className="ustk-touch"
+                      style={{
+                        flex: 1,
+                        fontFamily: F.b,
+                        fontSize: 12,
+                        fontWeight: picked ? 700 : 500,
+                        padding: "13px 8px",
+                        borderRadius: 10,
+                        border: `2px solid ${picked ? o.accent : C.border}`,
+                        background: picked ? o.accent : "#fff",
+                        color: picked ? "#fff" : C.text,
+                        cursor: "pointer",
+                        textAlign: "center",
+                        transition: "all 0.2s cubic-bezier(0.16,1,0.3,1)",
+                        transform: picked ? "scale(1.04)" : faded ? "scale(0.96)" : "scale(1)",
+                        opacity: faded ? 0.35 : 1,
+                        animation: picked ? "ustk-gut-confirm 0.3s ease" : "none",
+                        boxShadow: picked ? `0 4px 16px ${o.accent}30` : "0 1px 3px rgba(0,0,0,0.06)",
+                        letterSpacing: "0.01em",
+                      }}>
+                      {o.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {gutPicked && (
+                <p style={{ fontFamily: F.b, fontSize: 10, color: C.sage, margin: "10px 0 0", letterSpacing: "0.02em" }}>
+                  ✓ Recorded — check back in 3 days.
+                </p>
+              )}
+            </div>
           </div>
         )}
 
