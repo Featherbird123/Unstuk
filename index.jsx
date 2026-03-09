@@ -922,7 +922,7 @@ function ShareSheet({ text, title, onClose }) {
   const channels = [
     { label: "WhatsApp", icon: "\uD83D\uDCAC", href: `https://wa.me/?text=${encoded}`, bg: "#25D36612" },
     { label: "SMS", icon: "\uD83D\uDCF1", href: `sms:?&body=${encoded}`, bg: "#5B8DEF12" },
-    { label: "Email", icon: "\u2709\uFE0F", href: `mailto:?subject=${encodeURIComponent(title || "Unstuk")}&body=${encoded}`, bg: "#EA433512" },
+    { label: "Email", icon: "\u2709\uFE0F", href: `mailto:?subject=${encodeURIComponent(title || "Unstuk")}&body=${encoded}%0A%0Ahttps%3A%2F%2Funstuk.app`, bg: "#EA433512" },
     { label: "Teams", icon: "\uD83D\uDCBC", href: `https://teams.microsoft.com/share?msgText=${encoded}`, bg: "#6264A712" },
     { label: "Telegram", icon: "\u2708", href: `https://t.me/share/url?text=${encoded}`, bg: "#229ED912" },
     { label: "X", icon: "\uD835\uDD4F", href: `https://twitter.com/intent/tweet?text=${encoded}`, bg: "#14171A12" },
@@ -1173,8 +1173,8 @@ function UnstukInner() {
     trackEvent("quickvote_create");
     const exL = qvExpiry === 0 ? "No time limit" : qvExpiry < 1 ? `${Math.round(qvExpiry * 60)} mins` : qvExpiry <= 1 ? "1 hour" : qvExpiry <= 24 ? `${qvExpiry} hours` : `${Math.round(qvExpiry / 24)} days`;
     const qvShareText = `📊 Quick Poll: ${sanitize(qvQuestion.trim())}\n\nOptions:\n${opts.map((o, i) => `${i + 1}. ${o}`).join("\n")}${qvRequireCode ? `\n\nCode: ${code}` : ""}\n\nRespond at unstuk.app${qvExpiry > 0 ? `\n\nCloses in: ${exL}` : ""}`;
-    setShareSheetData({ text: qvShareText, title: "Share Quick Poll" });
-    setScreen("qv_share");
+    setShareSheetData({ text: qvShareText, title: "Share Quick Poll", afterClose: () => setScreen("home") });
+    setScreen("home");
   };
 
   const joinQuickVote = async (code) => {
@@ -3538,10 +3538,10 @@ function UnstukInner() {
           <H size="md">Name your two options</H>
           <Sub>30 characters max. Pick a suggestion or type your own.</Sub>
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
-            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              <div style={{ flex: 1 }}><Lbl>Option A</Lbl><TxtIn value={bo1} onChange={setBo1} placeholder="" inputId="binA" onSubmit={() => { document.getElementById("binB")?.focus(); }} maxLen={30} /></div>
-              <div style={{ flex: 1 }}><Lbl>Option B</Lbl><TxtIn value={bo2} onChange={setBo2} placeholder="" inputId="binB" autoFocus={false} onSubmit={() => { if (bo1.trim() && bo2.trim()) { if (isBlockedContent(bo1) || isBlockedContent(bo2)) { setBlocked(true); return; } goStep("criteria"); } }} maxLen={30} /></div>
-              <Btn onClick={() => { if (isBlockedContent(bo1) || isBlockedContent(bo2)) { setBlocked(true); return; } goStep("criteria"); }} disabled={!bo1.trim() || !bo2.trim()} style={{ padding: "12px 16px", fontSize: 13, whiteSpace: "nowrap", flexShrink: 0, alignSelf: "flex-end" }}>Next</Btn>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div><Lbl>Option A</Lbl><TxtIn value={bo1} onChange={setBo1} placeholder="" inputId="binA" onSubmit={() => { document.getElementById("binB")?.focus(); }} maxLen={30} /></div>
+              <div><Lbl>Option B</Lbl><TxtIn value={bo2} onChange={setBo2} placeholder="" inputId="binB" autoFocus={false} onSubmit={() => { if (bo1.trim() && bo2.trim()) { if (isBlockedContent(bo1) || isBlockedContent(bo2)) { setBlocked(true); return; } goStep("criteria"); } }} maxLen={30} /></div>
+              <Btn onClick={() => { if (isBlockedContent(bo1) || isBlockedContent(bo2)) { setBlocked(true); return; } goStep("criteria"); }} disabled={!bo1.trim() || !bo2.trim()} style={{ width: "100%", fontSize: 13, padding: "13px 28px", marginTop: 4 }}>Next</Btn>
             </div>
           </div>
           <ChipPicker storageKey="opt" usedNames={[bo1, bo2].filter(Boolean)} aiContext={{ dName, opts: [bo1,bo2].filter(Boolean).map(n=>({name:n})), crits: [], typed: (!bo2 ? bo2 : !bo1 ? bo1 : "") }} onPick={(name) => {
