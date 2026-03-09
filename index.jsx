@@ -339,7 +339,7 @@ function TxtIn({ value, onChange, onSubmit, onFocus, placeholder, autoFocus = tr
         onKeyDown={(e) => { if (e.key === "Enter" && value.trim()) onSubmit?.(); }}
         placeholder={placeholder}
         maxLength={maxLen || undefined}
-        style={{ width: "100%", boxSizing: "border-box", fontFamily: F.b, fontSize: 15, padding: "13px 16px", paddingRight: maxLen ? 48 : 16, border: `1px solid ${C.border}`, borderRadius: 8, outline: "none", background: "#fff", color: C.text, transition: "border-color 0.2s" }}
+        style={{ width: "100%", boxSizing: "border-box", fontFamily: F.b, fontSize: 13, padding: "13px 16px", paddingRight: maxLen ? 48 : 16, border: `1px solid ${C.border}`, borderRadius: 8, outline: "none", background: "#ffffff", color: C.text, transition: "border-color 0.2s", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}
         onFocus={(e) => { e.target.style.borderColor = C.accent; onFocus?.(); }}
         onBlur={(e) => (e.target.style.borderColor = C.border)}
       />
@@ -456,7 +456,7 @@ function CritRows({ items, onRemove, lastAddedId }) {
               color: cr.importance === 3 ? C.sage : cr.importance === 2 ? C.taupe : C.muted }}>
               {IMPORTANCE.find((x) => x.value === cr.importance)?.label}
             </span>
-            {onRemove && <button onClick={() => onRemove(cr.id)} style={{ background: "none", border: "none", cursor: "pointer", color: C.border, fontSize: 9, padding: "2px 6px", lineHeight: 1, opacity: 0.3, transition: "opacity 0.2s", letterSpacing: "0.02em" }} onMouseEnter={(e) => e.target.style.opacity="0.8"} onMouseLeave={(e) => e.target.style.opacity="0.3"}>remove</button>}
+            {onRemove && <button onClick={() => onRemove(cr.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#9A3412", fontSize: 11, padding: "2px 8px", lineHeight: 1, opacity: 0.6, transition: "opacity 0.2s", letterSpacing: "0.02em", fontWeight: 500 }} onMouseEnter={(e) => e.target.style.opacity="1"} onMouseLeave={(e) => e.target.style.opacity="0.6"}>remove</button>}
           </div>
         </div>
       ))}
@@ -472,7 +472,7 @@ function OptRows({ items, onRemove, lastAddedId }) {
           <span><span style={{ color: C.muted, marginRight: 6 }}>{i + 1}.</span>{o.name}</span>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {lastAddedId === o.id && <span style={{ fontSize: 11, color: "#9a8a72" }}>{"\u2713"}</span>}
-            {onRemove && <button onClick={() => onRemove(o.id)} style={{ background: "none", border: "none", cursor: "pointer", color: C.border, fontSize: 9, padding: "2px 6px", lineHeight: 1, opacity: 0.3, transition: "opacity 0.2s", letterSpacing: "0.02em" }} onMouseEnter={(e) => e.target.style.opacity="0.8"} onMouseLeave={(e) => e.target.style.opacity="0.3"}>remove</button>}
+            {onRemove && <button onClick={() => onRemove(o.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#9A3412", fontSize: 11, padding: "2px 8px", lineHeight: 1, opacity: 0.6, transition: "opacity 0.2s", letterSpacing: "0.02em", fontWeight: 500 }} onMouseEnter={(e) => e.target.style.opacity="1"} onMouseLeave={(e) => e.target.style.opacity="0.6"}>remove</button>}
           </div>
         </div>
       ))}
