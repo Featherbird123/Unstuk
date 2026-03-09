@@ -922,7 +922,7 @@ function ShareSheet({ text, title, onClose }) {
   const channels = [
     { label: "WhatsApp", icon: "\uD83D\uDCAC", href: `https://wa.me/?text=${encoded}`, bg: "#25D36612" },
     { label: "SMS", icon: "\uD83D\uDCF1", href: `sms:?&body=${encoded}`, bg: "#5B8DEF12" },
-    { label: "Email", icon: "\u2709\uFE0F", href: `mailto:?subject=${encodeURIComponent(title || "Unstuk")}&body=${encoded}%0A%0ATry%20Unstuk%20free%20%E2%86%92%20https%3A%2F%2Funstuk.app`, bg: "#EA433512" },
+    { label: "Email", icon: "\u2709\uFE0F", href: `mailto:?subject=${encodeURIComponent(title || "Unstuk")}&body=${encoded}%0A%0AGet%20Unstuk%20Now%20%E2%86%92%20https%3A%2F%2Funstuk.app`, bg: "#EA433512" },
     { label: "Teams", icon: "\uD83D\uDCBC", href: `https://teams.microsoft.com/share?msgText=${encoded}`, bg: "#6264A712" },
     { label: "Telegram", icon: "\u2708", href: `https://t.me/share/url?text=${encoded}`, bg: "#229ED912" },
     { label: "X", icon: "\uD835\uDD4F", href: `https://twitter.com/intent/tweet?text=${encoded}`, bg: "#14171A12" },
@@ -1174,7 +1174,7 @@ function UnstukInner() {
     const exL = qvExpiry === 0 ? "No time limit" : qvExpiry < 1 ? `${Math.round(qvExpiry * 60)} mins` : qvExpiry <= 1 ? "1 hour" : qvExpiry <= 24 ? `${qvExpiry} hours` : `${Math.round(qvExpiry / 24)} days`;
     const qvShareText = `📊 Quick Poll: ${sanitize(qvQuestion.trim())}\n\nOptions:\n${opts.map((o, i) => `${i + 1}. ${o}`).join("\n")}${qvRequireCode ? `\n\nCode: ${code}` : ""}\n\nRespond at unstuk.app${qvExpiry > 0 ? `\n\nCloses in: ${exL}` : ""}`;
     setShareSheetData({ text: qvShareText, title: "Share Quick Poll", afterClose: () => setScreen("home") });
-    setScreen("home");
+    setScreen("qv_share");
   };
 
   const joinQuickVote = async (code) => {
@@ -3354,7 +3354,7 @@ function UnstukInner() {
     return (
       <div style={{ minHeight: "100vh", background: C.bg, fontFamily: F.b }}>
         <div style={{ maxWidth: 440, margin: "0 auto", padding: "36px 24px" }}>
-          <BackBtn onClick={() => reflectStep > 0 ? setReflectStep(reflectStep - 1) : setScreen("home")} />
+          <BackBtn onClick={() => reflectStep > 0 ? setReflectStep(reflectStep - 1) : setScreen("home")} /><HomeBtn onClick={() => setScreen("home")} />
           <FadeIn key={reflectStep}>
             <Dots current={reflectStep} total={reviewQs.length} />
             <div style={{ marginBottom: 8 }}>
