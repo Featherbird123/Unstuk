@@ -1495,94 +1495,71 @@ function UnstukInner() {
   // ─── QUICK VOTE: CREATE ───
   if (screen === "qv_create") {
       const validOpts = qvOptions.filter(o => o.trim()).length;
-      const qvChipsDone = validOpts >= 2;
+      const canCreate = qvQuestion.trim() && validOpts >= 2;
       return (
-      <div style={{ minHeight: "100vh", background: C.bg, fontFamily: F.b }}>
-        <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-        <div style={{ maxWidth: 440, margin: "0 auto", padding: "36px 24px" }}>
-          <style>{touchStyle}</style>
-          <Card>
-          <FadeIn>
-            <BackBtn onClick={() => setScreen("home")} />
-            <H size="md">Quick Poll</H>
-            <Sub>Ask a question. Share it anywhere. Get instant votes.</Sub>
-
-            {/* Question */}
-            <div style={{ marginTop: 16 }}>
-              <Lbl>Your question</Lbl>
-              <TxtIn value={qvQuestion} onChange={setQvQuestion} placeholder="e.g. Which vendor should we shortlist?" maxLen={100} autoFocus={false} />
-              {/* Chip area — always reactive while question not done */}
-              {!qvChipsDone && (
-                <div style={{ minHeight: 52 }}>
-                  <ChipPicker storageKey="qv-name" usedNames={qvQuestion ? [qvQuestion] : []} onPick={(name) => { setQvQuestion(name); }} aiContext={{ dName: "quick poll question", opts: [], crits: [], typed: "" }} />
-                </div>
-              )}
+      <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", padding: "0 0 40px" }}>
+        <div style={{ width: "100%", maxWidth: 480, padding: "24px 20px 0" }}>
+          <BackBtn onClick={() => setScreen("home")} />
+          <p style={{ fontFamily: F.b, fontSize: 10, color: C.sage, textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600, margin: "0 0 6px" }}>Quick Poll</p>
+          <H size="md" style={{ margin: "0 0 20px" }}>Ask your team</H>
+          <div style={{ background: C.card, borderRadius: 14, border: , padding: "18px 16px", marginBottom: 12 }}>
+            <p style={{ fontFamily: F.b, fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", fontWeight: 600 }}>Question</p>
+            <TxtIn value={qvQuestion} onChange={setQvQuestion} placeholder="e.g. Which vendor should we shortlist?" maxLen={100} autoFocus={false} />
+            <div style={{ marginTop: 10 }}>
+              <ChipPicker storageKey="qv-name" usedNames={qvQuestion ? [qvQuestion] : []} onPick={(name) => { setQvQuestion(name); }} aiContext={{ dName: "quick poll question", opts: [], crits: [], typed: "" }} />
             </div>
-
-            {/* Options */}
-            <div style={{ marginTop: 8 }}>
-              <Lbl>Options {validOpts > 0 && <span style={{ color: C.sage, fontWeight: 600 }}>{validOpts}</span>}</Lbl>
-              {qvOptions.map((opt, i) => (
-                <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
-                  <span style={{ fontFamily: F.b, fontSize: 11, color: C.muted, width: 20, textAlign: "center", flexShrink: 0 }}>{i + 1}.</span>
-                  <div style={{ flex: 1 }}>
-                    <TxtIn value={opt} onChange={(v) => { const n = [...qvOptions]; n[i] = v; setQvOptions(n); }} autoFocus={false} placeholder={i < 2 ? "Required" : "Optional"} maxLen={30} inputId={`qvopt-${i}`} />
-                  </div>
-                  {i >= 2 && <button onClick={() => setQvOptions(qvOptions.filter((_, j) => j !== i))} style={{ fontFamily: F.b, fontSize: 14, color: C.border, background: "none", border: "none", cursor: "pointer", padding: "4px 8px", lineHeight: 1 }}>{"\u00D7"}</button>}
+          </div>
+          <div style={{ background: C.card, borderRadius: 14, border: , padding: "18px 16px", marginBottom: 12 }}>
+            <p style={{ fontFamily: F.b, fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", fontWeight: 600 }}>Options</p>
+            {qvOptions.map((opt, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <div style={{ width: 22, height: 22, borderRadius: "50%", border: , background: opt.trim() ? C.sage : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.2s" }}>
+            {qvOptions.map((opt, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <div style={{ width: 22, height: 22, borderRadius: "50%", border: `2px solid ${opt.trim() ? C.sage : C.border}`, background: opt.trim() ? C.sage : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.2s" }}>
+                  <span style={{ fontFamily: F.b, fontSize: 10, color: opt.trim() ? "#fff" : C.muted, fontWeight: 700 }}>{i + 1}</span>
                 </div>
+                <div style={{ flex: 1 }}>
+                  <TxtIn value={opt} onChange={(v) => { const n = [...qvOptions]; n[i] = v; setQvOptions(n); }} autoFocus={false} placeholder={i < 2 ? "Required" : "Optional"} maxLen={30} inputId={`qvopt-${i}`} />
+                </div>
+                {i >= 2 && <button onClick={() => setQvOptions(qvOptions.filter((_, j) => j !== i))} style={{ background: "none", border: "none", cursor: "pointer", color: C.error, fontSize: 16, lineHeight: 1, padding: "4px", opacity: 0.6 }}>×</button>}
+              </div>
+            ))}
+            {qvOptions.length < 6 && (
+              <button onClick={() => setQvOptions([...qvOptions, ""])} style={{ fontFamily: F.b, fontSize: 11, color: C.sage, background: "none", border: `1px dashed ${C.sage}60`, borderRadius: 8, padding: "8px 14px", cursor: "pointer", marginTop: 4, width: "100%" }}>+ Add option</button>
+            )}
+            <div style={{ marginTop: 12 }}>
+              <ChipPicker storageKey="qv-opt" usedNames={qvOptions.filter(Boolean)} onPick={(name) => {
+                const emptyIdx = qvOptions.findIndex(o => !o.trim());
+                if (emptyIdx !== -1) { const n = [...qvOptions]; n[emptyIdx] = name; setQvOptions(n); }
+                else if (qvOptions.length < 6) setQvOptions([...qvOptions, name]);
+              }} aiContext={{ dName: qvQuestion || "poll options", opts: [], crits: [], typed: "" }} />
+            </div>
+          </div>
+          <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, padding: "18px 16px", marginBottom: 12 }}>
+            <p style={{ fontFamily: F.b, fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", fontWeight: 600 }}>Settings</p>
+            <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, margin: "0 0 8px" }}>Time limit</p>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {[{ label: "None", v: 0 }, { label: "1h", v: 1 }, { label: "4h", v: 4 }, { label: "24h", v: 24 }, { label: "3d", v: 72 }].map(t => (
+                <button key={t.v} onClick={() => setQvExpiry(t.v)} style={{ fontFamily: F.b, fontSize: 11, padding: "7px 14px", borderRadius: 8, border: `1.5px solid ${qvExpiry === t.v ? C.sage : C.border}`, background: qvExpiry === t.v ? C.sage : "transparent", color: qvExpiry === t.v ? "#fff" : C.text, cursor: "pointer", transition: "all 0.15s", fontWeight: qvExpiry === t.v ? 600 : 400 }}>{t.label}</button>
               ))}
-              {qvOptions.length < 6 && (
-                <button onClick={() => setQvOptions([...qvOptions, ""])} style={{ fontFamily: F.b, fontSize: 11, color: C.sage, background: "none", border: `1px dashed ${C.sage}40`, borderRadius: 8, cursor: "pointer", padding: "7px 14px", width: "100%", marginTop: 2 }}>+ Add option</button>
-              )}
-              {/* Chip area — reactive to question + options */}
-              {!qvChipsDone && (
-                <div style={{ minHeight: 52 }}>
-                  <ChipPicker storageKey="qv-opt" usedNames={qvOptions.filter(Boolean)} onPick={(name) => {
-                    const emptyIdx = qvOptions.findIndex(o => !o.trim());
-                    if (emptyIdx >= 0) {
-                      const n = [...qvOptions]; n[emptyIdx] = name; setQvOptions(n);
-                      const nextEmpty = n.findIndex((o, i) => i > emptyIdx && !o.trim());
-                      const focusIdx = nextEmpty >= 0 ? nextEmpty : (n.length < 6 ? n.length : -1);
-                      if (focusIdx >= 0) setTimeout(() => { const el = document.getElementById(`qvopt-${focusIdx}`); if (el) el.focus(); }, 50);
-                    }
-                    else if (qvOptions.length < 6) setQvOptions([...qvOptions, name]);
-                  }} aiContext={{ dName: qvQuestion, opts: qvOptions.filter(Boolean).map(o => ({ name: o })), crits: [], typed: qvOptions.filter(Boolean).slice(-1)[0] || "" }} />
-                </div>
-              )}
             </div>
-
-            <div style={{ marginTop: 4 }}>
-              <Btn onClick={createQuickVote} disabled={!qvQuestion.trim() || validOpts < 2} style={{ width: "100%", padding: "13px 28px", fontSize: 14 }}>Create Vote</Btn>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
+              <button onClick={() => setQvRequireCode(!qvRequireCode)} style={{ width: 36, height: 20, borderRadius: 10, border: "none", background: qvRequireCode ? C.sage : C.border, cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+                <span style={{ position: "absolute", top: 2, left: qvRequireCode ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
+              </button>
+              <span style={{ fontFamily: F.b, fontSize: 11, color: C.muted }}>Require join code</span>
             </div>
-
-            {/* Time limit */}
-            <div style={{ marginTop: 16 }}>
-              <Lbl>Time limit <span style={{ fontWeight: 400, color: C.muted }}>(optional)</span></Lbl>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {[{ label: "15 min", val: 0.25 }, { label: "1 hour", val: 1 }, { label: "6 hours", val: 6 }, { label: "24 hours", val: 24 }, { label: "3 days", val: 72 }, { label: "1 week", val: 168 }, { label: "No limit", val: 0 }].map((t) => (
-                  <button key={t.val} onClick={() => setQvExpiry(qvExpiry === t.val ? 0 : t.val)}
-                    style={{ fontFamily: F.b, fontSize: 10, padding: "7px 10px", borderRadius: 6, cursor: "pointer", border: `1px solid ${qvExpiry === t.val ? C.sage : C.border}`, background: qvExpiry === t.val ? C.sageSoft : "#fff", color: qvExpiry === t.val ? C.sage : C.text, fontWeight: qvExpiry === t.val ? 600 : 400, transition: "all 0.15s" }}>{t.label}</button>
-                ))}
-              </div>
-            </div>
-
-            {/* Security — code required toggle */}
-            <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => setQvRequireCode(r => !r)}>
-              <div style={{ width: 36, height: 20, borderRadius: 10, position: "relative", flexShrink: 0, background: qvRequireCode ? C.sage : C.accentLt, transition: "background 0.2s" }}>
-                <div style={{ width: 16, height: 16, borderRadius: 8, background: "#fff", position: "absolute", top: 2, left: qvRequireCode ? 18 : 2, transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
-              </div>
-              <span style={{ fontFamily: F.b, fontSize: 12, color: C.text }}>Require code to join</span>
-            </div>
-          </FadeIn>
-          </Card>
+          </div>
+          <Btn onClick={() => createQuickVote()} disabled={!canCreate} style={{ width: "100%", fontSize: 14, padding: "15px 20px" }}>
+            {canCreate ? "Create & Share Poll →" : "Add 2 options to create"}
+          </Btn>
         </div>
-        {shareSheetData && <ShareSheet text={shareSheetData.text} title={shareSheetData.title} onClose={() => { const ac = shareSheetData?.afterClose; setShareSheetData(null); if (ac) ac(); }} />}
       </div>
-    );
-  }
+      );
+    }
 
-  // ─── QUICK VOTE: SHARE ───
-  if (screen === "qv_share") {
+    if (screen === "qv_share") {
       const expiryLabel = qvExpiry === 0 ? "No time limit" : qvExpiry < 1 ? `${Math.round(qvExpiry * 60)} mins` : qvExpiry <= 1 ? "1 hour" : qvExpiry <= 24 ? `${qvExpiry} hours` : `${Math.round(qvExpiry / 24)} days`;
       return (
       <div style={{ minHeight: "100vh", background: C.bg, fontFamily: F.b }}>
