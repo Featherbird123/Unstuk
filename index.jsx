@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 
-const APP_VERSION = "1.5.0";
+const APP_VERSION = "1.6.0";
 
 // ─── Lightweight analytics (stored locally, exportable) ───
 const _evtLog = [];
@@ -658,7 +658,7 @@ function ResultsView({ results, dName, critCount, onDone, onBack, onImmediate, o
           : "  Result: " + sorted[0].name + " is the clear winner",
     "",
     "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500",
-    "  Stuck on a decision? Try Unstuk free.",
+    "  Think to get unstuk — try it free.",
     "  https://unstuk.app",
     "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500",
   ].join("\n");
@@ -688,7 +688,7 @@ function ResultsView({ results, dName, critCount, onDone, onBack, onImmediate, o
         </div>
         {ph < 2 && <p style={{ fontFamily: F.b, fontSize: 10, color: C.border, margin: "0 0 12px", cursor: "pointer" }}>tap to skip</p>}
         <H size="xl">{tie ? "It\u2019s a tie" : sorted[0].name}</H>
-        {!tie && <p style={{ fontFamily: F.b, fontSize: 14, color: C.muted, marginTop: 6 }}>is the stronger choice</p>}
+        {!tie && <p style={{ fontFamily: F.b, fontSize: 14, color: C.muted, marginTop: 6 }}>is the stronger choice — your thinking, your call</p>}
 
         {strengthMsg[strength] && (
           <p style={{ fontFamily: F.b, fontSize: 12, color: strength === "clear" ? C.sage : C.taupe, marginTop: 10, fontStyle: "italic" }}>
@@ -983,7 +983,8 @@ function ShareSheet({ text, title, onClose }) {
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 1000 }} onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: "20px 20px 0 0", padding: "20px 20px 32px", maxWidth: 440, width: "100%", boxShadow: "0 -8px 40px rgba(0,0,0,0.12)", animation: "ustk-sheet-up 0.25s ease" }}>
         <div style={{ width: 36, height: 4, borderRadius: 2, background: C.border, margin: "0 auto 16px", opacity: 0.5 }} />
-        <p style={{ fontFamily: F.b, fontSize: 13, fontWeight: 600, color: C.text, margin: "0 0 14px", textAlign: "center" }}>{title || "Share"}</p>
+        <p style={{ fontFamily: F.b, fontSize: 13, fontWeight: 600, color: C.text, margin: "0 0 4px", textAlign: "center" }}>{title || "Share"}</p>
+        <p style={{ fontFamily: F.b, fontSize: 10, color: C.sage, margin: "0 0 14px", textAlign: "center", letterSpacing: "0.04em", fontStyle: "italic" }}>Get thinking. Get unstuk.</p>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 14 }}>
           {channels.map(ch => (
@@ -1185,6 +1186,8 @@ function UnstukInner() {
   const [mPairs, setMPairs] = useState([]);
 
   const [step, setStep] = useState("name");
+  const [commitDone, setCommitDone] = useState(false); // tracks if user has seen commitment prompt this session
+  const [commitChecked, setCommitChecked] = useState(false);
   const [res, setRes] = useState(null);
   const [savedId, setSavedId] = useState(null);
   const [rewardTick, setRewardTick] = useState(0);
@@ -1409,6 +1412,8 @@ function UnstukInner() {
     setRewardTick(0);
     prevStep.current = [];
     setResultsGutDone(false); setResultsGroupCreated(false);
+    setCommitDone(false);
+    setCommitChecked(false);
   };
 
   const scoreBin = () => {
@@ -1486,9 +1491,9 @@ function UnstukInner() {
 
   // ─── ONBOARDING ───
   const onboardPages = [
-    { title: "Better business decisions, faster", body: "Unstuk brings the rigour of weighted criteria, pairwise comparison, and calibrated analysis to every business decision — in under two minutes. The kind of thinking that usually takes a workshop, done before your next meeting." },
-    { title: "Build a track record", body: "After each decision, capture your initial read. A few days later, reflect on how it played out. Over time, you'll see exactly when to trust the analysis and when instinct leads." },
-    { title: "Align your team faster", body: "Invite colleagues to weigh in on the same business decision. Everyone scores independently — then you see where the team aligns, where it diverges, and what's driving the gap. Faster alignment, better outcomes." },
+    { title: "Think to get unstuk — fast", body: "Unstuk is built on a belief: the best decisions don't come from avoiding thought — they come from thinking well. In under two minutes, Unstuk gives your thinking real structure: weighted criteria, honest comparison, clear result. You do the thinking. Unstuk makes it fast." },
+    { title: "You're in charge — always", body: "Unstuk doesn't decide for you. It empowers you, your business, your board, or your team to work through options and criteria with clarity. Every score, every weight, every call is yours. Unstuk just holds the framework so nothing gets missed." },
+    { title: "Get thinking. Get unstuk.", body: "The more you use Unstuk, the better your thinking gets. After each decision, capture your instinct. Reflect three days later. Over time, you'll see exactly when your structured thinking was right — and sharpen your edge for next time." },
   ];
 
   // ─── QUICK VOTE / PULSE SURVEY (renders above all other screens) ───
@@ -1500,7 +1505,7 @@ function UnstukInner() {
       <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", padding: "0 0 40px" }}>
         <div style={{ width: "100%", maxWidth: 480, padding: "24px 20px 0" }}>
           <BackBtn onClick={() => setScreen("home")} />
-          <p style={{ fontFamily: F.b, fontSize: 10, color: C.sage, textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600, margin: "0 0 6px" }}>Quick Poll</p>
+          <p style={{ fontFamily: F.b, fontSize: 10, color: C.sage, textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600, margin: "0 0 6px" }}>Quick Poll — Get thinking, get unstuk</p>
           <H size="md" style={{ margin: "0 0 20px" }}>Ask your team</H>
           <div style={{ background: C.card, borderRadius: 14, border: , padding: "18px 16px", marginBottom: 12 }}>
             <p style={{ fontFamily: F.b, fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", fontWeight: 600 }}>Question</p>
@@ -1582,7 +1587,7 @@ function UnstukInner() {
               {qvExpiry > 0 && <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, margin: "8px 0" }}>Closes in {expiryLabel}</p>}
               <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
                 <Btn v="sage" onClick={() => {
-                  const text = `\u{1F4CA} Quick Poll: ${qvQuestion}\n\nOptions:\n${qvOptions.filter(Boolean).map((o, i) => `${i + 1}. ${o}`).join("\n")}${qvRequireCode ? `\n\nCode: ${qvCode}` : ""}\n\nRespond at unstuk.app`;
+                  const text = `\uD83D\uDCA1 Get thinking, get unstuk \u2014 Quick Poll: ${qvQuestion}\n\nOptions:\n${qvOptions.filter(Boolean).map((o, i) => `${i + 1}. ${o}`).join("\n")}${qvRequireCode ? `\n\nCode: ${qvCode}` : ""}\n\nRespond at unstuk.app`;
                   setShareSheetData({ text, title: "Share Quick Poll" });
                 }} style={{ flex: 1 }}>Share vote</Btn>
                 <Btn onClick={async () => {
@@ -1743,7 +1748,7 @@ function UnstukInner() {
                   const p = total > 0 ? Math.round((count / total) * 100) : 0;
                   return `${opt}: ${p}% (${count} vote${count !== 1 ? "s" : ""})`;
                 }).join("\n");
-                setShareSheetData({ text: `Quick Poll: ${qvResults.question}\n\n${lines}\n\n${total} total vote${total !== 1 ? "s" : ""}\n\nunstuk.app`, title: "Share Poll Results" });
+                setShareSheetData({ text: `Quick Poll: ${qvResults.question}\n\n${lines}\n\n${total} total vote${total !== 1 ? "s" : ""}\n\nGet thinking, get unstuk \u2014 unstuk.app`, title: "Share Poll Results" });
               }} style={{ flex: 1 }}>Share results</Btn>
               <Btn onClick={() => { setScreen("home"); setQvResults(null); setQvCode(null); try { window.storage.delete("unstuk_active_qvCode"); } catch(e) {} setQvQuestion(""); setQvOptions(["", ""]); }} style={{ flex: 1 }}>Done</Btn>
             </div>
@@ -1812,8 +1817,11 @@ function UnstukInner() {
                 <circle cx="512" cy="240" r="14" fill={C.sage} />
               </svg>
               <div style={{ fontFamily: F.d, fontSize: 42, fontWeight: 600, color: C.text, letterSpacing: "-0.01em", marginBottom: 10 }}>Unstuk</div>
-              <p style={{ fontFamily: F.b, fontSize: 14, color: C.muted, fontWeight: 300, lineHeight: 1.6 }}>
-                Better business decisions.<br />Faster alignment.
+              <p style={{ fontFamily: F.d, fontSize: 20, color: C.sage, fontWeight: 500, letterSpacing: "0.01em", margin: "0 0 8px", fontStyle: "italic" }}>
+                Think to get unstuk.
+              </p>
+              <p style={{ fontFamily: F.b, fontSize: 13, color: C.muted, fontWeight: 300, lineHeight: 1.6 }}>
+                Your thinking, structured. Your decision, faster.
               </p>
             </div>
           </FadeIn>
@@ -1826,16 +1834,16 @@ function UnstukInner() {
                   style={{ position: "absolute", top: 10, right: 12, background: "none", border: "none", cursor: "pointer", fontFamily: F.b, fontSize: 14, color: C.border, lineHeight: 1 }}>{"\u00D7"}</button>
                 <p style={{ fontFamily: F.b, fontSize: 10, color: C.sage, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px", fontWeight: 600 }}>What's new</p>
                 <p style={{ fontFamily: F.b, fontSize: 12, color: C.text, lineHeight: 1.6, margin: "0 0 6px" }}>
-                  <strong>Business decisions, done right.</strong> Weighted criteria, pairwise comparison, structured analysis — in under two minutes.
+                  <strong>Think to get unstuk.</strong> Weighted criteria, honest comparison, structured analysis — your thinking made fast. In under two minutes.
                 </p>
                 <p style={{ fontFamily: F.b, fontSize: 12, color: C.text, lineHeight: 1.6, margin: "0 0 6px" }}>
-                  <strong>Quick Poll.</strong> Ask a question. Share a code. Get instant results. Perfect for fast group polls.
+                  <strong>Quick Poll.</strong> Ask a question. Share a code. Get instant results. Your team's thinking, collected fast.
                 </p>
                 <p style={{ fontFamily: F.b, fontSize: 12, color: C.text, lineHeight: 1.6, margin: "0 0 6px" }}>
-                  <strong>Team Decisions.</strong> Everyone scores the same options independently. See where the team aligns — and where it doesn't.
+                  <strong>Team Decisions.</strong> Everyone thinks through the same options independently. See where the team aligns — and where it doesn't.
                 </p>
                 <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, margin: 0, lineHeight: 1.5 }}>
-                  The more you use it, the sharper your judgment gets.
+                  The more you think through it, the faster you get unstuk.
                 </p>
               </div>
             </FadeIn>
@@ -2064,7 +2072,7 @@ function UnstukInner() {
               <span style={{ fontSize: 24, flexShrink: 0 }}>{"\uD83C\uDF81"}</span>
               <div>
                 <div style={{ fontFamily: F.b, fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 2 }}>Gift Unstuk to a friend</div>
-                <div style={{ fontFamily: F.b, fontSize: 11, color: C.muted, lineHeight: 1.4 }}>Know someone stuck? Share the app free — it might be exactly what they need.</div>
+                <div style={{ fontFamily: F.b, fontSize: 11, color: C.muted, lineHeight: 1.4 }}>Know someone stuck? Share the app free — get them thinking, get them unstuk.</div>
               </div>
               <span style={{ fontFamily: F.b, fontSize: 18, color: C.sage, flexShrink: 0 }}>{"›"}</span>
             </button>
@@ -2077,7 +2085,7 @@ function UnstukInner() {
             </div>
           </FadeIn>
         </div>
-        {showShare && <ShareSheet text={"I\u2019ve been using Unstuk for better business decisions \u2014 weighted analysis in 2 minutes, team alignment built in.\n\nTry it free: unstuk.app"} title="Share Unstuk" onClose={() => setShowShare(false)} />}
+        {showShare && <ShareSheet text={"Get thinking, get unstuk \u2014 I\u2019ve been using Unstuk for business decisions. Weighted analysis in 2 minutes, team alignment built in. Your thinking, structured.\n\nTry it free: unstuk.app"} title="Share Unstuk" onClose={() => setShowShare(false)} />}
         {showPrivacy && <PrivacyModal onClose={() => setShowPrivacy(false)} />}
       </div>
     );
@@ -2086,12 +2094,12 @@ function UnstukInner() {
   // ─── TUTORIAL ───
   if (screen === "tutorial") {
     const slides = [
-      { icon: "\u270F\uFE0F", title: "Name your decision", body: "Unstuk gives your business decisions the rigour of structured analysis at the speed of an instinct call. Start by naming what you're deciding.\n\n\"CRM platform choice\" works better than \"software stuff\"." },
-      { icon: "\u2696\uFE0F", title: "Choose your type", body: "Binary is for two options. Multi is for three or more.\n\nMost real decisions are binary \u2014 even if it doesn't feel that way at first." },
-      { icon: "\uD83C\uDFAF", title: "Add what matters", body: "Criteria are the things that matter to you in this decision. Salary, location, growth, risk \u2014 whatever is relevant.\n\nRate each one's importance: Low, Moderate, or High. Be honest about your priorities." },
-      { icon: "\uD83D\uDD0D", title: "Compare step by step", body: "For each criterion, you'll compare your options.\n\nInstead of weighing everything at once, you focus on one factor at a time. This prevents the loudest concern from drowning out everything else." },
-      { icon: "\uD83D\uDCCA", title: "See your result", body: "Unstuk multiplies your comparisons by your importance ratings, then normalises into percentages.\n\nA clear gap means the data agrees with itself. A close call means both options are genuinely viable \u2014 and that's useful information too." },
-      { icon: "\u2728", title: "You're ready", body: "Every decision you complete is saved locally for 60 days.\n\nNo account. No cloud. No one sees your data.\n\nTap below to start your first decision." },
+      { icon: "\u270F\uFE0F", title: "Name your decision", body: "Getting unstuk starts with one thing: thinking clearly. Start by naming what you're actually deciding.\n\n\"CRM platform choice\" works better than \"software stuff\". Clarity now means speed later." },
+      { icon: "\u2696\uFE0F", title: "Choose your type", body: "Binary is for two options. Multi is for three or more.\n\nMost real decisions are binary \u2014 even if it doesn't feel that way at first. Naming the real choice is half the work." },
+      { icon: "\uD83C\uDFAF", title: "Add what matters", body: "Criteria are the things that genuinely matter in this decision. Salary, location, growth, risk \u2014 whatever is real for you.\n\nRate each one honestly: Low, Moderate, or High. This is where your thinking does its work." },
+      { icon: "\uD83D\uDD0D", title: "Compare, one factor at a time", body: "For each criterion, you compare your options head to head.\n\nInstead of holding everything at once, you focus on one thing at a time. This is thinking at its most effective \u2014 and it's what gets you unstuk fast." },
+      { icon: "\uD83D\uDCCA", title: "See your result", body: "Unstuk multiplies your comparisons by your importance ratings, then normalises into percentages.\n\nA clear gap means your thinking agrees with itself. A close call means both options are genuinely viable \u2014 that's useful too. You decide." },
+      { icon: "\u2728", title: "Get thinking. Get unstuk.", body: "Every decision you complete is saved locally for 60 days.\n\nNo account. No cloud. No one sees your thinking.\n\nTap below to start \u2014 and get unstuk." },
     ];
     const sl = slides[tutSlide];
     const isLast = tutSlide === slides.length - 1;
@@ -2231,8 +2239,8 @@ function UnstukInner() {
   if (screen === "groupcreated" && groupCode) {
     const expiryLabel = groupExpiry < 1 ? `${Math.round(groupExpiry * 60)} mins` : groupExpiry <= 1 ? "1 hour" : groupExpiry <= 24 ? `${groupExpiry} hours` : `${Math.round(groupExpiry / 24)} days`;
     const shareMsg = groupRequireCode
-      ? `Join my Unstuk team decision!\n\nCode: ${groupCode}\n\nOpen Unstuk \u2192 Join with Code \u2192 enter the code.\n\nunstuk.app/invite`
-      : `You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\n\nOpen Unstuk and join this decision when prompted.\n\nDeadline: ${expiryLabel}`;
+      ? `Get thinking, get unstuk \u2014 Join our team decision on Unstuk!\n\nCode: ${groupCode}\n\nOpen Unstuk \u2192 Join with Code \u2192 enter the code.\n\nunstuk.app`
+      : `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\n\nOpen Unstuk and join this decision when prompted.\n\nDeadline: ${expiryLabel}`;
     return (
       <div style={{ minHeight: "100vh", background: C.bg, fontFamily: F.b }}>
         <div style={{ maxWidth: 440, margin: "0 auto", padding: "60px 24px", textAlign: "center" }}>
@@ -3500,17 +3508,118 @@ function UnstukInner() {
             {"\u2022"} Most decisions are binary at their core. If in doubt, start with two options.
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <button onClick={() => { setDType("binary"); setLastReward("binary"); setTimeout(() => goStep("binaryopts"), 500); }}
+            <button onClick={() => { setDType("binary"); setLastReward("binary"); setTimeout(() => isGroupMode ? goStep("binaryopts") : goStep("commit"), 500); }}
               className="ustk-touch" style={{ fontFamily: F.b, fontSize: 14, padding: "15px 20px", borderRadius: 10, border: dType === "binary" ? `2px solid ${C.sage}` : `1px solid ${C.border}`, background: dType === "binary" ? C.sageSoft : "#fff", color: C.text, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 0.2s" }}>
               Binary — Two options
               {dType === "binary" && lastReward && <InlineReward show={true} />}
             </button>
-            <button onClick={() => { setDType("multi"); setLastReward("multi"); setTimeout(() => goStep("options"), 500); }}
+            <button onClick={() => { setDType("multi"); setLastReward("multi"); setTimeout(() => isGroupMode ? goStep("options") : goStep("commit"), 500); }}
               className="ustk-touch" style={{ fontFamily: F.b, fontSize: 14, padding: "15px 20px", borderRadius: 10, border: dType === "multi" ? `2px solid ${C.sage}` : `1px solid ${C.border}`, background: dType === "multi" ? C.sageSoft : "#fff", color: C.text, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 0.2s" }}>
               Three or more — Multiple options
               {dType === "multi" && lastReward && <InlineReward show={true} />}
             </button>
           </div>
+        </FadeIn>
+      );
+    }
+
+    if (step === "commit") {
+      const COMMIT_PHRASES = [
+        "Think it through. Get unstuk.",
+        "Slow down to speed up.",
+        "Great decisions start here.",
+        "Think clearly. Decide confidently.",
+        "Your thinking. Your call.",
+      ];
+      const phrase = COMMIT_PHRASES[Math.abs(dName.split("").reduce((h, c) => ((h << 5) - h) + c.charCodeAt(0), 0)) % COMMIT_PHRASES.length];
+      const STEPS_TEXT = dType === "binary"
+        ? ["Name your two options", "Add what matters — your criteria", "Rate each criterion's importance", "Compare options one factor at a time", "See your result"]
+        : ["Add your options (3+)", "Add what matters — your criteria", "Rate each criterion's importance", "Choose your reference option", "Compare all options one factor at a time", "See your result"];
+      return (
+        <FadeIn key="commit">
+          <style>{`
+            @keyframes ustk-commit-glow {
+              0% { box-shadow: 0 0 0 0 ${C.sage}40; }
+              70% { box-shadow: 0 0 0 10px ${C.sage}00; }
+              100% { box-shadow: 0 0 0 0 ${C.sage}00; }
+            }
+            @keyframes ustk-commit-check {
+              0% { transform: scale(0.5); opacity: 0; }
+              60% { transform: scale(1.2); opacity: 1; }
+              100% { transform: scale(1); opacity: 1; }
+            }
+          `}</style>
+          <BackBtn onClick={() => { setCommitChecked(false); goBack(); }} />
+            <div style={{ fontFamily: F.d, fontSize: 13, color: C.sage, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8, fontStyle: "italic" }}>
+              {phrase}
+            </div>
+            <H size="md" style={{ margin: "0 0 8px" }}>{dName}</H>
+            <p style={{ fontFamily: F.b, fontSize: 12, color: C.muted, margin: 0, lineHeight: 1.5 }}>
+              You're about to think this through properly.<br />Here's what you'll do:
+            </p>
+          </div>
+
+          {/* Step preview — what they're committing to */}
+          <div style={{ background: C.bg, borderRadius: 10, padding: "14px 16px", marginBottom: 20, border: `1px solid ${C.border}` }}>
+            {STEPS_TEXT.map((s, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderBottom: i < STEPS_TEXT.length - 1 ? `1px solid ${C.border}40` : "none" }}>
+                <div style={{ width: 20, height: 20, borderRadius: "50%", background: C.accentLt, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <span style={{ fontFamily: F.b, fontSize: 9, color: C.muted, fontWeight: 600 }}>{i + 1}</span>
+                </div>
+                <span style={{ fontFamily: F.b, fontSize: 12, color: C.text, lineHeight: 1.4 }}>{s}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Commitment toggle — the centrepiece */}
+          <button
+            onClick={() => setCommitChecked(c => !c)}
+            style={{
+              width: "100%", background: commitChecked ? C.sageSoft : C.card,
+              border: `2px solid ${commitChecked ? C.sage : C.border}`,
+              borderRadius: 14, padding: "18px 20px", cursor: "pointer", textAlign: "left",
+              display: "flex", alignItems: "center", gap: 16, transition: "all 0.25s ease",
+              animation: commitChecked ? "ustk-commit-glow 0.6s ease" : "none",
+              marginBottom: 16,
+            }}
+          >
+            {/* Checkbox circle */}
+            <div style={{
+              width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
+              border: `2px solid ${commitChecked ? C.sage : C.border}`,
+              background: commitChecked ? C.sage : "#fff",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "all 0.25s ease",
+            }}>
+              {commitChecked && (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ animation: "ustk-commit-check 0.3s ease" }}>
+                  <path d="M3 8.5L6.5 12L13 5" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </div>
+            <div>
+              <div style={{ fontFamily: F.b, fontSize: 14, fontWeight: 600, color: commitChecked ? C.sage : C.text, transition: "color 0.2s", lineHeight: 1.3 }}>
+                {commitChecked ? "I'm in — let\u2019s think this through" : "I commit to thinking this through"}
+              </div>
+              <div style={{ fontFamily: F.b, fontSize: 11, color: C.muted, marginTop: 3, lineHeight: 1.4 }}>
+                {commitChecked
+                  ? "Options, criteria, comparisons \u2014 each one will count."
+                  : "Not on autopilot. Not just ticking boxes. Really thinking."}
+              </div>
+            </div>
+          </button>
+
+          <Btn
+            onClick={() => { setCommitDone(true); dType === "binary" ? goStep("binaryopts") : goStep("options"); }}
+            disabled={!commitChecked}
+            style={{ width: "100%", padding: "14px 28px", fontSize: 14, fontWeight: 600, transition: "all 0.3s ease", opacity: commitChecked ? 1 : 0.35 }}
+          >
+            {commitChecked ? "Let\u2019s go \u2192" : "Tick the box to continue"}
+          </Btn>
+
+          <p style={{ fontFamily: F.b, fontSize: 10, color: C.border, textAlign: "center", marginTop: 12, lineHeight: 1.5 }}>
+            Takes about 2 minutes. You can edit everything as you go.
+          </p>
         </FadeIn>
       );
     }
@@ -3675,8 +3784,8 @@ function UnstukInner() {
         trackEvent("group");
         const exL = groupExpiry < 1 ? `${Math.round(groupExpiry*60)} mins` : groupExpiry <= 1 ? "1 hour" : groupExpiry <= 24 ? `${groupExpiry} hours` : `${Math.round(groupExpiry/24)} days`;
         const msg = groupRequireCode
-          ? `You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\nJoin code: ${code}\n\nOpen Unstuk → tap "Join with Code" → enter the code above.\n\nDeadline: ${exL}`
-          : `You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\n\nOpen Unstuk and join this decision when prompted.\n\nDeadline: ${exL}`;
+          ? `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\nJoin code: ${code}\n\nOpen Unstuk \u2192 tap \u201cJoin with Code\u201d \u2192 enter the code above.\n\nDeadline: ${exL}`
+          : `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\n\nOpen Unstuk and join this decision when prompted.\n\nDeadline: ${exL}`;
         setShareSheetData({ text: msg, title: "Invite to Team Decision", afterClose: () => setScreen("home") });
       };
       return (
@@ -3730,7 +3839,7 @@ function UnstukInner() {
       if (!cur) {
         if (!res) { setTimeout(() => setRes(scoreBin()), 0); return null; }
         /* Results ready */
-                return <ResultsView results={res} dName={dName} critCount={crits.length} onDone={isGroupMode && groupCode ? async () => { const data = await loadGroupResults(groupCode); if (data) { setGroupData(data); setScreen("groupresults"); } else setScreen("home"); } : () => { setIsGroupMode(false); setScreen("home"); }} onBack={() => { setRes(null); setSavedId(null); setBCh((prev) => prev.slice(0, -1)); setBIdx(crits.length - 1); setBPick(null); }} onImmediate={saveImmediate} gutDoneExternal={resultsGutDone} setGutDoneExternal={setResultsGutDone} groupCreatedExternal={resultsGroupCreated} setGroupCreatedExternal={setResultsGroupCreated} groupErr={groupSubmitErr} setGroupExpiry={setGroupExpiry} groupExpiryVal={groupExpiry} setGroupHideIndiv={setGroupHideIndiv} groupHideIndivVal={groupHideIndiv} onOpenShareSheet={setShareSheetData} onGroup={!groupCode ? async () => { const code = await createGroup({ name: dName, type: "binary", criteria: crits, binaryOption1: bo1, binaryOption2: bo2 }, res, "Creator", groupExpiry); if (code) { setGroupCode(code); try { await window.storage.set("unstuk_active_groupCode", code); } catch(e) {} setIsGroupMode(false); trackEvent("group"); const exL = groupExpiry < 1 ? `${Math.round(groupExpiry*60)} mins` : groupExpiry<=1 ? "1 hour" : groupExpiry<=24 ? `${groupExpiry} hours` : `${Math.round(groupExpiry/24)} days`; const msg = groupRequireCode ? `You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\nJoin code: ${code}\n\nOpen Unstuk → tap "Join with Code" → enter the code above.\n\nDeadline: ${exL}` : `You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\n\nOpen Unstuk and join this decision when prompted.\n\nDeadline: ${exL}`; setShareSheetData({ text: msg, title: "Invite to Team Decision" }); } } : null} />;
+                return <ResultsView results={res} dName={dName} critCount={crits.length} onDone={isGroupMode && groupCode ? async () => { const data = await loadGroupResults(groupCode); if (data) { setGroupData(data); setScreen("groupresults"); } else setScreen("home"); } : () => { setIsGroupMode(false); setScreen("home"); }} onBack={() => { setRes(null); setSavedId(null); setBCh((prev) => prev.slice(0, -1)); setBIdx(crits.length - 1); setBPick(null); }} onImmediate={saveImmediate} gutDoneExternal={resultsGutDone} setGutDoneExternal={setResultsGutDone} groupCreatedExternal={resultsGroupCreated} setGroupCreatedExternal={setResultsGroupCreated} groupErr={groupSubmitErr} setGroupExpiry={setGroupExpiry} groupExpiryVal={groupExpiry} setGroupHideIndiv={setGroupHideIndiv} groupHideIndivVal={groupHideIndiv} onOpenShareSheet={setShareSheetData} onGroup={!groupCode ? async () => { const code = await createGroup({ name: dName, type: "binary", criteria: crits, binaryOption1: bo1, binaryOption2: bo2 }, res, "Creator", groupExpiry); if (code) { setGroupCode(code); try { await window.storage.set("unstuk_active_groupCode", code); } catch(e) {} setIsGroupMode(false); trackEvent("group"); const exL = groupExpiry < 1 ? `${Math.round(groupExpiry*60)} mins` : groupExpiry<=1 ? "1 hour" : groupExpiry<=24 ? `${groupExpiry} hours` : `${Math.round(groupExpiry/24)} days`; const msg = groupRequireCode ? `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\nJoin code: ${code}\n\nOpen Unstuk \u2192 tap "Join with Code" \u2192 enter the code above.\n\nDeadline: ${exL}` : `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\n\nOpen Unstuk and join this decision when prompted.\n\nDeadline: ${exL}`; setShareSheetData({ text: msg, title: "Invite to Team Decision" }); } } : null} />;
 
       }
       if (bPick === null) {
@@ -3829,7 +3938,7 @@ function UnstukInner() {
       if (mIdx >= mPairs.length) {
         if (!res) { setTimeout(() => setRes(scoreMul()), 0); return null; }
         /* Multi results ready */
-                return <ResultsView results={res} dName={dName} critCount={crits.length} onDone={isGroupMode && groupCode ? async () => { const data = await loadGroupResults(groupCode); if (data) { setGroupData(data); setScreen("groupresults"); } else setScreen("home"); } : () => { setIsGroupMode(false); setScreen("home"); }} onBack={() => { setRes(null); setSavedId(null); setMCo((prev) => prev.slice(0, -1)); setMIdx(mPairs.length - 1); }} onImmediate={saveImmediate} gutDoneExternal={resultsGutDone} setGutDoneExternal={setResultsGutDone} groupCreatedExternal={resultsGroupCreated} setGroupCreatedExternal={setResultsGroupCreated} groupErr={groupSubmitErr} setGroupExpiry={setGroupExpiry} groupExpiryVal={groupExpiry} setGroupHideIndiv={setGroupHideIndiv} groupHideIndivVal={groupHideIndiv} onOpenShareSheet={setShareSheetData} onGroup={!groupCode ? async () => { const code = await createGroup({ name: dName, type: "multi", criteria: crits, options: opts, baseOption: baseOpt }, res, "Creator", groupExpiry); if (code) { setGroupCode(code); try { await window.storage.set("unstuk_active_groupCode", code); } catch(e) {} setIsGroupMode(false); trackEvent("group"); const exL = groupExpiry < 1 ? `${Math.round(groupExpiry*60)} mins` : groupExpiry<=1 ? "1 hour" : groupExpiry<=24 ? `${groupExpiry} hours` : `${Math.round(groupExpiry/24)} days`; const msg = groupRequireCode ? `You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\nJoin code: ${code}\n\nOpen Unstuk → tap "Join with Code" → enter the code above.\n\nDeadline: ${exL}` : `You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\n\nOpen Unstuk and join this decision when prompted.\n\nDeadline: ${exL}`; setShareSheetData({ text: msg, title: "Invite to Team Decision" }); } } : null} />;
+                return <ResultsView results={res} dName={dName} critCount={crits.length} onDone={isGroupMode && groupCode ? async () => { const data = await loadGroupResults(groupCode); if (data) { setGroupData(data); setScreen("groupresults"); } else setScreen("home"); } : () => { setIsGroupMode(false); setScreen("home"); }} onBack={() => { setRes(null); setSavedId(null); setMCo((prev) => prev.slice(0, -1)); setMIdx(mPairs.length - 1); }} onImmediate={saveImmediate} gutDoneExternal={resultsGutDone} setGutDoneExternal={setResultsGutDone} groupCreatedExternal={resultsGroupCreated} setGroupCreatedExternal={setResultsGroupCreated} groupErr={groupSubmitErr} setGroupExpiry={setGroupExpiry} groupExpiryVal={groupExpiry} setGroupHideIndiv={setGroupHideIndiv} groupHideIndivVal={groupHideIndiv} onOpenShareSheet={setShareSheetData} onGroup={!groupCode ? async () => { const code = await createGroup({ name: dName, type: "multi", criteria: crits, options: opts, baseOption: baseOpt }, res, "Creator", groupExpiry); if (code) { setGroupCode(code); try { await window.storage.set("unstuk_active_groupCode", code); } catch(e) {} setIsGroupMode(false); trackEvent("group"); const exL = groupExpiry < 1 ? `${Math.round(groupExpiry*60)} mins` : groupExpiry<=1 ? "1 hour" : groupExpiry<=24 ? `${groupExpiry} hours` : `${Math.round(groupExpiry/24)} days`; const msg = groupRequireCode ? `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\nJoin code: ${code}\n\nOpen Unstuk \u2192 tap "Join with Code" \u2192 enter the code above.\n\nDeadline: ${exL}` : `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\n\nOpen Unstuk and join this decision when prompted.\n\nDeadline: ${exL}`; setShareSheetData({ text: msg, title: "Invite to Team Decision" }); } } : null} />;
       }
       const pair = mPairs[mIdx];
       const op = opts.find((o) => o.id === pair.oId);
