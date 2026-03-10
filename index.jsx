@@ -1507,14 +1507,14 @@ function UnstukInner() {
           <BackBtn onClick={() => setScreen("home")} />
           <p style={{ fontFamily: F.b, fontSize: 10, color: C.sage, textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600, margin: "0 0 6px" }}>Quick Poll — Get thinking, get unstuk</p>
           <H size="md" style={{ margin: "0 0 20px" }}>Ask your team</H>
-          <div style={{ background: C.card, borderRadius: 14, border: , padding: "18px 16px", marginBottom: 12 }}>
+          <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, padding: "18px 16px", marginBottom: 12 }}>
             <p style={{ fontFamily: F.b, fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", fontWeight: 600 }}>Question</p>
             <TxtIn value={qvQuestion} onChange={setQvQuestion} placeholder="e.g. Which vendor should we shortlist?" maxLen={100} autoFocus={false} />
             <div style={{ marginTop: 10 }}>
               <ChipPicker storageKey="qv-name" usedNames={qvQuestion ? [qvQuestion] : []} onPick={(name) => { setQvQuestion(name); }} aiContext={{ dName: "quick poll question", opts: [], crits: [], typed: "" }} />
             </div>
           </div>
-          <div style={{ background: C.card, borderRadius: 14, border: , padding: "18px 16px", marginBottom: 12 }}>
+          <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, padding: "18px 16px", marginBottom: 12 }}>
             <p style={{ fontFamily: F.b, fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", fontWeight: 600 }}>Options</p>
             {qvOptions.map((opt, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
