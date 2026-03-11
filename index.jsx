@@ -1518,7 +1518,7 @@ function UnstukInner() {
             <p style={{ fontFamily: F.b, fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", fontWeight: 600 }}>Options</p>
             {qvOptions.map((opt, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                <div style={{ width: 22, height: 22, borderRadius: "50%", border: , background: opt.trim() ? C.sage : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.2s" }}>
+                <div style={{ width: 22, height: 22, borderRadius: "50%", border: `2px solid ${opt.trim() ? C.sage : C.border}`, background: opt.trim() ? C.sage : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.2s" }}>
             {qvOptions.map((opt, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                 <div style={{ width: 22, height: 22, borderRadius: "50%", border: `2px solid ${opt.trim() ? C.sage : C.border}`, background: opt.trim() ? C.sage : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.2s" }}>
