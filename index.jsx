@@ -97,11 +97,6 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext }) {
   const debounceRef = useRef(null);
   const lastContextRef = useRef(null);
 
-  // Instant fallback chips — always shown categorised
-  const fallback = FALLBACK_CHIPS[storageKey] || {};
-  const usedLower = usedNames.map(n => n.toLowerCase());
-  const fallbackEntries = Object.entries(fallback).map(([cat, items]) => [cat, items.filter(c => !usedLower.includes(c.toLowerCase()))]).filter(([, items]) => items.length > 0);
-
   useEffect(() => {
     mountedRef.current = true;
     return () => { mountedRef.current = false; };
@@ -142,83 +137,57 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext }) {
     load([name]);
   };
 
+  const usedLower = usedNames.map(n => n.toLowerCase());
   const aiChips = chips.filter(ch => !usedLower.includes(ch.toLowerCase()));
 
-  const chipBtn = (chip) => (
-    <button key={chip} onClick={() => handlePick(chip)} className="ustk-touch"
-      style={{
-        fontFamily: F.b, fontSize: 11, padding: "6px 12px",
-        borderRadius: 20,
-        border: `1.5px solid ${C.border}`,
-        background: "#fff",
-        color: C.text,
-        cursor: "pointer",
-        lineHeight: 1.2,
-        transition: "border-color 0.15s, background 0.15s",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-      }}
-      onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.sage; e.currentTarget.style.background = C.sageSoft; e.currentTarget.style.color = C.sage; }}
-      onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = "#fff"; e.currentTarget.style.color = C.text; }}>
-      {chip}
-    </button>
-  );
+  // Build categorised chip data: fallbacks first, then AI
+  const fallbackData = FALLBACK_CHIPS[storageKey] || {};
+  const sections = [];
+  Object.keys(fallbackData).forEach(cat => {
+    const filtered = fallbackData[cat].filter(c => !usedLower.includes(c.toLowerCase()));
+    if (filtered.length > 0) sections.push({ label: cat, chips: filtered });
+  });
+  if (aiChips.length > 0) sections.push({ label: "Tailored for you", chips: aiChips, isAi: true });
 
-  return (
-    <div style={{ marginTop: 10, marginBottom: 4 }}>
-      <style>{`
-        @keyframes ustk-dot-pulse {
-          0%, 80%, 100% { opacity: 0.2; transform: scale(0.7); }
-          40% { opacity: 1; transform: scale(1); }
-        }
-      `}</style>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 8px" }}>
-        <p style={{ fontFamily: F.b, fontSize: 10, color: C.sage, margin: 0, fontWeight: 600, letterSpacing: "0.04em" }}>
-          {"\u2193"} Tap a suggestion below, or type your own above
-        </p>
-      </div>
-
-      {/* Categorised fallback chips — always visible instantly */}
-      {fallbackEntries.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {fallbackEntries.map(([cat, items]) => (
-            <div key={cat}>
-              <p style={{ fontFamily: F.b, fontSize: 9, color: C.taupe, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 5px", fontWeight: 600 }}>{cat}</p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {items.map((chip) => chipBtn(chip))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* AI-tailored chips — shown below fallbacks once loaded */}
-      {loading && (
-        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 10, paddingLeft: 2 }}>
-          <span style={{ fontFamily: F.b, fontSize: 9, color: C.taupe, marginRight: 4 }}>Tailoring</span>
-          {[0, 0.18, 0.36].map((delay, i) => (
-            <div key={i} style={{
-              width: 4, height: 4, borderRadius: "50%",
-              background: C.sage, opacity: 0.2,
-              animation: `ustk-dot-pulse 1.1s ease-in-out ${delay}s infinite`,
-            }} />
-          ))}
-        </div>
-      )}
-      {!loading && aiChips.length > 0 && (
-        <div style={{ marginTop: 10 }}>
-          <p style={{ fontFamily: F.b, fontSize: 9, color: C.sage, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 5px", fontWeight: 600 }}>Tailored for you</p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
-            {aiChips.map((chip) => chipBtn(chip))}
-            <button onClick={() => load()} title="Refresh"
-              style={{
-                fontSize: 12, padding: "6px 10px", borderRadius: 20,
-                border: `1.5px solid ${C.border}40`, background: "transparent",
-                color: C.border, cursor: "pointer", opacity: 0.7,
-              }}>{"\u21BB"}</button>
-          </div>
-        </div>
-      )}
-    </div>
+  return React.createElement("div", { style: { marginTop: 10, marginBottom: 4 } },
+    React.createElement("style", null, `
+      @keyframes ustk-dot-pulse {
+        0%, 80%, 100% { opacity: 0.2; transform: scale(0.7); }
+        40% { opacity: 1; transform: scale(1); }
+      }
+    `),
+    React.createElement("p", { style: { fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: "#8B7E74", margin: "0 0 8px", fontWeight: 600, letterSpacing: "0.04em" } },
+      "\u2193 Tap a suggestion below, or type your own above"
+    ),
+    sections.map(function(sec) {
+      return React.createElement("div", { key: sec.label, style: { marginBottom: 8 } },
+        React.createElement("p", { style: { fontFamily: "'DM Sans', sans-serif", fontSize: 9, color: sec.isAi ? "#8B7E74" : "#A8A29E", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 5px", fontWeight: 600 } }, sec.label),
+        React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" } },
+          sec.chips.map(function(chip) {
+            return React.createElement("button", {
+              key: chip,
+              className: "ustk-touch",
+              onClick: function() { handlePick(chip); },
+              style: { fontFamily: "'DM Sans', sans-serif", fontSize: 11, padding: "6px 12px", borderRadius: 20, border: "1.5px solid #D6D3D1", background: "#fff", color: "#44403C", cursor: "pointer", lineHeight: 1.2, transition: "border-color 0.15s, background 0.15s", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" },
+              onMouseEnter: function(e) { e.currentTarget.style.borderColor = "#8B7E74"; e.currentTarget.style.background = "#8B7E7410"; e.currentTarget.style.color = "#8B7E74"; },
+              onMouseLeave: function(e) { e.currentTarget.style.borderColor = "#D6D3D1"; e.currentTarget.style.background = "#fff"; e.currentTarget.style.color = "#44403C"; },
+            }, chip);
+          }),
+          sec.isAi ? React.createElement("button", {
+            key: "_refresh",
+            onClick: function() { load(); },
+            title: "Refresh",
+            style: { fontSize: 12, padding: "6px 10px", borderRadius: 20, border: "1.5px solid #D6D3D140", background: "transparent", color: "#D6D3D1", cursor: "pointer", opacity: 0.7 }
+          }, "\u21BB") : null
+        )
+      );
+    }),
+    loading ? React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 4, marginTop: 10, paddingLeft: 2 } },
+      React.createElement("span", { style: { fontFamily: "'DM Sans', sans-serif", fontSize: 9, color: "#A8A29E", marginRight: 4 } }, "Tailoring"),
+      [0, 0.18, 0.36].map(function(delay, i) {
+        return React.createElement("div", { key: i, style: { width: 4, height: 4, borderRadius: "50%", background: "#8B7E74", opacity: 0.2, animation: "ustk-dot-pulse 1.1s ease-in-out " + delay + "s infinite" } });
+      })
+    ) : null
   );
 }
 // ─── Helpers ───
