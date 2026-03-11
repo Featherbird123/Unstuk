@@ -37,6 +37,29 @@ class ErrorBoundary extends React.Component {
 }
 
 // ─── Preset suggestion chips — themed, multi-category ───
+// ─── Instant fallback chips (shown immediately while AI loads) ───
+const FALLBACK_CHIPS = {
+  name: {
+    "Strategy": ["CRM Migration", "Market Expansion", "Product Roadmap"],
+    "People": ["Head of Growth Hire", "Team Restructure", "Agency Selection"],
+    "Operations": ["Office Relocation", "Tech Stack Change", "Vendor Shortlist"],
+  },
+  opt: {
+    "Common": ["Build In-House", "Outsource", "Partner", "Do Nothing", "Defer Decision"],
+  },
+  crit: {
+    "Business": ["Cost", "Revenue Impact", "Time to Market", "Scalability"],
+    "Risk": ["Risk Level", "Reversibility", "Compliance"],
+    "People": ["Team Capacity", "Stakeholder Buy-In", "Culture Fit"],
+  },
+  "qv-name": {
+    "Team": ["Which launch date works best?", "Where should we hold the offsite?", "Which vendor should we shortlist?"],
+  },
+  "qv-opt": {
+    "Common": ["Option A", "Option B", "Option C", "None of these"],
+  },
+};
+
 async function fetchAiChipSuggestions({ step, picked, context, count = 6 }) {
   try {
     const decisionCtx = context.dName ? `Decision: ${context.dName}` : "";
@@ -70,10 +93,16 @@ async function fetchAiChipSuggestions({ step, picked, context, count = 6 }) {
 function ChipPicker({ onPick, usedNames = [], storageKey, aiContext }) {
   const [chips, setChips] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(true);
   const mountedRef = useRef(true);
   const debounceRef = useRef(null);
   const lastContextRef = useRef(null);
+  const [showAi, setShowAi] = useState(false);
+
+  // Instant fallback chips — shown immediately, categorised
+  const fallback = FALLBACK_CHIPS[storageKey] || {};
+  const usedLower = usedNames.map(n => n.toLowerCase());
+  const fallbackEntries = Object.entries(fallback).map(([cat, items]) => [cat, items.filter(c => !usedLower.includes(c.toLowerCase()))]).filter(([, items]) => items.length > 0);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -82,7 +111,6 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext }) {
 
   const load = async (pickedSoFar = []) => {
     if (!mountedRef.current) return;
-    setVisible(false);
     setLoading(true);
     const suggestions = await fetchAiChipSuggestions({
       step: storageKey,
@@ -93,7 +121,7 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext }) {
     if (mountedRef.current) {
       setChips(suggestions);
       setLoading(false);
-      setTimeout(() => { if (mountedRef.current) setVisible(true); }, 30);
+      setShowAi(true);
     }
   };
 
@@ -114,81 +142,81 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext }) {
 
   const handlePick = (name) => {
     onPick(name);
-    load([name]);
+    if (showAi) load([name]);
   };
 
-  const visibleChips = chips.filter(ch => !usedNames.map(n => n.toLowerCase()).includes(ch.toLowerCase()));
+  const aiChips = chips.filter(ch => !usedLower.includes(ch.toLowerCase()));
 
-  const [collapsed, setCollapsed] = useState(false);
-  const shownChips = collapsed ? visibleChips.slice(0, 3) : visibleChips;
+  const chipBtn = (chip, i, total) => (
+    <button key={chip} onClick={() => handlePick(chip)} className="ustk-touch"
+      style={{
+        fontFamily: F.b, fontSize: 11, padding: "6px 12px",
+        borderRadius: 20,
+        border: `1.5px solid ${C.border}`,
+        background: "#fff",
+        color: C.text,
+        cursor: "pointer",
+        lineHeight: 1.2,
+        transition: "border-color 0.15s, background 0.15s",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.sage; e.currentTarget.style.background = C.sageSoft; e.currentTarget.style.color = C.sage; }}
+      onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = "#fff"; e.currentTarget.style.color = C.text; }}>
+      {chip}
+    </button>
+  );
 
   return (
-    <div style={{ marginTop: 12, marginBottom: 4, minHeight: 44 }}>
+    <div style={{ marginTop: 10, marginBottom: 4 }}>
       <style>{`
-        @keyframes ustk-chip-in {
-          from { opacity: 0; transform: translateY(6px) scale(0.94); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
         @keyframes ustk-dot-pulse {
           0%, 80%, 100% { opacity: 0.2; transform: scale(0.7); }
           40% { opacity: 1; transform: scale(1); }
         }
       `}</style>
-      <p style={{ fontFamily: F.b, fontSize: 10, color: C.sage, margin: "0 0 8px", fontWeight: 600, letterSpacing: "0.04em" }}>
-        Tap a suggestion or type your own
-      </p>
-      {loading && (
-        <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 6, paddingLeft: 2 }}>
-          {[0, 0.18, 0.36].map((delay, i) => (
-            <div key={i} style={{
-              width: 6, height: 6, borderRadius: "50%",
-              background: C.sage,
-              opacity: 0.2,
-              animation: `ustk-dot-pulse 1.1s ease-in-out ${delay}s infinite`,
-            }} />
+      <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 8px" }}>
+        <p style={{ fontFamily: F.b, fontSize: 10, color: C.sage, margin: 0, fontWeight: 600, letterSpacing: "0.04em" }}>
+          Tap a suggestion or type your own above
+        </p>
+        {loading && (
+          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+            {[0, 0.18, 0.36].map((delay, i) => (
+              <div key={i} style={{
+                width: 4, height: 4, borderRadius: "50%",
+                background: C.sage, opacity: 0.2,
+                animation: `ustk-dot-pulse 1.1s ease-in-out ${delay}s infinite`,
+              }} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Categorised fallback chips — instant, no loading */}
+      {!showAi && fallbackEntries.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {fallbackEntries.map(([cat, items]) => (
+            <div key={cat}>
+              <p style={{ fontFamily: F.b, fontSize: 9, color: C.taupe, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 5px", fontWeight: 600 }}>{cat}</p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {items.map((chip, i) => chipBtn(chip, i, items.length))}
+              </div>
+            </div>
           ))}
         </div>
       )}
-      {!loading && visibleChips.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 7, alignItems: "center" }}>
-          {shownChips.map((chip, i) => (
-            <button key={chip} onClick={() => { handlePick(chip); setCollapsed(true); }} className="ustk-touch"
+
+      {/* AI-generated chips — replace fallbacks once loaded */}
+      {showAi && aiChips.length > 0 && (
+        <div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+            {aiChips.map((chip, i) => chipBtn(chip, i, aiChips.length))}
+            <button onClick={() => load()} title="Refresh"
               style={{
-                fontFamily: F.b, fontSize: 12, padding: "8px 14px",
-                borderRadius: 20,
-                border: `1.5px solid ${C.border}`,
-                background: "#fff",
-                color: C.text,
-                cursor: "pointer",
-                lineHeight: 1.2,
-                opacity: visible ? 1 : 0,
-                transform: visible ? "none" : "translateY(5px) scale(0.95)",
-                transition: `opacity 0.28s ease ${i * 0.04}s, transform 0.28s ease ${i * 0.04}s, border-color 0.15s, background 0.15s`,
-                boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.sage; e.currentTarget.style.background = C.sageSoft; e.currentTarget.style.color = C.sage; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = "#fff"; e.currentTarget.style.color = C.text; }}>
-              {chip}
-            </button>
-          ))}
-          {collapsed && visibleChips.length > 3 && (
-            <button onClick={() => setCollapsed(false)}
-              style={{
-                fontFamily: F.b, fontSize: 11, padding: "6px 12px", borderRadius: 20,
-                border: `1.5px dashed ${C.sage}60`, background: "transparent",
-                color: C.sage, cursor: "pointer",
-                opacity: visible ? 0.8 : 0,
-                transition: `opacity 0.28s ease`,
-              }}>+{visibleChips.length - 3} more</button>
-          )}
-          <button onClick={() => { load(); setCollapsed(false); }} title="Refresh"
-            style={{
-              fontSize: 13, padding: "8px 11px", borderRadius: 20,
-              border: `1.5px solid ${C.border}40`, background: "transparent",
-              color: C.border, cursor: "pointer",
-              opacity: visible ? 0.7 : 0,
-              transition: `opacity 0.28s ease ${shownChips.length * 0.04}s`,
-            }}>↻</button>
+                fontSize: 12, padding: "6px 10px", borderRadius: 20,
+                border: `1.5px solid ${C.border}40`, background: "transparent",
+                color: C.border, cursor: "pointer", opacity: 0.7,
+              }}>{"\u21BB"}</button>
+          </div>
         </div>
       )}
     </div>
@@ -812,26 +840,29 @@ function ResultsView({ results, dName, critCount, onDone, onBack, onImmediate, o
         {gutDone && !emailSaved && !groupCreated && (
           <FadeIn>
             <div style={{ marginTop: 20, padding: "14px 16px", borderRadius: 10, background: C.card, border: `1px solid ${C.border}` }}>
-              <p style={{ fontFamily: F.b, fontSize: 12, fontWeight: 500, color: C.text, margin: "0 0 4px" }}>Get reminded to reflect</p>
-              <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, margin: "0 0 10px", lineHeight: 1.5 }}>
-                Optional — we'll email you in 3 days when your reflection is ready.
-              </p>
-              <div style={{ display: "flex", gap: 6 }}>
-                <input type="email" value={emailAddr} onChange={(e) => setEmailAddr(e.target.value)} placeholder="your@email.com"
-                  style={{ flex: 1, fontFamily: F.b, fontSize: 12, padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.bg, color: C.text, outline: "none" }} />
-                <button onClick={() => { if (emailAddr.includes("@") && emailAddr.includes(".")) { try { window.storage.set("unstuk_email", emailAddr); } catch(e) {} setEmailSaved(true); } }}
-                  disabled={!emailAddr.includes("@")}
-                  style={{ fontFamily: F.b, fontSize: 11, padding: "8px 14px", borderRadius: 6, border: "none", background: emailAddr.includes("@") ? C.sage : C.accentLt, color: emailAddr.includes("@") ? "#fff" : C.muted, cursor: emailAddr.includes("@") ? "pointer" : "default" }}>
-                  Remind me
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <button onClick={() => { setEmailSaved(true); try { window.storage.set("unstuk_remind", "1"); } catch(e) {} }}
+                  style={{ width: 36, height: 20, borderRadius: 10, border: "none", background: C.sage, cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+                  <span style={{ position: "absolute", top: 2, left: 18, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
                 </button>
+                <div>
+                  <p style={{ fontFamily: F.b, fontSize: 12, fontWeight: 500, color: C.text, margin: 0 }}>Remind me to reflect in 3 days</p>
+                  <p style={{ fontFamily: F.b, fontSize: 10, color: C.muted, margin: "3px 0 0", lineHeight: 1.4 }}>
+                    On by default. Tetlock's research shows structured reflection improves decision accuracy by 20-50% within a year.
+                  </p>
+                  <p style={{ fontFamily: F.b, fontSize: 9, color: C.border, margin: "2px 0 0", fontStyle: "italic" }}>
+                    — Philip Tetlock, <em>Superforecasting</em> (2015)
+                  </p>
+                </div>
               </div>
-              <button onClick={() => setEmailSaved(true)} style={{ fontFamily: F.b, fontSize: 10, color: C.border, background: "none", border: "none", cursor: "pointer", marginTop: 6 }}>Skip</button>
+              <button onClick={() => { setEmailSaved(true); try { window.storage.set("unstuk_remind", "0"); } catch(e) {} }}
+                style={{ fontFamily: F.b, fontSize: 10, color: C.border, background: "none", border: "none", cursor: "pointer", marginTop: 8 }}>No thanks, skip reminder</button>
             </div>
           </FadeIn>
         )}
-        {emailSaved && emailAddr && (
+        {emailSaved && (
           <p style={{ fontFamily: F.b, fontSize: 10, color: C.sage, margin: "10px 0 0", textAlign: "center" }}>
-            {"\u2713"} We'll email {emailAddr} when your reflection is ready.
+            {"\u2713"} Reflection reminder set for 3 days.
           </p>
         )}
 
@@ -1831,13 +1862,13 @@ function UnstukInner() {
               </svg>
               <div style={{ fontFamily: F.d, fontSize: 42, fontWeight: 600, color: C.text, letterSpacing: "-0.01em", marginBottom: 10 }}>Unstuk</div>
               <p style={{ fontFamily: F.d, fontSize: 20, color: C.sage, fontWeight: 500, letterSpacing: "0.01em", margin: "0 0 8px", fontStyle: "italic" }}>
-                Think to get unstuk.
+                Better business decisions, faster.
               </p>
-              <p style={{ fontFamily: F.b, fontSize: 13, color: C.muted, fontWeight: 300, lineHeight: 1.6 }}>
-                Get Thinking, Get Unstuk.
+              <p style={{ fontFamily: F.b, fontSize: 13, color: C.muted, fontWeight: 300, lineHeight: 1.7 }}>
+                Get thinking. Get unstuk.
               </p>
               <p style={{ fontFamily: F.b, fontSize: 11, color: C.taupe, fontWeight: 400, lineHeight: 1.6, margin: "10px 0 0" }}>
-                Built for executives, managers, boards, teams and committees — anyone who needs to think through decisions with clarity and confidence.
+                Built for executives, managers, boards, teams and committees — structured thinking for the decisions that matter.
               </p>
             </div>
           </FadeIn>
