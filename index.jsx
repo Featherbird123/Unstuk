@@ -119,6 +119,9 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext }) {
 
   const visibleChips = chips.filter(ch => !usedNames.map(n => n.toLowerCase()).includes(ch.toLowerCase()));
 
+  const [collapsed, setCollapsed] = useState(false);
+  const shownChips = collapsed ? visibleChips.slice(0, 3) : visibleChips;
+
   return (
     <div style={{ marginTop: 12, marginBottom: 4, minHeight: 44 }}>
       <style>{`
@@ -131,6 +134,9 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext }) {
           40% { opacity: 1; transform: scale(1); }
         }
       `}</style>
+      <p style={{ fontFamily: F.b, fontSize: 10, color: C.sage, margin: "0 0 8px", fontWeight: 600, letterSpacing: "0.04em" }}>
+        Tap a suggestion or type your own
+      </p>
       {loading && (
         <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 6, paddingLeft: 2 }}>
           {[0, 0.18, 0.36].map((delay, i) => (
@@ -144,9 +150,9 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext }) {
         </div>
       )}
       {!loading && visibleChips.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-          {visibleChips.map((chip, i) => (
-            <button key={chip} onClick={() => handlePick(chip)} className="ustk-touch"
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 7, alignItems: "center" }}>
+          {shownChips.map((chip, i) => (
+            <button key={chip} onClick={() => { handlePick(chip); setCollapsed(true); }} className="ustk-touch"
               style={{
                 fontFamily: F.b, fontSize: 12, padding: "8px 14px",
                 borderRadius: 20,
@@ -165,13 +171,23 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext }) {
               {chip}
             </button>
           ))}
-          <button onClick={() => load()} title="Refresh"
+          {collapsed && visibleChips.length > 3 && (
+            <button onClick={() => setCollapsed(false)}
+              style={{
+                fontFamily: F.b, fontSize: 11, padding: "6px 12px", borderRadius: 20,
+                border: `1.5px dashed ${C.sage}60`, background: "transparent",
+                color: C.sage, cursor: "pointer",
+                opacity: visible ? 0.8 : 0,
+                transition: `opacity 0.28s ease`,
+              }}>+{visibleChips.length - 3} more</button>
+          )}
+          <button onClick={() => { load(); setCollapsed(false); }} title="Refresh"
             style={{
               fontSize: 13, padding: "8px 11px", borderRadius: 20,
               border: `1.5px solid ${C.border}40`, background: "transparent",
               color: C.border, cursor: "pointer",
               opacity: visible ? 0.7 : 0,
-              transition: `opacity 0.28s ease ${visibleChips.length * 0.04}s`,
+              transition: `opacity 0.28s ease ${shownChips.length * 0.04}s`,
             }}>↻</button>
         </div>
       )}
@@ -1818,7 +1834,10 @@ function UnstukInner() {
                 Think to get unstuk.
               </p>
               <p style={{ fontFamily: F.b, fontSize: 13, color: C.muted, fontWeight: 300, lineHeight: 1.6 }}>
-                Your thinking, structured. Your decision, faster.
+                Get Thinking, Get Unstuk.
+              </p>
+              <p style={{ fontFamily: F.b, fontSize: 11, color: C.taupe, fontWeight: 400, lineHeight: 1.6, margin: "10px 0 0" }}>
+                Built for executives, managers, boards, teams and committees — anyone who needs to think through decisions with clarity and confidence.
               </p>
             </div>
           </FadeIn>
@@ -3504,12 +3523,12 @@ function UnstukInner() {
             {"\u2022"} Most decisions are binary at their core. If in doubt, start with two options.
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <button onClick={() => { setDType("binary"); setLastReward("binary"); setTimeout(() => isGroupMode ? goStep("binaryopts") : goStep("commit"), 500); }}
+            <button onClick={() => { setDType("binary"); setLastReward("binary"); setTimeout(() => goStep("binaryopts"), 500); }}
               className="ustk-touch" style={{ fontFamily: F.b, fontSize: 14, padding: "15px 20px", borderRadius: 10, border: dType === "binary" ? `2px solid ${C.sage}` : `1px solid ${C.border}`, background: dType === "binary" ? C.sageSoft : "#fff", color: C.text, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 0.2s" }}>
               Binary — Two options
               {dType === "binary" && lastReward && <InlineReward show={true} />}
             </button>
-            <button onClick={() => { setDType("multi"); setLastReward("multi"); setTimeout(() => isGroupMode ? goStep("options") : goStep("commit"), 500); }}
+            <button onClick={() => { setDType("multi"); setLastReward("multi"); setTimeout(() => goStep("options"), 500); }}
               className="ustk-touch" style={{ fontFamily: F.b, fontSize: 14, padding: "15px 20px", borderRadius: 10, border: dType === "multi" ? `2px solid ${C.sage}` : `1px solid ${C.border}`, background: dType === "multi" ? C.sageSoft : "#fff", color: C.text, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 0.2s" }}>
               Three or more — Multiple options
               {dType === "multi" && lastReward && <InlineReward show={true} />}
@@ -3519,107 +3538,7 @@ function UnstukInner() {
       );
     }
 
-    if (step === "commit") {
-      const COMMIT_PHRASES = [
-        "Think it through. Get unstuk.",
-        "Slow down to speed up.",
-        "Great decisions start here.",
-        "Think clearly. Decide confidently.",
-        "Your thinking. Your call.",
-      ];
-      const phrase = COMMIT_PHRASES[Math.abs(dName.split("").reduce((h, c) => ((h << 5) - h) + c.charCodeAt(0), 0)) % COMMIT_PHRASES.length];
-      const STEPS_TEXT = dType === "binary"
-        ? ["Name your two options", "Add what matters — your criteria", "Rate each criterion's importance", "Compare options one factor at a time", "See your result"]
-        : ["Add your options (3+)", "Add what matters — your criteria", "Rate each criterion's importance", "Choose your reference option", "Compare all options one factor at a time", "See your result"];
-      return (
-        <FadeIn key="commit">
-          <style>{`
-            @keyframes ustk-commit-glow {
-              0% { box-shadow: 0 0 0 0 ${C.sage}40; }
-              70% { box-shadow: 0 0 0 10px ${C.sage}00; }
-              100% { box-shadow: 0 0 0 0 ${C.sage}00; }
-            }
-            @keyframes ustk-commit-check {
-              0% { transform: scale(0.5); opacity: 0; }
-              60% { transform: scale(1.2); opacity: 1; }
-              100% { transform: scale(1); opacity: 1; }
-            }
-          `}</style>
-          <BackBtn onClick={() => { setCommitChecked(false); goBack(); }} />
-          <div>
-            <div style={{ fontFamily: F.d, fontSize: 13, color: C.sage, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8, fontStyle: "italic" }}>
-              {phrase}
-            </div>
-            <H size="md" style={{ margin: "0 0 8px" }}>{dName}</H>
-            <p style={{ fontFamily: F.b, fontSize: 12, color: C.muted, margin: 0, lineHeight: 1.5 }}>
-              You're about to think this through properly.<br />Here's what you'll do:
-            </p>
-          </div>
-
-          {/* Step preview — what they're committing to */}
-          <div style={{ background: C.bg, borderRadius: 10, padding: "14px 16px", marginBottom: 20, border: `1px solid ${C.border}` }}>
-            {STEPS_TEXT.map((s, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderBottom: i < STEPS_TEXT.length - 1 ? `1px solid ${C.border}40` : "none" }}>
-                <div style={{ width: 20, height: 20, borderRadius: "50%", background: C.accentLt, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <span style={{ fontFamily: F.b, fontSize: 9, color: C.muted, fontWeight: 600 }}>{i + 1}</span>
-                </div>
-                <span style={{ fontFamily: F.b, fontSize: 12, color: C.text, lineHeight: 1.4 }}>{s}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Commitment toggle — the centrepiece */}
-          <button
-            onClick={() => setCommitChecked(c => !c)}
-            style={{
-              width: "100%", background: commitChecked ? C.sageSoft : C.card,
-              border: `2px solid ${commitChecked ? C.sage : C.border}`,
-              borderRadius: 14, padding: "18px 20px", cursor: "pointer", textAlign: "left",
-              display: "flex", alignItems: "center", gap: 16, transition: "all 0.25s ease",
-              animation: commitChecked ? "ustk-commit-glow 0.6s ease" : "none",
-              marginBottom: 16,
-            }}
-          >
-            {/* Checkbox circle */}
-            <div style={{
-              width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
-              border: `2px solid ${commitChecked ? C.sage : C.border}`,
-              background: commitChecked ? C.sage : "#fff",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              transition: "all 0.25s ease",
-            }}>
-              {commitChecked && (
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ animation: "ustk-commit-check 0.3s ease" }}>
-                  <path d="M3 8.5L6.5 12L13 5" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
-            </div>
-            <div>
-              <div style={{ fontFamily: F.b, fontSize: 14, fontWeight: 600, color: commitChecked ? C.sage : C.text, transition: "color 0.2s", lineHeight: 1.3 }}>
-                {commitChecked ? "I'm in — let\u2019s think this through" : "I commit to thinking this through"}
-              </div>
-              <div style={{ fontFamily: F.b, fontSize: 11, color: C.muted, marginTop: 3, lineHeight: 1.4 }}>
-                {commitChecked
-                  ? "Options, criteria, comparisons \u2014 each one will count."
-                  : "Not on autopilot. Not just ticking boxes. Really thinking."}
-              </div>
-            </div>
-          </button>
-
-          <Btn
-            onClick={() => { setCommitDone(true); dType === "binary" ? goStep("binaryopts") : goStep("options"); }}
-            disabled={!commitChecked}
-            style={{ width: "100%", padding: "14px 28px", fontSize: 14, fontWeight: 600, transition: "all 0.3s ease", opacity: commitChecked ? 1 : 0.35 }}
-          >
-            {commitChecked ? "Let\u2019s go \u2192" : "Tick the box to continue"}
-          </Btn>
-
-          <p style={{ fontFamily: F.b, fontSize: 10, color: C.border, textAlign: "center", marginTop: 12, lineHeight: 1.5 }}>
-            Takes about 2 minutes. You can edit everything as you go.
-          </p>
-        </FadeIn>
-      );
-    }
+    /* commit step removed — flow goes directly to options */
 
     if (step === "options") {
       const add = () => { if (newOpt.trim() && opts.length < 6) { if (isBlockedContent(newOpt)) { setBlocked(true); return; } const nid = uid(); setOpts((p) => [...p, { id: nid, name: newOpt.trim() }]); setNewOpt(""); setRewardTick((t) => t + 1); setAddFlash("option"); setTimeout(() => setAddFlash(null), 800); setLastAddedOpt(nid); setTimeout(() => setLastAddedOpt(null), 2500); setTimeout(() => document.getElementById("multiOpt")?.focus(), 50); } };
