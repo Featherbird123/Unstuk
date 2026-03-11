@@ -3487,8 +3487,7 @@ function UnstukInner() {
               goStep("type");
             }} disabled={!dName.trim()} style={{ padding: "12px 20px", fontSize: 13, whiteSpace: "nowrap", flexShrink: 0 }}>Next</Btn>
           </div>
-          <ChipPicker storageKey="name" usedNames={dName ? [dName] : []} aiContext={{ dName, opts: [], crits: [], typed: dName }} onPick={(name) => setDName(name)}
-            aiContext={{ dName, opts, crits, typed: dName }}
+          <ChipPicker storageKey="name" usedNames={dName ? [dName] : []} aiContext={{ dName, opts, crits, typed: dName }} onPick={(name) => setDName(name)}
             onAiSuggestText={(txt) => { if (!dName.trim()) setDName(txt); }} />
         </FadeIn>
       );
@@ -3683,11 +3682,10 @@ function UnstukInner() {
               <Btn onClick={() => { if (isBlockedContent(bo1) || isBlockedContent(bo2)) { setBlocked(true); return; } goStep("criteria"); }} disabled={!bo1.trim() || !bo2.trim()} style={{ width: "100%", fontSize: 13, padding: "13px 28px", marginTop: 4 }}>Next</Btn>
             </div>
           </div>
-          <ChipPicker storageKey="opt" usedNames={[bo1, bo2].filter(Boolean)} aiContext={{ dName, opts: [bo1,bo2].filter(Boolean).map(n=>({name:n})), crits: [], typed: (!bo2 ? bo2 : !bo1 ? bo1 : "") }} onPick={(name) => {
+          <ChipPicker storageKey="opt" usedNames={[bo1, bo2].filter(Boolean)} aiContext={{ dName, opts: [{name: bo1}, {name: bo2}].filter(o => o.name), crits, typed: !bo1.trim() ? bo1 : bo2 }} onPick={(name) => {
             if (!bo1.trim()) { setBo1(name); setTimeout(() => document.getElementById("binB")?.focus(), 50); }
             else if (!bo2.trim()) setBo2(name);
           }}
-            aiContext={{ dName, opts: [{name: bo1}, {name: bo2}].filter(o => o.name), crits, typed: !bo1.trim() ? bo1 : bo2 }}
             onAiSuggestText={(txt) => { if (!bo1.trim()) setBo1(txt); else if (!bo2.trim()) setBo2(txt); }} />
         </FadeIn>
       );
@@ -3749,7 +3747,6 @@ function UnstukInner() {
                 </div>
               </div>
               <ChipPicker storageKey="crit" usedNames={[...crits.map((cr) => cr.name), newCrit].filter(Boolean)} aiContext={{ dName, opts, crits, typed: newCrit }} onPick={(name) => { if (newImp !== null && crits.length < 10) { const cid = uid(); setCrits((p) => [...p, { id: cid, name: name.trim(), importance: newImp }]); setNewCrit(""); setRewardTick((t) => t + 1); setAddFlash("criteria"); setTimeout(() => setAddFlash(null), 800); setLastAddedCrit(cid); setTimeout(() => setLastAddedCrit(null), 1500); } else { setNewCrit(name); } }}
-                aiContext={{ dName, opts, crits, typed: newCrit }}
                 onAiSuggestText={(txt) => { if (!newCrit.trim()) setNewCrit(txt); }} />
             </>
           )}
@@ -3897,7 +3894,6 @@ function UnstukInner() {
               <button key={o.value} onClick={() => { setAdvPicked(o.value); setTimeout(() => { setBCh([...bCh, { cId: cur.id, opt: bPick, adv: o.value }]); setBPick(null); setBIdx(bIdx + 1); setRewardTick((t) => t + 1); triggerPulse(); setAdvPicked(null); }, 500); }}
                 style={{
                   flex: 1, fontFamily: F.b, fontSize: 13, padding: "16px 8px",
-                  border: `1px solid ${C.border}`,
                   borderLeft: i === 0 ? `1px solid ${C.border}` : "none",
                   borderRadius: i === 0 ? "8px 0 0 8px" : i === BIN_ADV.length - 1 ? "0 8px 8px 0" : "0",
                   background: advPicked === o.value ? C.sageSoft : "#fff", color: C.text, cursor: "pointer", textAlign: "center",
