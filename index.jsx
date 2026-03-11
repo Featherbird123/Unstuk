@@ -140,7 +140,6 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext }) {
   const usedLower = usedNames.map(n => n.toLowerCase());
   const aiChips = chips.filter(ch => !usedLower.includes(ch.toLowerCase()));
 
-  // Build categorised chip data: fallbacks first, then AI
   const fallbackData = FALLBACK_CHIPS[storageKey] || {};
   const sections = [];
   Object.keys(fallbackData).forEach(cat => {
@@ -149,45 +148,46 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext }) {
   });
   if (aiChips.length > 0) sections.push({ label: "Tailored for you", chips: aiChips, isAi: true });
 
-  return React.createElement("div", { style: { marginTop: 10, marginBottom: 4 } },
-    React.createElement("style", null, `
-      @keyframes ustk-dot-pulse {
-        0%, 80%, 100% { opacity: 0.2; transform: scale(0.7); }
-        40% { opacity: 1; transform: scale(1); }
-      }
-    `),
-    React.createElement("p", { style: { fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: "#8B7E74", margin: "0 0 8px", fontWeight: 600, letterSpacing: "0.04em" } },
-      "\u2193 Tap a suggestion below, or type your own above"
-    ),
-    sections.map(function(sec) {
-      return React.createElement("div", { key: sec.label, style: { marginBottom: 8 } },
-        React.createElement("p", { style: { fontFamily: "'DM Sans', sans-serif", fontSize: 9, color: sec.isAi ? "#8B7E74" : "#A8A29E", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 5px", fontWeight: 600 } }, sec.label),
-        React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" } },
-          sec.chips.map(function(chip) {
-            return React.createElement("button", {
-              key: chip,
-              className: "ustk-touch",
-              onClick: function() { handlePick(chip); },
-              style: { fontFamily: "'DM Sans', sans-serif", fontSize: 11, padding: "6px 12px", borderRadius: 20, border: "1.5px solid #D6D3D1", background: "#fff", color: "#44403C", cursor: "pointer", lineHeight: 1.2, transition: "border-color 0.15s, background 0.15s", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" },
-              onMouseEnter: function(e) { e.currentTarget.style.borderColor = "#8B7E74"; e.currentTarget.style.background = "#8B7E7410"; e.currentTarget.style.color = "#8B7E74"; },
-              onMouseLeave: function(e) { e.currentTarget.style.borderColor = "#D6D3D1"; e.currentTarget.style.background = "#fff"; e.currentTarget.style.color = "#44403C"; },
-            }, chip);
-          }),
-          sec.isAi ? React.createElement("button", {
-            key: "_refresh",
-            onClick: function() { load(); },
-            title: "Refresh",
-            style: { fontSize: 12, padding: "6px 10px", borderRadius: 20, border: "1.5px solid #D6D3D140", background: "transparent", color: "#D6D3D1", cursor: "pointer", opacity: 0.7 }
-          }, "\u21BB") : null
-        )
-      );
-    }),
-    loading ? React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 4, marginTop: 10, paddingLeft: 2 } },
-      React.createElement("span", { style: { fontFamily: "'DM Sans', sans-serif", fontSize: 9, color: "#A8A29E", marginRight: 4 } }, "Tailoring"),
-      [0, 0.18, 0.36].map(function(delay, i) {
-        return React.createElement("div", { key: i, style: { width: 4, height: 4, borderRadius: "50%", background: "#8B7E74", opacity: 0.2, animation: "ustk-dot-pulse 1.1s ease-in-out " + delay + "s infinite" } });
-      })
-    ) : null
+  const chipStyle = { fontFamily: F.b, fontSize: 11, padding: "6px 12px", borderRadius: 20, border: `1.5px solid ${C.border}`, background: "#fff", color: C.text, cursor: "pointer", lineHeight: 1.2, transition: "border-color 0.15s, background 0.15s", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" };
+
+  return (
+    <div style={{ marginTop: 10, marginBottom: 4 }}>
+      <style>{`@keyframes ustk-dot-pulse { 0%, 80%, 100% { opacity: 0.2; transform: scale(0.7); } 40% { opacity: 1; transform: scale(1); } }`}</style>
+      <p style={{ fontFamily: F.b, fontSize: 10, color: C.sage, margin: "0 0 8px", fontWeight: 600, letterSpacing: "0.04em" }}>
+        {"\u2193"} Tap a suggestion below, or type your own above
+      </p>
+      {sections.length > 0 && sections.map(sec => (
+        <div key={sec.label} style={{ marginBottom: 8 }}>
+          <p style={{ fontFamily: F.b, fontSize: 9, color: sec.isAi ? C.sage : C.taupe, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 5px", fontWeight: 600 }}>{sec.label}</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+            {sec.chips.map(chip => (
+              <button key={chip} className="ustk-touch" onClick={() => handlePick(chip)} style={chipStyle}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = C.sage; e.currentTarget.style.background = C.sageSoft; e.currentTarget.style.color = C.sage; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = "#fff"; e.currentTarget.style.color = C.text; }}>
+                {chip}
+              </button>
+            ))}
+            {sec.isAi && (
+              <button onClick={() => load()} title="Refresh" style={{ fontSize: 12, padding: "6px 10px", borderRadius: 20, border: `1.5px solid ${C.border}40`, background: "transparent", color: C.border, cursor: "pointer", opacity: 0.7 }}>{"\u21BB"}</button>
+            )}
+          </div>
+        </div>
+      ))}
+      {sections.length === 0 && (
+        <div style={{ marginBottom: 8 }}>
+          <p style={{ fontFamily: F.b, fontSize: 9, color: C.taupe, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 5px", fontWeight: 600 }}>Suggestions</p>
+          <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted }}>Loading suggestions...</p>
+        </div>
+      )}
+      {loading && (
+        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6, paddingLeft: 2 }}>
+          <span style={{ fontFamily: F.b, fontSize: 9, color: C.taupe, marginRight: 4 }}>Tailoring</span>
+          {[0, 0.18, 0.36].map((delay, i) => (
+            <div key={i} style={{ width: 4, height: 4, borderRadius: "50%", background: C.sage, opacity: 0.2, animation: `ustk-dot-pulse 1.1s ease-in-out ${delay}s infinite` }} />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 // ─── Helpers ───
