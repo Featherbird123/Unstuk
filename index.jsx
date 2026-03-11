@@ -1519,9 +1519,6 @@ function UnstukInner() {
             {qvOptions.map((opt, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                 <div style={{ width: 22, height: 22, borderRadius: "50%", border: `2px solid ${opt.trim() ? C.sage : C.border}`, background: opt.trim() ? C.sage : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.2s" }}>
-            {qvOptions.map((opt, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                <div style={{ width: 22, height: 22, borderRadius: "50%", border: `2px solid ${opt.trim() ? C.sage : C.border}`, background: opt.trim() ? C.sage : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.2s" }}>
                   <span style={{ fontFamily: F.b, fontSize: 10, color: opt.trim() ? "#fff" : C.muted, fontWeight: 700 }}>{i + 1}</span>
                 </div>
                 <div style={{ flex: 1 }}>
@@ -3550,6 +3547,7 @@ function UnstukInner() {
             }
           `}</style>
           <BackBtn onClick={() => { setCommitChecked(false); goBack(); }} />
+          <div>
             <div style={{ fontFamily: F.d, fontSize: 13, color: C.sage, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8, fontStyle: "italic" }}>
               {phrase}
             </div>
