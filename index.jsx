@@ -2103,7 +2103,7 @@ function UnstukInner() {
 
   // ─── ONBOARDING ───
   const onboardPages = [
-    { title: "Thoughtful business decisions, faster", body: "Unstuk gives your thinking real structure: clear options, weighted criteria, honest comparison, clear result. Research by Hammond, Keeney & Raiffa (Harvard Business Review) shows that structured decision-making consistently outperforms intuition alone — especially under pressure. In under two minutes, Unstuk makes it happen." },
+    { title: "Think carefully, faster", body: "Unstuk gives your thinking real structure: clear options, weighted criteria, honest comparison, clear result. Research by Hammond, Keeney & Raiffa (Harvard Business Review) shows that structured decision-making consistently outperforms intuition alone — especially under pressure. In under two minutes, Unstuk makes it happen." },
     { title: "A proven framework — you're in charge", body: "Unstuk uses Multi-Criteria Decision Analysis (MCDA) — the same method used by McKinsey, the WHO, and government policy teams worldwide. You define the options, set the criteria, weight what matters, and compare honestly. Every call is yours. Unstuk holds the framework so nothing gets missed." },
     { title: "Reflect, learn, sharpen your edge", body: "Tetlock's Superforecasting research found that people who systematically review their decisions improve accuracy by 20–50% within a year. After each decision, capture your instinct. Reflect three days later. Over time, you'll see exactly when structured thinking was right — and get sharper every time." },
   ];
@@ -2418,7 +2418,7 @@ function UnstukInner() {
               </svg>
               <div style={{ fontFamily: F.d, fontSize: 42, fontWeight: 600, color: C.text, letterSpacing: "-0.01em", marginBottom: 10 }}>Unstuk</div>
               <p style={{ fontFamily: F.d, fontSize: 20, color: C.sage, fontWeight: 500, letterSpacing: "0.01em", margin: "0 0 8px", fontStyle: "italic" }}>
-                Thoughtful business decisions, faster.
+                Think carefully, faster.
               </p>
               <p style={{ fontFamily: F.b, fontSize: 13, color: C.muted, fontWeight: 300, lineHeight: 1.7 }}>
                 Get thinking. Get unstuk.
