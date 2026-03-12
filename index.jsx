@@ -1737,7 +1737,9 @@ function UnstukInner() {
     });
   };
 
-  const [screen, setScreen] = useState("home");
+  const [screen, _setScreen] = useState("home");
+  const prevScreenRef = useRef("home");
+  const setScreen = (s) => { prevScreenRef.current = screen; _setScreen(s); };
 
   // ─── Persistent floating home button (all screens except home) ───
   useEffect(() => {
@@ -3854,7 +3856,7 @@ function UnstukInner() {
     return (
       <div style={{ minHeight: "100vh", background: C.bg, fontFamily: F.b }}>
         <div style={{ maxWidth: 440, margin: "0 auto", padding: "36px 24px" }}>
-          <BackBtn onClick={() => setScreen("home")} />
+          <BackBtn onClick={() => setScreen(prevScreenRef.current === "insight" || prevScreenRef.current === "history" ? prevScreenRef.current : "home")} />
           <FadeIn>
             <H size="lg">Your Decision Growth</H>
             <p style={{ fontFamily: F.b, fontSize: 12, color: C.muted, margin: "8px 0 6px" }}>How your decision-making is evolving — powered by your 3-day reflections.</p>
@@ -4174,21 +4176,226 @@ function UnstukInner() {
                     );
                   })()}
 
+                  {/* Decision complexity trend */}
+                  {history.length >= 3 && (() => {
+                    const recent5 = [...history].sort((a, b) => b.timestamp - a.timestamp).slice(0, 5);
+                    const avgCrit = recent5.reduce((s, d) => s + (d.criteria?.length || 0), 0) / recent5.length;
+                    const avgOpts = recent5.reduce((s, d) => s + (d.options?.length || (d.type === "binary" ? 2 : 0)), 0) / recent5.length;
+                    const allAvgCrit = history.reduce((s, d) => s + (d.criteria?.length || 0), 0) / history.length;
+                    const critTrend = avgCrit > allAvgCrit * 1.2 ? "increasing" : avgCrit < allAvgCrit * 0.8 ? "decreasing" : "stable";
+                    return (
+                      <div style={{ background: C.card, borderRadius: 10, border: `1px solid ${C.border}`, padding: "14px 16px", marginBottom: 8 }}>
+                        <p style={{ fontFamily: F.b, fontSize: 12, fontWeight: 500, color: C.text, margin: "0 0 10px" }}>Decision complexity</p>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                          <div style={{ background: C.bg, borderRadius: 8, padding: "10px 8px", textAlign: "center" }}>
+                            <div style={{ fontFamily: F.d, fontSize: 20, fontWeight: 700, color: C.text }}>{avgCrit.toFixed(1)}</div>
+                            <div style={{ fontFamily: F.b, fontSize: 8, color: C.muted }}>Avg criteria</div>
+                          </div>
+                          <div style={{ background: C.bg, borderRadius: 8, padding: "10px 8px", textAlign: "center" }}>
+                            <div style={{ fontFamily: F.d, fontSize: 20, fontWeight: 700, color: C.text }}>{avgOpts.toFixed(1)}</div>
+                            <div style={{ fontFamily: F.b, fontSize: 8, color: C.muted }}>Avg options</div>
+                          </div>
+                          <div style={{ background: C.bg, borderRadius: 8, padding: "10px 8px", textAlign: "center" }}>
+                            <div style={{ fontFamily: F.d, fontSize: 20, fontWeight: 700, color: critTrend === "increasing" ? C.sage : C.muted }}>
+                              {critTrend === "increasing" ? "↑" : critTrend === "decreasing" ? "↓" : "→"}
+                            </div>
+                            <div style={{ fontFamily: F.b, fontSize: 8, color: C.muted }}>Trend</div>
+                          </div>
+                        </div>
+                        <p style={{ fontFamily: F.b, fontSize: 10, color: C.muted, margin: "8px 0 0", lineHeight: 1.5 }}>
+                          {critTrend === "increasing" ? "You're using more criteria lately — a sign of more thorough analysis." : critTrend === "decreasing" ? "Fewer criteria recently — either decisions are simpler, or you're getting more efficient." : "Consistent depth of analysis across your decisions."}
+                        </p>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Decision type breakdown with outcomes */}
+                  {reflected.length >= 2 && (() => {
+                    const types = {};
+                    reflected.forEach(d => {
+                      const t = d.type === "binary" ? "Binary" : "Multi-option";
+                      if (!types[t]) types[t] = { total: 0, better: 0, worse: 0 };
+                      types[t].total++;
+                      if (d.reflection?.outcome === "Better than expected") types[t].better++;
+                      if (d.reflection?.outcome === "Worse than expected") types[t].worse++;
+                    });
+                    return Object.keys(types).length > 1 ? (
+                      <div style={{ background: C.card, borderRadius: 10, border: `1px solid ${C.border}`, padding: "14px 16px", marginBottom: 8 }}>
+                        <p style={{ fontFamily: F.b, fontSize: 12, fontWeight: 500, color: C.text, margin: "0 0 10px" }}>Outcomes by decision type</p>
+                        {Object.entries(types).map(([type, data]) => {
+                          const successRate = Math.round((data.better / data.total) * 100);
+                          return (
+                            <div key={type} style={{ marginBottom: 8 }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                                <span style={{ fontFamily: F.b, fontSize: 11, color: C.text }}>{type} ({data.total})</span>
+                                <span style={{ fontFamily: F.b, fontSize: 11, color: successRate >= 50 ? C.sage : C.muted, fontWeight: 600 }}>{successRate}% beat expectations</span>
+                              </div>
+                              <div style={{ height: 5, borderRadius: 3, background: C.accentLt, overflow: "hidden" }}>
+                                <div style={{ height: "100%", width: `${successRate}%`, borderRadius: 3, background: successRate >= 50 ? C.sage : C.taupe }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <p style={{ fontFamily: F.b, fontSize: 10, color: C.muted, margin: "6px 0 0" }}>
+                          {(() => {
+                            const entries = Object.entries(types);
+                            if (entries.length < 2) return "";
+                            const [typeA, dataA] = entries[0];
+                            const [typeB, dataB] = entries[1];
+                            const rateA = dataA.better / dataA.total;
+                            const rateB = dataB.better / dataB.total;
+                            if (Math.abs(rateA - rateB) < 0.15) return "Similar success rates across both types.";
+                            return rateA > rateB ? `You perform better with ${typeA} decisions.` : `You perform better with ${typeB} decisions.`;
+                          })()}
+                        </p>
+                      </div>
+                    ) : null;
+                  })()}
+
+                  {/* Blind spots — criteria that correlate with worse outcomes */}
+                  {reflected.length >= 3 && (() => {
+                    const critOutcomes = {};
+                    reflected.forEach(d => {
+                      if (!d.criteria) return;
+                      d.criteria.forEach(c => {
+                        if (!critOutcomes[c.name]) critOutcomes[c.name] = { total: 0, worse: 0, better: 0 };
+                        critOutcomes[c.name].total++;
+                        if (d.reflection?.outcome === "Worse than expected") critOutcomes[c.name].worse++;
+                        if (d.reflection?.outcome === "Better than expected") critOutcomes[c.name].better++;
+                      });
+                    });
+                    const blindSpots = Object.entries(critOutcomes)
+                      .filter(([_, d]) => d.total >= 2 && d.worse / d.total >= 0.5)
+                      .sort((a, b) => b[1].worse / b[1].total - a[1].worse / a[1].total)
+                      .slice(0, 3);
+                    const strengths = Object.entries(critOutcomes)
+                      .filter(([_, d]) => d.total >= 2 && d.better / d.total >= 0.6)
+                      .sort((a, b) => b[1].better / b[1].total - a[1].better / a[1].total)
+                      .slice(0, 3);
+                    if (blindSpots.length === 0 && strengths.length === 0) return null;
+                    return (
+                      <div style={{ background: C.card, borderRadius: 10, border: `1px solid ${C.border}`, padding: "14px 16px", marginBottom: 8 }}>
+                        <p style={{ fontFamily: F.b, fontSize: 12, fontWeight: 500, color: C.text, margin: "0 0 10px" }}>Criteria performance</p>
+                        {strengths.length > 0 && (
+                          <div style={{ marginBottom: blindSpots.length > 0 ? 12 : 0 }}>
+                            <p style={{ fontFamily: F.b, fontSize: 10, color: C.sage, fontWeight: 600, margin: "0 0 6px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Strong criteria</p>
+                            {strengths.map(([name, data]) => (
+                              <div key={name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}>
+                                <span style={{ fontFamily: F.b, fontSize: 11, color: C.text }}>{name}</span>
+                                <span style={{ fontFamily: F.b, fontSize: 10, color: C.sage }}>{Math.round(data.better / data.total * 100)}% good outcomes</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {blindSpots.length > 0 && (
+                          <div>
+                            <p style={{ fontFamily: F.b, fontSize: 10, color: C.taupe, fontWeight: 600, margin: "0 0 6px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Potential blind spots</p>
+                            {blindSpots.map(([name, data]) => (
+                              <div key={name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}>
+                                <span style={{ fontFamily: F.b, fontSize: 11, color: C.text }}>{name}</span>
+                                <span style={{ fontFamily: F.b, fontSize: 10, color: C.taupe }}>{Math.round(data.worse / data.total * 100)}% worse outcomes</span>
+                              </div>
+                            ))}
+                            <p style={{ fontFamily: F.b, fontSize: 10, color: C.muted, margin: "6px 0 0", lineHeight: 1.5 }}>
+                              Decisions using these criteria tend to disappoint. Consider whether you're weighting them correctly.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Confidence calibration chart */}
+                  {withImmediate.length >= 3 && (() => {
+                    const buckets = { confident: { total: 0, good: 0 }, uncertain: { total: 0, good: 0 }, uneasy: { total: 0, good: 0 } };
+                    withImmediate.forEach(d => {
+                      const f = d.immediate.feeling;
+                      if (buckets[f]) {
+                        buckets[f].total++;
+                        if (d.reflection?.outcome !== "Worse than expected") buckets[f].good++;
+                      }
+                    });
+                    const data = Object.entries(buckets).filter(([_, d]) => d.total > 0).map(([feeling, d]) => ({
+                      feeling: feeling.charAt(0).toUpperCase() + feeling.slice(1),
+                      total: d.total,
+                      goodRate: Math.round((d.good / d.total) * 100),
+                      color: feeling === "confident" ? C.sage : feeling === "uneasy" ? C.error + "80" : C.taupe,
+                    }));
+                    return (
+                      <div style={{ background: C.card, borderRadius: 10, border: `1px solid ${C.border}`, padding: "14px 16px", marginBottom: 8 }}>
+                        <p style={{ fontFamily: F.b, fontSize: 12, fontWeight: 500, color: C.text, margin: "0 0 10px" }}>Confidence calibration</p>
+                        <p style={{ fontFamily: F.b, fontSize: 10, color: C.muted, margin: "0 0 10px", lineHeight: 1.5 }}>When you felt confident, how often were you actually right?</p>
+                        {data.map(d => (
+                          <div key={d.feeling} style={{ marginBottom: 8 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                              <span style={{ fontFamily: F.b, fontSize: 11, color: C.text }}>{d.feeling} ({d.total}x)</span>
+                              <span style={{ fontFamily: F.b, fontSize: 11, color: d.goodRate >= 70 ? C.sage : d.goodRate <= 40 ? C.error : C.muted, fontWeight: 600 }}>{d.goodRate}% good outcomes</span>
+                            </div>
+                            <div style={{ height: 5, borderRadius: 3, background: C.accentLt, overflow: "hidden" }}>
+                              <div style={{ height: "100%", width: `${d.goodRate}%`, borderRadius: 3, background: d.color }} />
+                            </div>
+                          </div>
+                        ))}
+                        {(() => {
+                          const conf = buckets.confident;
+                          const uneasy = buckets.uneasy;
+                          if (conf.total >= 2 && uneasy.total >= 1) {
+                            const confRate = conf.good / conf.total;
+                            const uneasyRate = uneasy.total > 0 ? uneasy.good / uneasy.total : 0;
+                            if (confRate < 0.5) return <p style={{ fontFamily: F.b, fontSize: 10, color: C.taupe, margin: "6px 0 0", lineHeight: 1.5 }}>Your confidence often outpaces reality. Slow down when you feel most certain — that's when hidden risks lurk.</p>;
+                            if (confRate > 0.8) return <p style={{ fontFamily: F.b, fontSize: 10, color: C.sage, margin: "6px 0 0", lineHeight: 1.5 }}>Your confidence is well-calibrated — when you feel good about a decision, you're usually right.</p>;
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Outcome streak */}
+                  {reflected.length >= 3 && (() => {
+                    const recent = [...reflected].sort((a, b) => b.timestamp - a.timestamp);
+                    let streak = 0;
+                    let streakType = null;
+                    for (const d of recent) {
+                      const o = d.reflection?.outcome;
+                      if (streakType === null) streakType = o === "Worse than expected" ? "bad" : "good";
+                      if ((streakType === "good" && o !== "Worse than expected") || (streakType === "bad" && o === "Worse than expected")) streak++;
+                      else break;
+                    }
+                    if (streak < 2) return null;
+                    return (
+                      <div style={{ background: streakType === "good" ? C.sageSoft : C.taupeSoft, borderRadius: 10, border: `1px solid ${streakType === "good" ? C.sage : C.taupe}20`, padding: "14px 16px", marginBottom: 8 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{ fontFamily: F.d, fontSize: 28, fontWeight: 700, color: streakType === "good" ? C.sage : C.taupe }}>{streak}</div>
+                          <div>
+                            <p style={{ fontFamily: F.b, fontSize: 12, fontWeight: 500, color: C.text, margin: 0 }}>
+                              {streakType === "good" ? "Decision win streak" : "Decisions needing improvement"}
+                            </p>
+                            <p style={{ fontFamily: F.b, fontSize: 10, color: C.muted, margin: "2px 0 0" }}>
+                              {streakType === "good" ? `Your last ${streak} decisions met or beat expectations.` : `Your last ${streak} decisions fell short. Time to review your approach.`}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {/* Share your stats */}
                   <div style={{ marginTop: 8 }}>
                     <Btn v="secondary" onClick={() => {
                       const stats = [
-                        `\u{1F4CA} My Unstuk Stats`,
+                        `\u{1F4CA} My Unstuk Decision Report`,
                         ``,
                         `${history.length} decisions made`,
                         `${reflected.length} reflected on`,
                         gutAccuracy !== null ? `${gutAccuracy}% instinct accuracy` : null,
-                        betterThanExpected > 0 ? `${betterThanExpected} beat expectations` : null,
+                        betterThanExpected > 0 ? `${betterThanExpected}/${reflected.length} beat expectations` : null,
+                        total - wouldChangeSomething > 0 ? `${total - wouldChangeSomething}/${total} no regrets` : null,
                         ``,
-                        `Track your decisions at unstuk.app`,
+                        `Make better decisions at unstuk.app`,
                       ].filter(Boolean).join("\n");
                       setShareSheetData({ text: stats, title: "Share My Stats" });
-                    }} style={{ width: "100%", fontSize: 12 }}>Share my stats</Btn>
+                    }} style={{ width: "100%", fontSize: 12 }}>Share my decision report</Btn>
                   </div>
                 </div>
               </FadeIn>
@@ -4212,7 +4419,11 @@ function UnstukInner() {
                         <div style={{ paddingBottom: 16 }}>
                           <div style={{ fontFamily: F.b, fontSize: 13, fontWeight: 500, color: C.text }}>{d.name}</div>
                           <div style={{ fontFamily: F.b, fontSize: 11, color: outcomeColor, marginTop: 2 }}>{r.outcome}</div>
-                          <div style={{ fontFamily: F.b, fontSize: 11, color: C.muted, marginTop: 2 }}>Chose: {r.chose} · {r.followedApp === "Yes" ? "Followed analysis" : "Went with instinct"}</div>
+                          <div style={{ fontFamily: F.b, fontSize: 11, color: C.muted, marginTop: 2 }}>Chose: {r.chose} · {r.followedApp === "Yes" ? "Followed analysis" : r.followedApp === "Partly — it influenced me" ? "Partly followed" : "Went with instinct"}</div>
+                          {r.lesson && r.lesson !== "Nothing — I'd decide the same way" && (
+                            <div style={{ fontFamily: F.b, fontSize: 10, color: C.taupe, marginTop: 3, fontStyle: "italic" }}>Lesson: {r.lesson}</div>
+                          )}
+                          <div style={{ fontFamily: F.b, fontSize: 9, color: C.border, marginTop: 3 }}>{new Date(d.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" })}{d.criteria ? ` · ${d.criteria.length} criteria` : ""}</div>
                         </div>
                       </div>
                     );
