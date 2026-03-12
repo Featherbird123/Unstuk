@@ -1161,7 +1161,7 @@ function ResultsView({ results, dName, critCount, onDone, onBack, onImmediate, o
   const tie = sorted.length > 1 && sorted[0].score === sorted[1].score;
 
   // Strength of result
-  const gap = tie ? 0 : sorted[0].pct - sorted[1].pct;
+  const gap = tie ? 0 : sorted.length > 1 ? sorted[0].pct - sorted[1].pct : 100;
   const strength = tie ? "tie" : gap >= 30 ? "clear" : gap >= 10 ? "moderate" : "close";
   const strengthMsg = { clear: "This is a clear result.", moderate: "A meaningful difference, though not overwhelming.", close: "This is a close call \u2014 see the strategies below.", tie: null };
 
@@ -1854,7 +1854,8 @@ function UnstukInner() {
       const d = await window.storage.get("unstuk_qv_" + code);
       if (!d) return;
       const qv = JSON.parse(d.value);
-      const voterId = "v_" + Math.random().toString(36).substring(2, 8);
+      if (qv.expiry > 0 && Date.now() > qv.created + qv.expiry * 3600000) { setQvErr("This poll has closed."); return; }
+      const voterId = "v_" + secureCode(6);
       qv.votes[voterId] = optionIdx;
       await window.storage.set("unstuk_qv_" + code, JSON.stringify(qv));
       await window.storage.set(voteKey, String(optionIdx));
@@ -1914,16 +1915,12 @@ function UnstukInner() {
   //   grp:{code}:p:{name} → individual participant results (one key per person)
   // Reading: list all keys with prefix grp:{code}:p: to aggregate.
 
-  const genCode = () => {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    let code = "";
-    for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
-    return code;
-  };
+  const genCode = () => secureCode(6);
+  const safeName = (n) => String(n || "").replace(/[^a-zA-Z0-9 _-]/g, "").trim().substring(0, 30) || "User";
 
   const createGroup = async (decisionData, results, userName, expiryHours) => {
     const code = genCode();
-    const name = userName || "Creator";
+    const name = safeName(userName) || "Creator";
     const meta = {
       decision: { name: decisionData.name, type: decisionData.type, criteria: decisionData.criteria,
         ...(decisionData.type === "binary" ? { binaryOption1: decisionData.binaryOption1, binaryOption2: decisionData.binaryOption2 } : { options: decisionData.options, baseOption: decisionData.baseOption }) },
@@ -1961,15 +1958,16 @@ function UnstukInner() {
 
   const submitToGroup = async (code, userName, results) => {
     try {
+      const sName = safeName(userName);
       const keys = await window.storage.list("grp:" + code + ":p:");
       const count = keys && keys.keys ? keys.keys.length : 0;
       if (count >= 8) return false;
       try {
-        await window.storage.get("grp:" + code + ":p:" + userName);
+        await window.storage.get("grp:" + code + ":p:" + sName);
         return false;
       } catch (e) { /* key doesn't exist = good */ }
       const safeResults = results.map(r => ({ name: r.name, score: r.score, pct: r.pct }));
-      await window.storage.set("grp:" + code + ":p:" + userName, JSON.stringify({ name: userName, results: safeResults, timestamp: Date.now() }));
+      await window.storage.set("grp:" + code + ":p:" + sName, JSON.stringify({ name: sName, results: safeResults, timestamp: Date.now() }));
       return true;
     } catch (e) { return false; }
   };
@@ -4529,7 +4527,7 @@ function UnstukInner() {
       });
       if (!res.ok) throw new Error("not available");
       const data = await res.json();
-      if (data.url) window.location.href = data.url;
+      if (data.url && data.url.startsWith("https://checkout.stripe.com/")) window.location.href = data.url;
       else throw new Error("no url");
     } catch(e) {
       setCheckoutMsg("Payment system coming soon. We\u2019re finalising Stripe integration.");
