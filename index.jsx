@@ -293,14 +293,25 @@ function synthesizeCritChips(dName, opts, existingCrits) {
   const subject = extractSubject(dName);
   const subjectStr = subject.slice(0, 2).join(" ");
   const optNames = (opts || []).map(o => (o.name || o)).filter(Boolean);
+  const critLower = (existingCrits || []).map(c => (c.name || c).toLowerCase());
 
-  // Build criteria that reference the actual options
   const result = {};
 
-  // Option-specific criteria when options exist
+  // Generate option-comparative criteria when options exist
   if (optNames.length >= 2) {
-    const a = optNames[0], b = optNames[1];
-    result[`${a} vs ${b}`] = [`${a} Total Cost`, `${b} Total Cost`, `${a} Time to Value`, `${b} Risk Level`].slice(0, optNames.length > 2 ? 2 : 4);
+    const comparisons = [];
+    for (const opt of optNames.slice(0, 3)) {
+      const short = opt.length > 20 ? opt.substring(0, 18) + "…" : opt;
+      comparisons.push(`${short} — Cost`, `${short} — Risk`, `${short} — Speed`, `${short} — Quality`);
+    }
+    // Pick cross-option comparison criteria
+    result["Comparing Options"] = [
+      `${optNames[0]} vs ${optNames[1]} Cost`,
+      `Which Scales Better`,
+      `Speed to Implement`,
+      `Long-Term Flexibility`,
+      `Team Preference`,
+    ].filter(c => !critLower.includes(c.toLowerCase()));
   }
 
   // Subject-derived criteria
@@ -318,9 +329,17 @@ function synthesizeCritChips(dName, opts, existingCrits) {
     if (a.test.test(name)) { Object.assign(result, a.crits); return result; }
   }
 
-  // Generic but labeled with the decision subject
-  result[subjectStr + " Factors"] = ["Total Cost", "Time to Deliver", "Quality of Outcome", "Risk Level", "Strategic Alignment"];
-  result["Execution"] = ["Implementation Effort", "Team Readiness", "Stakeholder Buy-In", "Reversibility", "Dependencies"];
+  // Smarter generic — use option names in category labels
+  if (optNames.length > 0) {
+    result["For " + optNames[0]] = ["Cost of " + optNames[0], "Risk of " + optNames[0], optNames[0] + " Timeline", optNames[0] + " Quality"];
+    if (optNames.length > 1) {
+      result["For " + optNames[1]] = ["Cost of " + optNames[1], "Risk of " + optNames[1], optNames[1] + " Timeline", optNames[1] + " Quality"];
+    }
+    result["Overall"] = ["Strategic Alignment", "Team Readiness", "Stakeholder Buy-In", "Reversibility"];
+  } else {
+    result[subjectStr + " Factors"] = ["Total Cost", "Time to Deliver", "Quality of Outcome", "Risk Level", "Strategic Alignment"];
+    result["Execution"] = ["Implementation Effort", "Team Readiness", "Stakeholder Buy-In", "Reversibility", "Dependencies"];
+  }
   return result;
 }
 
@@ -410,6 +429,8 @@ function getContextualFallbacks(storageKey, aiContext) {
   if (storageKey === "name" || storageKey === "qv-name") return FALLBACK_CHIPS[storageKey] || {};
   const ctx = (aiContext?.dName || "").toLowerCase();
   const decType = aiContext?.decisionType || "";
+  const existingOpts = (aiContext?.opts || []).map(o => (o.name || o)).filter(Boolean);
+  const existingCrits = (aiContext?.crits || []).map(cr => (cr.name || cr)).filter(Boolean);
 
   // QV options — use enhanced synthesis
   if (storageKey === "qv-opt") return synthesizeQvOptChips(aiContext?.dName || "", aiContext?.opts || []);
@@ -433,12 +454,26 @@ function getContextualFallbacks(storageKey, aiContext) {
       }
     }
   }
+
+  // ALWAYS enhance with synthesis — merge topic chips + synthesized chips
+  if (storageKey === "opt") {
+    const synth = synthesizeOptChips(aiContext?.dName || "", decType, existingOpts);
+    for (const [cat, chips] of Object.entries(synth)) {
+      if (!merged[cat]) merged[cat] = [];
+      for (const c of chips) { if (!merged[cat].includes(c)) merged[cat].push(c); }
+    }
+    return merged;
+  }
+  if (storageKey === "crit") {
+    const synth = synthesizeCritChips(aiContext?.dName || "", existingOpts, existingCrits);
+    for (const [cat, chips] of Object.entries(synth)) {
+      if (!merged[cat]) merged[cat] = [];
+      for (const c of chips) { if (!merged[cat].includes(c)) merged[cat].push(c); }
+    }
+    return merged;
+  }
+
   if (matched) return merged;
-
-  // No topic match — use dynamic synthesis from the decision text
-  if (storageKey === "opt") return synthesizeOptChips(aiContext?.dName || "", decType, aiContext?.opts || []);
-  if (storageKey === "crit") return synthesizeCritChips(aiContext?.dName || "", aiContext?.opts || [], aiContext?.crits || []);
-
   return GENERIC_CONTEXTUAL[storageKey] || {};
 }
 
