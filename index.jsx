@@ -601,7 +601,7 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, 
               </button>
             ))}
             {sec.isAi && (
-              <button onClick={() => load()} title="Refresh" style={{ fontSize: 12, padding: "6px 10px", borderRadius: 20, border: `1.5px solid ${C.border}40`, background: "transparent", color: C.border, cursor: "pointer", opacity: 0.7 }}>{"\u21BB"}</button>
+              <button onClick={() => load()} title="Refresh" aria-label="Refresh suggestions" style={{ fontSize: 12, padding: "6px 10px", borderRadius: 20, border: `1.5px solid ${C.border}40`, background: "transparent", color: C.border, cursor: "pointer", opacity: 0.7 }}>{"\u21BB"}</button>
             )}
           </div>
         </div>
@@ -622,6 +622,7 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, 
 }
 // ─── Helpers ───
 const uid = () => Math.random().toString(36).slice(2, 10);
+const secureCode = (len = 6) => { const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; const arr = new Uint8Array(len); crypto.getRandomValues(arr); return Array.from(arr, b => chars[b % chars.length]).join(""); };
 const pct = (v, t) => { const r = t === 0 ? 0 : Math.round((v / t) * 100); return Number.isFinite(r) ? r : 0; };
 
 const IMPORTANCE = [
@@ -713,7 +714,7 @@ function Btn({ children, onClick, v = "primary", disabled, style = {}, ariaLabel
     ghost: { background: "transparent", color: C.muted, padding: "8px 12px", fontSize: 13 },
     sage: { background: C.sage, color: "#fff" },
   };
-  return <button onClick={disabled ? undefined : onClick} style={{ ...base, ...vs[v], ...style }}>{children}</button>;
+  return <button onClick={disabled ? undefined : onClick} aria-label={ariaLabel} style={{ ...base, ...vs[v], ...style }}>{children}</button>;
 }
 
 function Card({ children, style = {} }) {
@@ -804,7 +805,7 @@ function TxtIn({ value, onChange, onSubmit, onFocus, placeholder, autoFocus = tr
       const t = setTimeout(() => ref.current?.focus(), 80);
       return () => clearTimeout(t);
     }
-  });
+  }, [autoFocus]);
   const handleChange = (e) => {
     const v = sanitize(e.target.value);
     if (maxLen && v.length > maxLen) return;
@@ -823,7 +824,7 @@ function TxtIn({ value, onChange, onSubmit, onFocus, placeholder, autoFocus = tr
         onBlur={(e) => (e.target.style.borderColor = C.border)}
       />
       {hasClear && (
-        <button onClick={() => { onChange(""); ref.current?.focus(); }} style={{ position: "absolute", right: maxLen ? 44 : 8, top: "50%", transform: "translateY(-50%)", border: "none", background: "transparent", color: C.muted, fontFamily: F.b, fontSize: 9, letterSpacing: "0.02em", cursor: "pointer", padding: "3px 6px", borderRadius: 4, transition: "color 0.15s, background 0.15s", opacity: 0.6 }} onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = C.border + "20"; }} onMouseLeave={e => { e.currentTarget.style.opacity = "0.6"; e.currentTarget.style.background = "transparent"; }}>remove</button>
+        <button onClick={() => { onChange(""); ref.current?.focus(); }} aria-label="Remove text" style={{ position: "absolute", right: maxLen ? 44 : 8, top: "50%", transform: "translateY(-50%)", border: "none", background: "transparent", color: C.muted, fontFamily: F.b, fontSize: 9, letterSpacing: "0.02em", cursor: "pointer", padding: "3px 6px", borderRadius: 4, transition: "color 0.15s, background 0.15s", opacity: 0.6 }} onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = C.border + "20"; }} onMouseLeave={e => { e.currentTarget.style.opacity = "0.6"; e.currentTarget.style.background = "transparent"; }}>remove</button>
       )}
       {maxLen && value.length > 0 && (
         <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontFamily: F.b, fontSize: 10, color: value.length >= maxLen ? C.taupe : C.border }}>
@@ -909,19 +910,10 @@ function Tip({ text }) {
 
 function BackBtn({ onClick, label = "Back" }) {
   return (
-    <button onClick={onClick} style={{ fontFamily: F.b, fontSize: 12, color: C.muted, background: "none", border: "none", cursor: "pointer", padding: "4px 0", marginBottom: 16, display: "inline-flex", alignItems: "center", gap: 5, letterSpacing: "0.01em", opacity: 0.75, transition: "opacity 0.15s" }}
+    <button onClick={onClick} style={{ fontFamily: F.b, fontSize: 13, fontWeight: 500, color: C.taupe, background: "none", border: "none", cursor: "pointer", padding: "4px 0", marginBottom: 16, display: "inline-flex", alignItems: "center", gap: 5, letterSpacing: "0.01em", opacity: 0.85, transition: "opacity 0.15s" }}
       onMouseEnter={e => e.currentTarget.style.opacity = 1}
-      onMouseLeave={e => e.currentTarget.style.opacity = 0.75}>
-      <span style={{ fontSize: 15, lineHeight: 1, marginTop: -1 }}>‹</span>{label}
-    </button>
-  );
-}
-function HomeBtn({ onClick }) {
-  return (
-    <button onClick={onClick} style={{ fontFamily: F.b, fontSize: 11, color: C.muted, background: "none", border: "none", cursor: "pointer", padding: "4px 0", marginBottom: 16, display: "inline-flex", alignItems: "center", gap: 5, letterSpacing: "0.03em", textTransform: "uppercase", opacity: 0.55, transition: "opacity 0.15s" }}
-      onMouseEnter={e => e.currentTarget.style.opacity = 1}
-      onMouseLeave={e => e.currentTarget.style.opacity = 0.55}>
-      <span style={{ fontSize: 13, lineHeight: 1 }}>⌂</span> Home
+      onMouseLeave={e => e.currentTarget.style.opacity = 0.85}>
+      <span style={{ fontSize: 16, lineHeight: 1, marginTop: -1 }}>‹</span>{label}
     </button>
   );
 }
@@ -1364,8 +1356,8 @@ function HowItWorks() {
   const [show, setShow] = useState(false);
   return (
     <div style={{ marginTop: 48, paddingTop: 20, borderTop: `1px solid ${C.border}40` }}>
-      <button onClick={() => setShow(!show)} style={{ fontFamily: F.b, fontSize: 10, color: C.border, background: "none", border: "none", cursor: "pointer", letterSpacing: "0.03em", textTransform: "uppercase" }}>
-        {show ? "Hide" : "How Unstuk works"}
+      <button onClick={() => setShow(!show)} style={{ fontFamily: F.b, fontSize: 12, color: C.muted, background: "none", border: "none", cursor: "pointer", letterSpacing: "0.03em" }}>
+        {show ? "Hide" : "How Unstuk works ›"}
       </button>
       {show && (
         <FadeIn>
@@ -1593,23 +1585,23 @@ function UnstukInner() {
     if (!el) {
       el = document.createElement("button");
       el.id = id;
-      el.innerHTML = '<span style="font-size:12px;line-height:1">⌂</span> HOME';
+      el.innerHTML = '<span style="font-size:14px;line-height:1">⌂</span> Home';
       Object.assign(el.style, {
-        position: "fixed", top: "14px", right: "14px", zIndex: "9999",
-        fontFamily: "'DM Sans', sans-serif", fontSize: "9px", letterSpacing: "0.06em",
-        color: "#78716C", background: "rgba(255,255,255,0.85)", backdropFilter: "blur(8px)",
-        border: "1px solid #D6D3D1", borderRadius: "8px", padding: "6px 10px",
-        cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px",
-        opacity: "0.55", transition: "opacity 0.15s", textTransform: "uppercase",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+        position: "fixed", top: "14px", right: "14px", zIndex: "999",
+        fontFamily: "'DM Sans', sans-serif", fontSize: "12px", fontWeight: "500", letterSpacing: "0.03em",
+        color: "#57534E", background: "rgba(255,255,255,0.92)", backdropFilter: "blur(8px)",
+        border: "1px solid #D6D3D1", borderRadius: "10px", padding: "8px 14px",
+        cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "5px",
+        opacity: "0.75", transition: "opacity 0.15s",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
       });
       el.addEventListener("mouseenter", () => el.style.opacity = "1");
-      el.addEventListener("mouseleave", () => el.style.opacity = "0.55");
+      el.addEventListener("mouseleave", () => el.style.opacity = "0.75");
       document.body.appendChild(el);
     }
     el.style.display = "inline-flex";
     el.onclick = () => setScreen("home");
-    return () => {};
+    return () => { if (el && el.parentNode) { el.parentNode.removeChild(el); } };
   }, [screen]);
 
   const [dName, setDName] = useState("");
@@ -1667,7 +1659,7 @@ function UnstukInner() {
     const opts = qvOptions.map(o => o.trim()).filter(Boolean);
     if (!qvQuestion.trim() || opts.length < 2) return;
     if (isBlockedContent(qvQuestion) || opts.some(isBlockedContent)) { setBlocked(true); return; }
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const code = secureCode(6);
     const qv = { question: sanitize(qvQuestion.trim()), options: opts.map(sanitize), votes: {}, created: Date.now(), expiry: qvExpiry, requireCode: true };
     try { await window.storage.set("unstuk_qv_" + code, JSON.stringify(qv)); } catch(e) {}
     setQvCode(code);
@@ -1689,12 +1681,16 @@ function UnstukInner() {
 
   const submitQuickVote = async (code, optionIdx) => {
     try {
+      // Prevent duplicate voting — check if this device already voted
+      const voteKey = "unstuk_qv_voted_" + code;
+      try { const already = await window.storage.get(voteKey); if (already) { setQvVoted(parseInt(already.value, 10)); return; } } catch(e) { /* not voted yet */ }
       const d = await window.storage.get("unstuk_qv_" + code);
       if (!d) return;
       const qv = JSON.parse(d.value);
       const voterId = "v_" + Math.random().toString(36).substring(2, 8);
       qv.votes[voterId] = optionIdx;
       await window.storage.set("unstuk_qv_" + code, JSON.stringify(qv));
+      await window.storage.set(voteKey, String(optionIdx));
       setQvVoted(optionIdx);
       setQvResults(qv);
       trackEvent("quickvote_vote");
@@ -2014,7 +2010,6 @@ function UnstukInner() {
           <style>{touchStyle}</style>
           <Card>
           <FadeIn>
-            <HomeBtn onClick={() => { setScreen("home"); setQvQuestion(""); setQvOptions(["", ""]); }} />
             <div style={{ textAlign: "center", padding: "12px 0" }}>
               <div style={{ fontSize: 28, marginBottom: 8 }}>{"\u2705"}</div>
               <H size="md">Vote Created</H>
@@ -2139,7 +2134,6 @@ function UnstukInner() {
           <style>{touchStyle}</style>
           <Card>
           <FadeIn>
-            <HomeBtn onClick={() => { setScreen("home"); setQvResults(null); setQvCode(null); try { window.storage.delete("unstuk_active_qvCode"); } catch(e) {} setQvQuestion(""); setQvOptions(["", ""]); }} />
             <H size="md">Vote Results</H>
             <Sub>{qvResults.question}</Sub>
             <div style={{ marginTop: 16 }}>
@@ -2368,7 +2362,7 @@ function UnstukInner() {
           {weeklyDay === null && !showSchedule && history.length >= 2 && (
             <FadeIn delay={200}>
               <button onClick={() => setShowSchedule(true)} style={{ background: "none", border: "none", cursor: "pointer", marginTop: 16, padding: 0, display: "block", width: "100%" }}>
-                <p style={{ fontFamily: F.b, fontSize: 10, color: C.border, textAlign: "center" }}>Set a weekly decision time {"›"}</p>
+                <p style={{ fontFamily: F.b, fontSize: 12, color: C.muted, textAlign: "center" }}>Set a weekly decision time {"›"}</p>
               </button>
             </FadeIn>
           )}
@@ -2522,7 +2516,7 @@ function UnstukInner() {
           {/* ── Invite a Friend ── */}
           <FadeIn delay={350}>
             <button onClick={() => {
-              const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+              const code = secureCode(6);
               const now = Date.now();
               const expires = now + 14 * 24 * 60 * 60 * 1000;
               try { window.storage.set("unstuk_invite_" + code, JSON.stringify({ created: now, expires: expires, inviter: "user" })); } catch(e) {}
@@ -2688,7 +2682,6 @@ function UnstukInner() {
     return (
       <div style={{ minHeight: "100vh", background: C.bg, fontFamily: F.b }}>
         <div style={{ maxWidth: 440, margin: "0 auto", padding: "60px 24px", textAlign: "center", userSelect: "none" }}>
-          <HomeBtn onClick={() => setScreen("home")} />
           <FadeIn key={tutSlide}>
             <div style={{ fontSize: 48, marginBottom: 24 }}>{sl.icon}</div>
             <H size="lg">{sl.title}</H>
@@ -3976,7 +3969,7 @@ function UnstukInner() {
     return (
       <div style={{ minHeight: "100vh", background: C.bg, fontFamily: F.b }}>
         <div style={{ maxWidth: 440, margin: "0 auto", padding: "36px 24px" }}>
-          <BackBtn onClick={() => reflectStep > 0 ? setReflectStep(reflectStep - 1) : setScreen("home")} /><HomeBtn onClick={() => setScreen("home")} />
+          <BackBtn onClick={() => reflectStep > 0 ? setReflectStep(reflectStep - 1) : setScreen("home")} />
           <FadeIn key={reflectStep}>
             <Dots current={reflectStep} total={reviewQs.length} />
             <div style={{ marginBottom: 8 }}>
