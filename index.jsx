@@ -40,47 +40,57 @@ class ErrorBoundary extends React.Component {
 // ─── Instant fallback chips (shown immediately while AI loads) ───
 const FALLBACK_CHIPS = {
   name: {
-    "Strategy": ["CRM Migration", "Market Expansion", "Product Roadmap"],
-    "People": ["Head of Growth Hire", "Team Restructure", "Agency Selection"],
-    "Operations": ["Office Relocation", "Tech Stack Change", "Vendor Shortlist"],
+    "Strategy & Growth": ["Market Expansion Plan", "Pricing Strategy Review", "Product Roadmap Priority", "Partnership Evaluation", "Competitive Positioning"],
+    "People & Talent": ["Head of Growth Hire", "Team Restructure", "Agency vs In-House", "Leadership Succession", "Remote Work Policy"],
+    "Operations & Finance": ["Tech Stack Migration", "Vendor Shortlist", "Budget Reallocation", "Office Relocation", "Process Automation"],
+    "Marketing & Sales": ["Brand Repositioning", "Channel Strategy", "CRM Platform Selection", "Campaign Budget Split", "Sales Territory Plan"],
   },
   opt: {
-    "Common": ["Build In-House", "Outsource", "Partner", "Do Nothing", "Defer Decision"],
+    "Build vs Buy": ["Build In-House", "Outsource", "Partner / Joint Venture", "License Existing", "Acquire"],
+    "Action": ["Proceed Now", "Defer 3 Months", "Pilot First", "Do Nothing", "Restructure Approach"],
+    "Scale": ["Full Rollout", "Phased Approach", "Single Market Test", "Minimum Viable"],
   },
   crit: {
-    "Business": ["Cost", "Revenue Impact", "Time to Market", "Scalability"],
-    "Risk": ["Risk Level", "Reversibility", "Compliance"],
-    "People": ["Team Capacity", "Stakeholder Buy-In", "Culture Fit"],
+    "Financial": ["Total Cost of Ownership", "Revenue Impact", "Payback Period", "Cash Flow Effect", "Budget Fit"],
+    "Strategic": ["Time to Market", "Scalability", "Competitive Advantage", "Alignment with Vision", "Market Timing"],
+    "Risk & Governance": ["Risk Level", "Reversibility", "Regulatory Compliance", "Data Security", "Reputational Impact"],
+    "People & Culture": ["Team Capacity", "Stakeholder Buy-In", "Culture Fit", "Talent Retention", "Change Management"],
   },
   "qv-name": {
-    "Team": ["Which launch date works best?", "Where should we hold the offsite?", "Which vendor should we shortlist?"],
+    "Team & Planning": ["Which launch date works best?", "Where should we hold the offsite?", "Which vendor should we shortlist?", "What should be our Q3 priority?"],
+    "Feedback": ["How should we handle this client issue?", "Which design direction do you prefer?", "What's blocking you most right now?", "Which meeting format works best?"],
+    "Strategy": ["Should we enter this market?", "Which feature should ship first?", "How should we allocate the budget?", "Which candidate should we advance?"],
   },
   "qv-opt": {
-    "Common": ["Option A", "Option B", "Option C", "None of these"],
+    "Agreement": ["Strongly Agree", "Agree", "Neutral", "Disagree", "Strongly Disagree"],
+    "Priority": ["High Priority", "Medium Priority", "Low Priority", "Not a Priority"],
+    "Timing": ["This Week", "This Month", "This Quarter", "Next Year", "Not Now"],
+    "Direction": ["Option A", "Option B", "Option C", "None of These", "Need More Info"],
   },
 };
 
-async function fetchAiChipSuggestions({ step, picked, context, count = 6 }) {
+async function fetchAiChipSuggestions({ step, picked, context, count = 8, history = [] }) {
   try {
     const decisionCtx = context.dName ? `Decision: ${context.dName}` : "";
     const optsCtx = context.opts && context.opts.length ? `\nOptions so far: ${context.opts.map(o => o.name).join(", ")}` : "";
     const critsCtx = context.crits && context.crits.length ? `\nCriteria so far: ${context.crits.map(cr => cr.name).join(", ")}` : "";
     const alreadyPicked = picked && picked.length ? `\nAlready chosen: ${picked.join(", ")}` : "";
-    const typedCtx = context.typed && context.typed.trim() ? `\nUser is currently typing: "${context.typed.trim()}" — suggestions should complete or complement this` : "";
+    const typedCtx = context.typed && context.typed.trim() ? `\nUser is currently typing: "${context.typed.trim()}" — suggestions MUST complete, complement or closely relate to what they are typing. Prioritise relevance to their partial input.` : "";
+    const historyCtx = history.length > 0 ? `\nUser's previous decisions: ${history.slice(0, 5).join(", ")}. Include 1-2 suggestions inspired by their history, but ${count - 2}+ should be fresh and new.` : "";
     const typeHint = step === "name"
-      ? "decision names (3-5 words, e.g. 'CRM Migration', 'Head of Growth Hire')"
+      ? "decision names (3-5 words, e.g. 'CRM Migration', 'Head of Growth Hire', 'Q3 Budget Allocation')"
       : step === "opt"
-      ? "concrete mutually-exclusive options tailored to this decision"
+      ? "concrete mutually-exclusive options tailored to this specific decision — evidence-based, current best practice"
       : step === "qv-name"
-      ? "short poll questions as full sentences (e.g. 'Which launch date works best for the team?', 'What day should we hold the team offsite?', 'Which vendor should we move forward with?')"
+      ? "short poll questions as full sentences for teams (e.g. 'Which launch date works best for the team?', 'What should be our Q3 priority?')"
       : step === "qv-opt"
-      ? "short poll answer options (2-4 words, mutually exclusive)"
-      : "distinct evaluation criteria for this decision (not overlapping with existing)";
-    const prompt = `Business decision tool. Generate exactly ${count} ${typeHint}.\n${decisionCtx}${optsCtx}${critsCtx}${alreadyPicked}${typedCtx}\nRules: specific to context, 2-5 words, Title Case, no years unless user wrote one, professional.\nJSON only: {"chips":["item1","item2",...]}`;
+      ? "short poll answer options (2-4 words, mutually exclusive, clear and distinct)"
+      : "distinct evaluation criteria for this decision — based on best-practice frameworks (MCDA, balanced scorecard, risk analysis)";
+    const prompt = `Business decision tool. Generate exactly ${count} ${typeHint}.\n${decisionCtx}${optsCtx}${critsCtx}${alreadyPicked}${typedCtx}${historyCtx}\nRules: specific to context, 2-5 words, Title Case, no years unless user wrote one, professional, cutting-edge, evidence-based.\nJSON only: {"chips":["item1","item2",...]}`;
     const response = await fetch("/api/ai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 150, messages: [{ role: "user", content: prompt }] })
+      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 200, messages: [{ role: "user", content: prompt }] })
     });
     const data = await response.json();
     const text = data.content?.[0]?.text || "";
@@ -90,15 +100,24 @@ async function fetchAiChipSuggestions({ step, picked, context, count = 6 }) {
   } catch(e) { return []; }
 }
 
-function ChipPicker({ onPick, usedNames = [], storageKey, aiContext }) {
+function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext }) {
   const [chips, setChips] = useState([]);
   const [loading, setLoading] = useState(false);
   const mountedRef = useRef(true);
   const debounceRef = useRef(null);
   const lastContextRef = useRef(null);
 
+  // Load user history for personalisation
+  const [history, setHistory] = useState([]);
   useEffect(() => {
     mountedRef.current = true;
+    (async () => {
+      try {
+        const h = await window.storage.get("unstuk_history");
+        const arr = JSON.parse(h.value || "[]");
+        setHistory(arr.map(d => d.name).filter(Boolean).slice(0, 8));
+      } catch(e) {}
+    })();
     return () => { mountedRef.current = false; };
   }, []);
 
@@ -110,6 +129,7 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext }) {
       picked: [...(usedNames || []), ...pickedSoFar],
       context: aiContext || { dName: "", opts: [], crits: [] },
       count: 8,
+      history,
     });
     if (mountedRef.current) {
       setChips(suggestions);
@@ -117,6 +137,7 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext }) {
     }
   };
 
+  // Responsive: reload on every context change with short debounce
   useEffect(() => {
     const ctxKey = JSON.stringify({
       dName: aiContext?.dName || "",
@@ -128,22 +149,37 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext }) {
     lastContextRef.current = ctxKey;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const isFirst = chips.length === 0 && !loading;
-    debounceRef.current = setTimeout(() => { load(); }, isFirst ? 0 : 500);
+    const typed = (aiContext?.typed || "").trim();
+    // Faster debounce when user is typing (300ms) vs initial (0)
+    debounceRef.current = setTimeout(() => { load(); }, isFirst ? 0 : typed.length > 2 ? 300 : 500);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [aiContext?.dName, aiContext?.typed, (aiContext?.opts||[]).length, (aiContext?.crits||[]).length]);
 
   const handlePick = (name) => {
     onPick(name);
     load([name]);
+    // Focus next input and highlight it
+    if (focusNext) {
+      setTimeout(() => {
+        const el = typeof focusNext === "string" ? document.getElementById(focusNext) : null;
+        if (el) { el.focus(); el.style.borderColor = C.sage; el.style.boxShadow = `0 0 0 3px ${C.sage}20`; setTimeout(() => { el.style.boxShadow = "0 1px 4px rgba(0,0,0,0.06)"; }, 1200); }
+      }, 80);
+    }
   };
 
   const usedLower = usedNames.map(n => n.toLowerCase());
   const aiChips = chips.filter(ch => !usedLower.includes(ch.toLowerCase()));
+  const typed = (aiContext?.typed || "").trim().toLowerCase();
 
+  // Build sections: filter fallbacks by typed text for responsiveness
   const fallbackData = FALLBACK_CHIPS[storageKey] || {};
   const sections = [];
   Object.keys(fallbackData).forEach(cat => {
-    const filtered = fallbackData[cat].filter(c => !usedLower.includes(c.toLowerCase()));
+    const filtered = fallbackData[cat].filter(c => {
+      if (usedLower.includes(c.toLowerCase())) return false;
+      if (typed.length > 1) return c.toLowerCase().includes(typed);
+      return true;
+    });
     if (filtered.length > 0) sections.push({ label: cat, chips: filtered });
   });
   if (aiChips.length > 0) sections.push({ label: "Tailored for you", chips: aiChips, isAi: true });
@@ -173,11 +209,8 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext }) {
           </div>
         </div>
       ))}
-      {sections.length === 0 && (
-        <div style={{ marginBottom: 8 }}>
-          <p style={{ fontFamily: F.b, fontSize: 9, color: C.taupe, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 5px", fontWeight: 600 }}>Suggestions</p>
-          <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted }}>Loading suggestions...</p>
-        </div>
+      {sections.length === 0 && !loading && (
+        <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, margin: "4px 0" }}>{typed ? "No matches — keep typing or clear to see all" : "Loading suggestions..."}</p>
       )}
       {loading && (
         <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6, paddingLeft: 2 }}>
@@ -1234,13 +1267,13 @@ function UnstukInner() {
     if (!qvQuestion.trim() || opts.length < 2) return;
     if (isBlockedContent(qvQuestion) || opts.some(isBlockedContent)) { setBlocked(true); return; }
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const qv = { question: sanitize(qvQuestion.trim()), options: opts.map(sanitize), votes: {}, created: Date.now(), expiry: qvExpiry, requireCode: qvRequireCode };
+    const qv = { question: sanitize(qvQuestion.trim()), options: opts.map(sanitize), votes: {}, created: Date.now(), expiry: qvExpiry, requireCode: true };
     try { await window.storage.set("unstuk_qv_" + code, JSON.stringify(qv)); } catch(e) {}
     setQvCode(code);
     try { await window.storage.set("unstuk_active_qvCode", code); } catch(e) {}
     trackEvent("quickvote_create");
     const exL = qvExpiry === 0 ? "No time limit" : qvExpiry < 1 ? `${Math.round(qvExpiry * 60)} mins` : qvExpiry <= 1 ? "1 hour" : qvExpiry <= 24 ? `${qvExpiry} hours` : `${Math.round(qvExpiry / 24)} days`;
-    const qvShareText = `📊 Quick Poll: ${sanitize(qvQuestion.trim())}\n\nOptions:\n${opts.map((o, i) => `${i + 1}. ${o}`).join("\n")}${qvRequireCode ? `\n\nCode: ${code}` : ""}\n\nRespond at unstuk.app${qvExpiry > 0 ? `\n\nCloses in: ${exL}` : ""}`;
+    const qvShareText = `📊 Quick Poll: ${sanitize(qvQuestion.trim())}\n\nOptions:\n${opts.map((o, i) => `${i + 1}. ${o}`).join("\n")}\n\nCode: ${code}\n\nRespond at unstuk.app${qvExpiry > 0 ? `\n\nCloses in: ${exL}` : ""}`;
     setShareSheetData({ text: qvShareText, title: "Share Quick Poll", afterClose: () => setScreen("home") });
     setScreen("qv_share");
   };
@@ -1506,7 +1539,7 @@ function UnstukInner() {
 
   // ─── ONBOARDING ───
   const onboardPages = [
-    { title: "Better business decisions, faster", body: "Unstuk gives your thinking real structure: clear options, weighted criteria, honest comparison, clear result. Research by Hammond, Keeney & Raiffa (Harvard Business Review) shows that structured decision-making consistently outperforms intuition alone — especially under pressure. In under two minutes, Unstuk makes it happen." },
+    { title: "Thoughtful business decisions, faster", body: "Unstuk gives your thinking real structure: clear options, weighted criteria, honest comparison, clear result. Research by Hammond, Keeney & Raiffa (Harvard Business Review) shows that structured decision-making consistently outperforms intuition alone — especially under pressure. In under two minutes, Unstuk makes it happen." },
     { title: "A proven framework — you're in charge", body: "Unstuk uses Multi-Criteria Decision Analysis (MCDA) — the same method used by McKinsey, the WHO, and government policy teams worldwide. You define the options, set the criteria, weight what matters, and compare honestly. Every call is yours. Unstuk holds the framework so nothing gets missed." },
     { title: "Reflect, learn, sharpen your edge", body: "Tetlock's Superforecasting research found that people who systematically review their decisions improve accuracy by 20–50% within a year. After each decision, capture your instinct. Reflect three days later. Over time, you'll see exactly when structured thinking was right — and get sharper every time." },
   ];
@@ -1599,7 +1632,7 @@ function UnstukInner() {
               {qvExpiry > 0 && <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, margin: "8px 0" }}>Closes in {expiryLabel}</p>}
               <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
                 <Btn v="sage" onClick={() => {
-                  const text = `\uD83D\uDCA1 Get thinking, get unstuk \u2014 Quick Poll: ${qvQuestion}\n\nOptions:\n${qvOptions.filter(Boolean).map((o, i) => `${i + 1}. ${o}`).join("\n")}${qvRequireCode ? `\n\nCode: ${qvCode}` : ""}\n\nRespond at unstuk.app`;
+                  const text = `\uD83D\uDCA1 Get thinking, get unstuk \u2014 Quick Poll: ${qvQuestion}\n\nOptions:\n${qvOptions.filter(Boolean).map((o, i) => `${i + 1}. ${o}`).join("\n")}\n\nCode: ${qvCode}\n\nRespond at unstuk.app`;
                   setShareSheetData({ text, title: "Share Quick Poll" });
                 }} style={{ flex: 1 }}>Share vote</Btn>
                 <Btn onClick={async () => {
@@ -1830,7 +1863,7 @@ function UnstukInner() {
               </svg>
               <div style={{ fontFamily: F.d, fontSize: 42, fontWeight: 600, color: C.text, letterSpacing: "-0.01em", marginBottom: 10 }}>Unstuk</div>
               <p style={{ fontFamily: F.d, fontSize: 20, color: C.sage, fontWeight: 500, letterSpacing: "0.01em", margin: "0 0 8px", fontStyle: "italic" }}>
-                Better business decisions, faster.
+                Thoughtful business decisions, faster.
               </p>
               <p style={{ fontFamily: F.b, fontSize: 13, color: C.muted, fontWeight: 300, lineHeight: 1.7 }}>
                 Get thinking. Get unstuk.
