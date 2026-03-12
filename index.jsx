@@ -1364,6 +1364,37 @@ function UnstukInner() {
   };
 
   const [screen, setScreen] = useState("home");
+
+  // ─── Persistent floating home button (all screens except home) ───
+  useEffect(() => {
+    const id = "ustk-floating-home";
+    let el = document.getElementById(id);
+    if (screen === "home") {
+      if (el) el.style.display = "none";
+      return;
+    }
+    if (!el) {
+      el = document.createElement("button");
+      el.id = id;
+      el.innerHTML = '<span style="font-size:12px;line-height:1">⌂</span> HOME';
+      Object.assign(el.style, {
+        position: "fixed", top: "14px", right: "14px", zIndex: "9999",
+        fontFamily: "'DM Sans', sans-serif", fontSize: "9px", letterSpacing: "0.06em",
+        color: "#78716C", background: "rgba(255,255,255,0.85)", backdropFilter: "blur(8px)",
+        border: "1px solid #D6D3D1", borderRadius: "8px", padding: "6px 10px",
+        cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px",
+        opacity: "0.55", transition: "opacity 0.15s", textTransform: "uppercase",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+      });
+      el.addEventListener("mouseenter", () => el.style.opacity = "1");
+      el.addEventListener("mouseleave", () => el.style.opacity = "0.55");
+      document.body.appendChild(el);
+    }
+    el.style.display = "inline-flex";
+    el.onclick = () => setScreen("home");
+    return () => {};
+  }, [screen]);
+
   const [dName, setDName] = useState("");
   const [dType, setDType] = useState(null);
   const [opts, setOpts] = useState([]);
@@ -1413,6 +1444,7 @@ function UnstukInner() {
   const [qvLoading, setQvLoading] = useState(false);
   const [qvExpiry, setQvExpiry] = useState(24); // hours, 0 = no limit
   const [qvRequireCode, setQvRequireCode] = useState(false); // optional code security
+  const [checkoutMsg, setCheckoutMsg] = useState(null);
 
   const createQuickVote = async () => {
     const opts = qvOptions.map(o => o.trim()).filter(Boolean);
@@ -2270,16 +2302,154 @@ function UnstukInner() {
               <span style={{ fontFamily: F.b, fontSize: 18, color: C.sage, flexShrink: 0 }}>{"›"}</span>
             </button>
           </FadeIn>
+          {/* ── Invite a Friend ── */}
+          <FadeIn delay={350}>
+            <button onClick={() => {
+              const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+              const now = Date.now();
+              const expires = now + 14 * 24 * 60 * 60 * 1000;
+              try { window.storage.set("unstuk_invite_" + code, JSON.stringify({ created: now, expires: expires, inviter: "user" })); } catch(e) {}
+              trackEvent("invite_create", { code });
+              setShareSheetData({ text: "I\u2019ve been using Unstuk for better business decisions. Try it free with my invite code: " + code + "\n\nhttps://unstuk.app", title: "Invite a friend to Unstuk" });
+            }} style={{
+              width: "100%", marginTop: 20, padding: "14px 18px", borderRadius: 12,
+              background: C.card, border: `1px solid ${C.border}`, cursor: "pointer", textAlign: "left",
+              display: "flex", alignItems: "center", gap: 12,
+            }}>
+              <span style={{ fontSize: 18, flexShrink: 0 }}>{"\u2709"}</span>
+              <div>
+                <div style={{ fontFamily: F.b, fontSize: 12, fontWeight: 600, color: C.text }}>Invite a friend</div>
+                <div style={{ fontFamily: F.b, fontSize: 10, color: C.muted, lineHeight: 1.4 }}>Share a unique invite code (expires in 14 days)</div>
+              </div>
+              <span style={{ fontFamily: F.b, fontSize: 18, color: C.sage, flexShrink: 0 }}>{"›"}</span>
+            </button>
+          </FadeIn>
+
+          {/* ── Upgrade / Pro ── */}
+          <FadeIn delay={380}>
+            <button onClick={() => setScreen("upgrade")} style={{
+              width: "100%", marginTop: 10, padding: "14px 18px", borderRadius: 12,
+              background: `linear-gradient(135deg, ${C.sageSoft}, #fff)`, border: `1px solid ${C.sage}25`, cursor: "pointer", textAlign: "left",
+              display: "flex", alignItems: "center", gap: 12,
+            }}>
+              <span style={{ fontSize: 18, flexShrink: 0 }}>{"\u2728"}</span>
+              <div>
+                <div style={{ fontFamily: F.b, fontSize: 12, fontWeight: 600, color: C.text }}>Upgrade to Pro</div>
+                <div style={{ fontFamily: F.b, fontSize: 10, color: C.muted, lineHeight: 1.4 }}>Unlimited decisions, AI suggestions, team tools</div>
+              </div>
+              <span style={{ fontFamily: F.b, fontSize: 18, color: C.sage, flexShrink: 0 }}>{"›"}</span>
+            </button>
+          </FadeIn>
+
+          {/* ── Footer links ── */}
           <FadeIn delay={400}>
-            <div style={{ marginTop: 16, display: "flex", justifyContent: "center", gap: 12 }}>
-              <button onClick={() => { setTutSlide(0); setScreen("tutorial"); }} style={{ fontFamily: F.b, fontSize: 10, color: C.border, background: "none", border: "none", cursor: "pointer" }}>How it works</button>
+            <div style={{ marginTop: 24, display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 12 }}>
+              <button onClick={() => { setTutSlide(0); setScreen("tutorial"); }} style={{ fontFamily: F.b, fontSize: 10, color: C.border, background: "none", border: "none", cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.04em" }}>How it works</button>
               <span style={{ color: C.border, fontSize: 8 }}>·</span>
-              <button onClick={() => setShowPrivacy(true)} style={{ fontFamily: F.b, fontSize: 10, color: C.border, background: "none", border: "none", cursor: "pointer" }}>Terms</button>
+              <button onClick={() => setScreen("privacy")} style={{ fontFamily: F.b, fontSize: 10, color: C.border, background: "none", border: "none", cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.04em" }}>Privacy Policy</button>
+              <span style={{ color: C.border, fontSize: 8 }}>·</span>
+              <button onClick={() => setScreen("legal")} style={{ fontFamily: F.b, fontSize: 10, color: C.border, background: "none", border: "none", cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.04em" }}>Legal Disclaimer</button>
+              <span style={{ color: C.border, fontSize: 8 }}>·</span>
+              <button onClick={() => setShowPrivacy(true)} style={{ fontFamily: F.b, fontSize: 10, color: C.border, background: "none", border: "none", cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.04em" }}>Terms</button>
             </div>
           </FadeIn>
         </div>
         {showShare && <ShareSheet text={"Get thinking, get unstuk \u2014 I\u2019ve been using Unstuk for business decisions. Weighted analysis in 2 minutes, team alignment built in. Your thinking, structured.\n\nTry it free: unstuk.app"} title="Share Unstuk" onClose={() => setShowShare(false)} />}
+        {shareSheetData && <ShareSheet text={shareSheetData.text} title={shareSheetData.title} onClose={() => { const ac = shareSheetData?.afterClose; setShareSheetData(null); if (ac) ac(); }} />}
         {showPrivacy && <PrivacyModal onClose={() => setShowPrivacy(false)} />}
+      </div>
+    );
+  }
+
+  // ─── PRIVACY POLICY ───
+  if (screen === "privacy") {
+    return (
+      <div style={{ minHeight: "100vh", background: C.bg, fontFamily: F.b }}>
+        <div style={{ maxWidth: 440, margin: "0 auto", padding: "60px 24px" }}>
+          <FadeIn>
+            <BackBtn onClick={() => setScreen("home")} />
+            <H size="lg">Privacy Policy</H>
+            <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, marginBottom: 24 }}>Last updated: {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
+
+            <Card style={{ padding: "24px 20px", marginBottom: 16 }}>
+              <div style={{ fontFamily: F.b, fontSize: 13, color: C.text, lineHeight: 1.8 }}>
+                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>1. Local-Only Data Storage</p>
+                <p style={{ margin: "0 0 18px" }}>All your decision data is stored locally on your device using localStorage. Your decisions, reflections, and preferences never leave your device unless you explicitly choose to share them.</p>
+
+                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>2. No Personal Data Collection</p>
+                <p style={{ margin: "0 0 18px" }}>Unstuk does not collect, store, or transmit personal data to third parties. We do not require account creation, email addresses, or any personally identifiable information.</p>
+
+                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>3. AI-Powered Suggestions</p>
+                <p style={{ margin: "0 0 18px" }}>When AI suggestions are generated, queries are processed via API. However, no user data is retained by the AI service after processing. Queries are not used for training or stored in any identifiable form.</p>
+
+                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>4. Payment Processing</p>
+                <p style={{ margin: "0 0 18px" }}>All payment processing is handled entirely by Stripe, a PCI DSS Level 1 certified payment processor. Unstuk never sees, stores, or has access to your full payment card details.</p>
+
+                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>5. Data Deletion</p>
+                <p style={{ margin: "0 0 18px" }}>You can delete all your data at any time from the History screen. Uninstalling the app removes all locally stored data. Decision history is automatically purged after 60 days.</p>
+
+                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>6. No Tracking Cookies</p>
+                <p style={{ margin: "0 0 18px" }}>Unstuk does not use cookies for tracking purposes. Minimal analytics are stored locally on your device and are never transmitted externally.</p>
+
+                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>7. GDPR & CCPA Compliance</p>
+                <p style={{ margin: "0 0 18px" }}>Our local-first architecture is designed to comply with GDPR and CCPA principles. Since we do not collect or process personal data on external servers, your data rights are inherently protected. You maintain full control over your data at all times.</p>
+
+                <p style={{ margin: "0 0 8px", fontWeight: 600, color: C.sage }}>8. Contact</p>
+                <p style={{ margin: 0 }}>For privacy-related enquiries, contact us at <span style={{ color: C.sage }}>privacy@unstuk.app</span></p>
+              </div>
+            </Card>
+
+            <button onClick={() => setScreen("home")} style={{ fontFamily: F.b, fontSize: 12, color: C.muted, background: "none", border: "none", cursor: "pointer", padding: "12px 16px", display: "block", margin: "0 auto" }}>Back to home</button>
+          </FadeIn>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── LEGAL DISCLAIMER ───
+  if (screen === "legal") {
+    return (
+      <div style={{ minHeight: "100vh", background: C.bg, fontFamily: F.b }}>
+        <div style={{ maxWidth: 440, margin: "0 auto", padding: "60px 24px" }}>
+          <FadeIn>
+            <BackBtn onClick={() => setScreen("home")} />
+            <H size="lg">Legal Disclaimer</H>
+            <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, marginBottom: 24 }}>Please read carefully before using Unstuk.</p>
+
+            <Card style={{ padding: "24px 20px", marginBottom: 16 }}>
+              <div style={{ fontFamily: F.b, fontSize: 13, color: C.text, lineHeight: 1.8 }}>
+                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>1. Decision-Support Tool Only</p>
+                <p style={{ margin: "0 0 18px" }}>Unstuk is a decision-support tool designed to help structure your thinking. It does not provide professional advice of any kind. All outputs are informational aids, not recommendations.</p>
+
+                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>2. No Guarantee of Outcomes</p>
+                <p style={{ margin: "0 0 18px" }}>Unstuk does not guarantee any particular outcome. All decisions and their consequences remain entirely the responsibility of the user. Past results or analyses do not predict future outcomes.</p>
+
+                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>3. Not Professional Advice</p>
+                <p style={{ margin: "0 0 18px" }}>Unstuk is not a substitute for legal, financial, medical, psychological, or any other form of professional advice. If your decision requires professional expertise, consult a qualified professional in the relevant field.</p>
+
+                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>4. Limitation of Liability</p>
+                <p style={{ margin: "0 0 18px" }}>To the maximum extent permitted by applicable law, Unstuk and its creators accept no liability for any business losses, damages, or adverse outcomes arising from decisions made using this tool. This includes, without limitation, loss of revenue, profit, anticipated savings, business opportunity, goodwill, or data.</p>
+
+                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>5. Academic References</p>
+                <p style={{ margin: "0 0 18px" }}>Any academic references, research citations, or decision-science frameworks mentioned within Unstuk are provided for educational purposes only. They do not constitute endorsements and should not be relied upon as authoritative guidance for specific decisions.</p>
+
+                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>6. Service Provided "As Is"</p>
+                <p style={{ margin: "0 0 18px" }}>Unstuk is provided "as is" and "as available" without warranties of any kind, whether express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, accuracy, or non-infringement.</p>
+
+                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>7. User Due Diligence</p>
+                <p style={{ margin: "0 0 18px" }}>Users are responsible for conducting their own due diligence before acting on any analysis produced by Unstuk. You should independently verify any information and consider all relevant factors before making important decisions.</p>
+
+                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>8. Indemnification</p>
+                <p style={{ margin: "0 0 18px" }}>By using Unstuk, you agree to indemnify and hold harmless its creators, developers, and distributors from any and all claims, liabilities, damages, costs, and expenses (including legal fees) arising from or in connection with your use of this application or any decisions made based on its outputs.</p>
+
+                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>9. Governing Law</p>
+                <p style={{ margin: 0 }}>These terms shall be governed by and construed in accordance with the laws of the jurisdiction in which the company operates. Any disputes arising in connection with these terms shall be subject to the exclusive jurisdiction of the courts in that jurisdiction.</p>
+              </div>
+            </Card>
+
+            <button onClick={() => setScreen("home")} style={{ fontFamily: F.b, fontSize: 12, color: C.muted, background: "none", border: "none", cursor: "pointer", padding: "12px 16px", display: "block", margin: "0 auto" }}>Back to home</button>
+          </FadeIn>
+        </div>
       </div>
     );
   }
@@ -3622,34 +3792,67 @@ function UnstukInner() {
   }
 
   // ─── UPGRADE ───
+  const startCheckout = async () => {
+    setCheckoutMsg(null);
+    try {
+      const res = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: "pro_monthly" }),
+      });
+      if (!res.ok) throw new Error("not available");
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else throw new Error("no url");
+    } catch(e) {
+      setCheckoutMsg("Payment system coming soon. We\u2019re finalising Stripe integration.");
+      trackEvent("checkout_fail");
+    }
+  };
+
   if (screen === "upgrade") {
     return (
       <div style={{ minHeight: "100vh", background: C.bg, fontFamily: F.b }}>
         <div style={{ maxWidth: 440, margin: "0 auto", padding: "60px 24px", textAlign: "center" }}>
           <FadeIn>
-            <HomeBtn onClick={() => setScreen("home")} />
+            <BackBtn onClick={() => setScreen("home")} />
             <div style={{ fontSize: 40, marginBottom: 20 }}>&#10024;</div>
-            <H size="lg">Unlock full reflection access</H>
-            <p style={{ fontFamily: F.b, fontSize: 14, color: C.muted, lineHeight: 1.7, margin: "16px 0 32px" }}>
-              You've experienced how reflection sharpens decisions. Unlock unlimited reflections, growth tracking, and data export.
+            <H size="lg">Better decisions are worth more than you think</H>
+            <p style={{ fontFamily: F.b, fontSize: 14, color: C.muted, lineHeight: 1.7, margin: "16px 0 8px" }}>
+              McKinsey research shows that improving decision-making quality can increase business returns by 20%+. Unstuk Pro gives you the tools to make that happen.
             </p>
+            <p style={{ fontFamily: F.b, fontSize: 11, color: C.sage, fontStyle: "italic", margin: "0 0 28px", lineHeight: 1.5 }}>
+              Currently in beta — early subscribers lock in the best price.
+            </p>
+
             <Card style={{ padding: "24px 20px", marginBottom: 24, textAlign: "left" }}>
-              <div style={{ fontFamily: F.d, fontSize: 28, fontWeight: 700, color: C.text, marginBottom: 12, textAlign: "center" }}>$3.99 / individual</div>
-              <div style={{ fontFamily: F.b, fontSize: 13, color: C.muted, lineHeight: 1.8 }}>
-                <div style={{ marginBottom: 6 }}><span style={{ color: C.sage, marginRight: 8 }}>&#10003;</span>Unlimited decisions — always free</div>
-                <div style={{ marginBottom: 6 }}><span style={{ color: C.sage, marginRight: 8 }}>&#10003;</span>Unlimited reflections & instinct accuracy tracking</div>
-                <div style={{ marginBottom: 6 }}><span style={{ color: C.sage, marginRight: 8 }}>&#10003;</span>Growth insights & instinct accuracy tracking</div>
-                <div><span style={{ color: C.sage, marginRight: 8 }}>&#10003;</span>Data export & no recurring fees</div>
+              <div style={{ fontFamily: F.d, fontSize: 32, fontWeight: 700, color: C.text, marginBottom: 4, textAlign: "center" }}>$132</div>
+              <div style={{ fontFamily: F.b, fontSize: 12, color: C.muted, textAlign: "center", marginBottom: 18 }}>per month</div>
+              <div style={{ fontFamily: F.b, fontSize: 13, color: C.text, lineHeight: 2 }}>
+                <div style={{ marginBottom: 4 }}><span style={{ color: C.sage, marginRight: 8 }}>&#10003;</span>Unlimited decisions & analyses</div>
+                <div style={{ marginBottom: 4 }}><span style={{ color: C.sage, marginRight: 8 }}>&#10003;</span>AI-powered suggestions & insights</div>
+                <div style={{ marginBottom: 4 }}><span style={{ color: C.sage, marginRight: 8 }}>&#10003;</span>Team collaboration & alignment tools</div>
+                <div style={{ marginBottom: 4 }}><span style={{ color: C.sage, marginRight: 8 }}>&#10003;</span>Full decision history & reflection tracking</div>
+                <div style={{ marginBottom: 4 }}><span style={{ color: C.sage, marginRight: 8 }}>&#10003;</span>Growth insights & instinct accuracy</div>
+                <div><span style={{ color: C.sage, marginRight: 8 }}>&#10003;</span>Data export & priority support</div>
               </div>
             </Card>
-            <Btn onClick={async () => { try { await window.storage.set("unstuk_unlocked", makeUnlockToken()); } catch(e) {} setUnlocked(true); setScreen("home"); trackEvent("unlock"); }} style={{ width: "100%", padding: "15px 28px", fontSize: 15, marginBottom: 12 }}>
-              Upgrade to Individual Pro — $3.99
+
+            <Btn onClick={() => { trackEvent("checkout_start"); startCheckout(); }} style={{ width: "100%", padding: "16px 28px", fontSize: 15, marginBottom: 12 }}>
+              Subscribe — $132/month
             </Btn>
+
+            {checkoutMsg && (
+              <div style={{ fontFamily: F.b, fontSize: 12, color: C.sage, background: C.sageSoft, border: `1px solid ${C.sage}25`, borderRadius: 8, padding: "12px 16px", margin: "8px 0 12px", lineHeight: 1.5 }}>
+                {checkoutMsg}
+              </div>
+            )}
+
             <button onClick={() => setScreen("home")} style={{ fontFamily: F.b, fontSize: 12, color: C.muted, background: "none", border: "none", cursor: "pointer", padding: "8px 16px" }}>
               Back to home
             </button>
-            <p style={{ fontFamily: F.b, fontSize: 10, color: C.border, marginTop: 32, lineHeight: 1.6 }}>
-              One-time purchase. No account needed. No data leaves your device.
+            <p style={{ fontFamily: F.b, fontSize: 10, color: C.border, marginTop: 28, lineHeight: 1.6 }}>
+              Payments processed securely by Stripe. Cancel anytime. No data leaves your device.
             </p>
           </FadeIn>
         </div>
