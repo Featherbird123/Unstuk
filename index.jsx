@@ -229,6 +229,140 @@ const GENERIC_CONTEXTUAL = {
   crit: { "Financial": ["Total Cost", "Revenue Impact", "Payback Period", "Budget Fit"], "Strategic": ["Time to Market", "Scalability", "Competitive Advantage", "Strategic Alignment"], "Risk": ["Risk Level", "Reversibility", "Stakeholder Buy-In", "Implementation Complexity"] },
 };
 
+// ─── Dynamic chip synthesis — generates chips from decision text itself ───
+const _STOP = new Set(["the","a","an","to","for","of","in","on","at","is","it","we","our","my","and","or","vs","with","how","what","which","should","would","could","can","do","does","are","be","been","will","about","this","that","than","from","into","your","their","best","most","new","next","first","make","get","i"]);
+
+function extractSubject(text) {
+  const words = text.replace(/[?.,!:;'"()]/g, "").split(/\s+/).filter(w => w.length > 1 && !_STOP.has(w.toLowerCase()));
+  return words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+
+function synthesizeOptChips(dName, decisionType, existingOpts) {
+  const name = (dName || "").toLowerCase();
+  const subject = extractSubject(dName);
+  // Strip action verbs from subject so we get the OBJECT not the action
+  const actionWords = new Set(["hire","recruit","staff","choose","select","pick","migrate","switch","move","transition","replace","launch","release","ship","deploy","invest","fund","spend","allocate","build","develop","create","design","implement","close","shut","exit","expand","grow","scale","improve","optimise","optimize","enhance","upgrade","refine","negotiate","renegotiate","renew","review","evaluate","assess","plan","decide","consider"]);
+  const obj = subject.filter(w => !actionWords.has(w.toLowerCase()));
+  const objStr = obj.slice(0, 3).join(" ") || subject.slice(0, 2).join(" ");
+
+  // Detect "X vs Y" or "X or Y" patterns
+  const vsMatch = name.match(/(.+?)\s+(?:vs\.?|versus|or)\s+(.+)/i);
+  if (vsMatch) {
+    const sideA = vsMatch[1].trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    const sideB = vsMatch[2].trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    return { "Core Choices": [sideA, sideB, `Hybrid ${sideA} + ${sideB}`, "Neither — Third Option", "Defer Decision"] };
+  }
+
+  // Action-based synthesis: detect action, use object (not action) in chips
+  const actions = [
+    { test: /\b(hire|recruit|staff|talent|headcount)\b/i, chips: () => ({ [`${objStr}`]: [`External Senior Hire`, `Internal Promotion`, `Contract / Freelance`, `Agency / Headhunter`, `Restructure the Role`], "Timing": ["Hire Immediately", "Hire Next Quarter", "Trial Period First", "Defer Until Budget"] }) },
+    { test: /\b(choose|select|pick|which)\b/i, chips: () => ({ [`${objStr} Choices`]: obj.length > 1 ? [`${obj[0]} Focus`, `${obj[1] || obj[0]} Focus`, `Combine Both`, `None — Keep Current`, `Research More`] : [`${objStr} — Version A`, `${objStr} — Version B`, `Modified ${objStr}`, `Keep Status Quo`, `Pilot Test First`] }) },
+    { test: /\b(migrat|switch|move|transition|replac)\b/i, chips: () => ({ [`${objStr} Migration`]: [`Full ${objStr} Migration`, `Phased ${objStr} Rollout`, `Parallel Run`, `Partial Switch Only`, `Stay with Current ${objStr}`], "Timeline": ["Start This Month", "Start Next Quarter", "Plan & Prep Only", "Wait for Renewal"] }) },
+    { test: /\b(launch|release|ship|go.?live|deploy)\b/i, chips: () => ({ [`${objStr} Launch`]: [`${objStr} — Launch Now`, `${objStr} — Soft Launch`, `Beta with Key Clients`, `Delay for Polish`, `Scrap & Rethink`], "Scale": ["Full Market", "Single Segment", "Internal Only First", "Partner Preview"] }) },
+    { test: /\b(invest|fund|financ|spend|allocat|budget)\b/i, chips: () => ({ [`${objStr} Investment`]: [`Full Investment in ${objStr}`, `Reduce ${objStr} Investment`, "Reallocate Budget", "Seek External Funding", "Defer Spending"], "Level": ["Aggressive Spend", "Moderate Budget", "Minimum Viable", "Zero Budget"] }) },
+    { test: /\b(build|develop|create|design|implement)\b/i, chips: () => ({ [`${objStr} Build`]: [`${objStr} — In-House`, `${objStr} — Off-the-Shelf`, "Partner / White Label", "Open Source + Customise", "Outsource Development"], "Scope": ["Full Feature Set", "MVP Only", "Phased Build", "Prototype First"] }) },
+    { test: /\b(close|shut|exit|divest|discontinu|kill|sunset)\b/i, chips: () => ({ [`${objStr} Exit`]: [`Close ${objStr} Immediately`, `Wind Down ${objStr} Gradually`, "Sell / Divest", "Pivot to Adjacent", "Pause & Reassess"], "Timing": ["This Month", "End of Quarter", "End of Year", "No Fixed Date"] }) },
+    { test: /\b(expand|grow|scale|enter|open)\b/i, chips: () => ({ [`${objStr} Growth`]: [`Aggressive ${objStr} Push`, `Steady ${objStr} Build`, "Test Market First", "Strategic Partnership", "Organic Only"], "Focus": ["Revenue Growth", "User Growth", "Geographic Growth", "Product Expansion"] }) },
+    { test: /\b(improv|optimis|optimiz|enhanc|upgrad|refin)\b/i, chips: () => ({ [`${objStr} Improvements`]: [`Full ${objStr} Overhaul`, `Incremental ${objStr} Tweaks`, "Targeted Quick Wins", "Benchmark Then Decide", "Outsource Improvement"], "Priority": ["Highest Impact First", "Lowest Effort First", "Customer-Facing First", "Internal Process First"] }) },
+    { test: /\b(negotiate|renegotiat|deal|contract|renew)\b/i, chips: () => ({ [`${objStr} Terms`]: [`Accept Current ${objStr} Terms`, `Push for Better ${objStr} Terms`, "Walk Away", "Extend Short-Term", "Competitive Tender"], "Leverage": ["Hard Negotiate", "Collaborative Discussion", "Bring Alternatives", "Escalate to Senior"] }) },
+    { test: /\b(evaluat|assess|review|audit|analys|compar)\b/i, chips: () => ({ [`${objStr} Review`]: [`Continue with Current ${objStr}`, `Overhaul ${objStr}`, `Benchmark ${objStr}`, `Get External ${objStr} Audit`, `Defer ${objStr} Review`], "Depth": ["Full Deep Dive", "High-Level Scan", "Peer Comparison", "Data-Driven Audit"] }) },
+  ];
+
+  for (const a of actions) {
+    if (a.test.test(name)) return a.chips();
+  }
+
+  // No action detected — generate from the object words themselves
+  if (obj.length >= 2) {
+    return {
+      [objStr]: [`Proceed with ${obj[0]}`, `Alternative ${obj[1]}`, `Combined Approach`, `Defer ${objStr}`, `Pilot ${obj[0]} First`],
+      "Approach": ["Full Commitment", "Phased Rollout", "Limited Trial", "More Research Needed"]
+    };
+  }
+  if (obj.length === 1) {
+    return {
+      [objStr + " Options"]: [`${objStr} — Option A`, `${objStr} — Option B`, `Modified ${objStr}`, `No ${objStr}`, `Defer Decision`],
+      "Scale": ["Full Commitment", "Phased Approach", "Limited Trial", "Explore Alternatives"]
+    };
+  }
+  return GENERIC_CONTEXTUAL.opt;
+}
+
+function synthesizeCritChips(dName, opts, existingCrits) {
+  const name = (dName || "").toLowerCase();
+  const subject = extractSubject(dName);
+  const subjectStr = subject.slice(0, 2).join(" ");
+  const optNames = (opts || []).map(o => (o.name || o)).filter(Boolean);
+
+  // Build criteria that reference the actual options
+  const result = {};
+
+  // Option-specific criteria when options exist
+  if (optNames.length >= 2) {
+    const a = optNames[0], b = optNames[1];
+    result[`${a} vs ${b}`] = [`${a} Total Cost`, `${b} Total Cost`, `${a} Time to Value`, `${b} Risk Level`].slice(0, optNames.length > 2 ? 2 : 4);
+  }
+
+  // Subject-derived criteria
+  const critActions = [
+    { test: /\b(hire|recruit|talent|staff)\b/i, crits: { "Person Fit": ["Technical Skill Match", "Culture & Values Fit", "Leadership Potential", "Salary vs Budget", "Growth Trajectory"], "Role Impact": ["Team Gap Filled", "Retention Likelihood", "Onboarding Speed", "Diversity Contribution"] } },
+    { test: /\b(tech|software|platform|system|tool|crm|saas)\b/i, crits: { "Technical Fit": ["Integration with Current Stack", "Learning Curve", "Performance at Scale", "Security & Compliance", "API & Extensibility"], "Business Value": ["Cost per User", "Time to Deploy", "Vendor Reliability", "Migration Effort", "Lock-In Risk"] } },
+    { test: /\b(marketing|campaign|brand|advertis|promot)\b/i, crits: { "Performance": ["Expected ROI", "Cost per Acquisition", "Audience Reach Quality", "Brand Alignment", "Conversion Potential"], "Execution": ["Creative Resource Need", "Time to Launch", "Measurement Clarity", "Channel Expertise Required"] } },
+    { test: /\b(vendor|supplier|provider|partner|agency)\b/i, crits: { "Capability": ["Relevant Track Record", "Domain Expertise Depth", "Support Responsiveness", "Scalability", "Security Posture"], "Commercial": ["Total Cost of Ownership", "Contract Flexibility", "Payment Terms", "SLA Guarantees", "Exit Clause Fairness"] } },
+    { test: /\b(invest|fund|budget|spend|financ)\b/i, crits: { "Returns": ["Expected ROI", "Payback Period", "Revenue Uplift", "Cost Avoidance", "Strategic Value"], "Risk": ["Capital at Risk", "Downside Scenario", "Opportunity Cost", "Cash Flow Impact", "Reversibility"] } },
+    { test: /\b(product|feature|roadmap|build|launch)\b/i, crits: { "Product": ["User Demand Strength", "Technical Feasibility", "Competitive Differentiation", "Revenue Potential", "Time to Ship"], "Risk": ["Engineering Complexity", "Maintenance Burden", "Market Timing Risk", "Cannibalisation Risk"] } },
+    { test: /\b(office|remote|hybrid|workspace|location)\b/i, crits: { "People": ["Employee Preference", "Commute Impact", "Collaboration Quality", "Talent Pool Access", "Wellbeing Effect"], "Business": ["Lease / Cost Impact", "Client Accessibility", "Brand Perception", "Productivity Impact"] } },
+  ];
+
+  for (const a of critActions) {
+    if (a.test.test(name)) { Object.assign(result, a.crits); return result; }
+  }
+
+  // Generic but labeled with the decision subject
+  result[subjectStr + " Factors"] = ["Total Cost", "Time to Deliver", "Quality of Outcome", "Risk Level", "Strategic Alignment"];
+  result["Execution"] = ["Implementation Effort", "Team Readiness", "Stakeholder Buy-In", "Reversibility", "Dependencies"];
+  return result;
+}
+
+function synthesizeQvOptChips(question, existingOpts) {
+  const q = (question || "").toLowerCase();
+  const subject = extractSubject(question);
+  const subjectStr = subject.slice(0, 2).join(" ");
+  const optNames = (existingOpts || []).map(o => (o.name || o).toLowerCase()).filter(Boolean);
+
+  // Run the scored pattern matching first (existing deriveQvOptChips logic)
+  const patternResult = deriveQvOptChips(question, { opts: existingOpts });
+
+  // Check if the pattern result is just the generic fallback
+  const isGeneric = Object.values(patternResult).flat().includes("Option A");
+  if (!isGeneric) return patternResult;
+
+  // Generate from question structure
+  const qActions = [
+    { test: /\bhow (many|much|often)\b/i, chips: (s) => ({ "Amount": ["1–2", "3–5", "5–10", "10+", "Depends on Context"], "Frequency": ["Daily", "Weekly", "Monthly", "Quarterly", "As Needed"] }) },
+    { test: /\bwho (should|will|can|is)\b/i, chips: (s) => ({ "Person / Team": [`${s} Lead`, "Cross-Functional Team", "External Consultant", "Entire Team", "Leadership Only"], "Ownership": ["I'll Do It", "Delegate to Team", "Hire for It", "No One Yet"] }) },
+    { test: /\bwhy (should|do|did|are|is)\b/i, chips: (s) => ({ "Reasoning": ["Revenue Growth", "Cost Reduction", "Customer Demand", "Competitive Pressure", "Team Request"], "Conviction": ["Strong Evidence", "Some Evidence", "Gut Feeling", "Need More Data", "Not Convinced"] }) },
+    { test: /\bwhat (should|do|is|are|would)\b/i, chips: (s) => ({ [s + " Options"]: [`${subject[0] || "Primary"} Focus`, `${subject[1] || "Secondary"} Focus`, "Combination", "None of These", "Need More Discussion"] }) },
+    { test: /\b(rate|rank|score|evaluat|assess)\b/i, chips: (s) => ({ "Rating": ["Excellent", "Good", "Adequate", "Needs Work", "Poor"], "Priority": ["Critical", "High", "Medium", "Low", "Not Relevant"] }) },
+    { test: /\b(prefer|favourite|favorite|like|enjoy)\b/i, chips: (s) => ({ "Preference": [`Strongly Prefer ${subject[0] || "A"}`, `Prefer ${subject[1] || "B"}`, "No Preference", "Dislike Both", "Need More Options"] }) },
+    { test: /\b(ready|prepared|confident|comfortable)\b/i, chips: (s) => ({ "Readiness": ["Fully Ready", "Almost Ready", "Needs More Time", "Not Ready", "Need Clarity First"], "Confidence": ["Very Confident", "Somewhat Confident", "Unsure", "Concerned", "Need Support"] }) },
+  ];
+
+  for (const a of qActions) {
+    if (a.test.test(q)) return a.chips(subjectStr);
+  }
+
+  // Build from the question's key nouns
+  if (subject.length >= 2) {
+    return {
+      [subjectStr]: [`${subject[0]}`, `${subject[1]}`, `Both ${subject[0]} & ${subject[1]}`, "Neither", "Something Else"],
+      "Stance": ["Strongly For", "Leaning For", "Neutral", "Leaning Against", "Strongly Against"]
+    };
+  }
+
+  return patternResult;
+}
+
 function deriveQvOptChips(questionText, aiContext) {
   const q = questionText.toLowerCase();
   const existingOpts = (aiContext?.opts || []).map(o => (o.name || o).toLowerCase());
@@ -275,8 +409,13 @@ function deriveQvOptChips(questionText, aiContext) {
 function getContextualFallbacks(storageKey, aiContext) {
   if (storageKey === "name" || storageKey === "qv-name") return FALLBACK_CHIPS[storageKey] || {};
   const ctx = (aiContext?.dName || "").toLowerCase();
-  if (storageKey === "qv-opt") return deriveQvOptChips(aiContext?.dName || "", aiContext);
+  const decType = aiContext?.decisionType || "";
+
+  // QV options — use enhanced synthesis
+  if (storageKey === "qv-opt") return synthesizeQvOptChips(aiContext?.dName || "", aiContext?.opts || []);
+
   if (!ctx || ctx.length < 3) return GENERIC_CONTEXTUAL[storageKey] || {};
+
   // Stem-based matching: find all topic matches via alias stems
   const matchedTopics = new Set();
   for (const [stem, topic] of Object.entries(_TOPIC_STEMS)) {
@@ -295,13 +434,11 @@ function getContextualFallbacks(storageKey, aiContext) {
     }
   }
   if (matched) return merged;
-  // Smart generic: extract key words from decision name for better fallback labels
-  const words = ctx.replace(/[^a-z\s]/g, "").split(/\s+/).filter(w => w.length > 3 && !["this", "that", "with", "from", "what", "which", "should", "would", "could", "about", "your", "their", "best", "most", "decision", "review"].includes(w));
-  if (words.length > 0) {
-    const topic = words.slice(0, 2).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-    if (storageKey === "opt") return { [topic + " Options"]: ["Proceed as Proposed", "Modified Approach", "Alternative Strategy", "Defer Decision", "Pilot First"], "Scale": ["Full Rollout", "Phased Approach", "Limited Trial", "Minimum Viable"] };
-    if (storageKey === "crit") return { [topic + " Factors"]: ["Total Cost", "Revenue Impact", "Time to Deliver", "Risk Level"], "Strategic Fit": ["Strategic Alignment", "Competitive Advantage", "Team Readiness", "Scalability"], "Execution": ["Implementation Effort", "Stakeholder Buy-In", "Reversibility", "Dependencies"] };
-  }
+
+  // No topic match — use dynamic synthesis from the decision text
+  if (storageKey === "opt") return synthesizeOptChips(aiContext?.dName || "", decType, aiContext?.opts || []);
+  if (storageKey === "crit") return synthesizeCritChips(aiContext?.dName || "", aiContext?.opts || [], aiContext?.crits || []);
+
   return GENERIC_CONTEXTUAL[storageKey] || {};
 }
 
