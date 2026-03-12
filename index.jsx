@@ -547,16 +547,21 @@ function TxtIn({ value, onChange, onSubmit, onFocus, placeholder, autoFocus = tr
     if (maxLen && v.length > maxLen) return;
     onChange(v);
   };
+  const hasClear = value.trim().length > 0;
+  const rightPad = maxLen ? (hasClear ? 62 : 48) : (hasClear ? 32 : 16);
   return (
     <div style={{ position: "relative" }}>
       <input ref={ref} id={inputId || undefined} type="text" value={value} onChange={handleChange}
         onKeyDown={(e) => { if (e.key === "Enter" && value.trim()) onSubmit?.(); }}
         placeholder={placeholder}
         maxLength={maxLen || undefined}
-        style={{ width: "100%", boxSizing: "border-box", fontFamily: F.b, fontSize: 13, padding: "13px 16px", paddingRight: maxLen ? 48 : 16, border: `1px solid ${C.border}`, borderRadius: 8, outline: "none", background: "#ffffff", color: C.text, transition: "border-color 0.2s", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}
+        style={{ width: "100%", boxSizing: "border-box", fontFamily: F.b, fontSize: 13, padding: "13px 16px", paddingRight: rightPad, border: `1px solid ${C.border}`, borderRadius: 8, outline: "none", background: "#ffffff", color: C.text, transition: "border-color 0.2s", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}
         onFocus={(e) => { e.target.style.borderColor = C.accent; onFocus?.(); }}
         onBlur={(e) => (e.target.style.borderColor = C.border)}
       />
+      {hasClear && (
+        <button onClick={() => { onChange(""); ref.current?.focus(); }} style={{ position: "absolute", right: maxLen ? 40 : 8, top: "50%", transform: "translateY(-50%)", width: 20, height: 20, borderRadius: "50%", border: "none", background: C.border + "30", color: C.muted, fontSize: 11, lineHeight: 1, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0, transition: "background 0.15s" }} onMouseEnter={e => e.currentTarget.style.background = C.border + "60"} onMouseLeave={e => e.currentTarget.style.background = C.border + "30"}>{"×"}</button>
+      )}
       {maxLen && value.length > 0 && (
         <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontFamily: F.b, fontSize: 10, color: value.length >= maxLen ? C.taupe : C.border }}>
           {maxLen - value.length}
