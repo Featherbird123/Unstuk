@@ -2499,7 +2499,9 @@ function UnstukInner() {
           })()}
 
           <FadeIn delay={300}>
-            <button onClick={() => setShowShare(true)} style={{
+            <button onClick={() => {
+              setShareSheetData({ text: "I\u2019ve been using Unstuk to make better decisions \u2014 and I think you\u2019d find it useful too.\n\nIt structures your thinking with weighted criteria so you can cut through the noise and decide with confidence. Takes about 2 minutes.\n\nTry it free: https://unstuk.app", title: "Gift Unstuk to a friend" });
+            }} style={{
               width: "100%", marginTop: 36, padding: "16px 18px", borderRadius: 12,
               background: `linear-gradient(135deg, ${C.sageSoft}, ${C.card})`,
               border: `1px solid ${C.sage}25`, cursor: "pointer", textAlign: "left",
