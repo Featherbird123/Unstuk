@@ -188,13 +188,13 @@ const TOPIC_CHIPS = {
 const _TOPIC_STEMS = {};
 const _STEM_ALIASES = {
   hire: ["hire", "hiring", "recruit", "recruitment", "talent", "headcount", "staffing", "employ", "candidate", "onboard"],
-  pricing: ["pricing", "price", "rate", "monetis", "monetiz", "subscription", "fee", "tariff"],
+  pricing: ["pricing", "price", "rate", "monetis", "monetiz", "subscription", "fee", "tariff", "charge", "billing", "revenue model"],
   vendor: ["vendor", "supplier", "provider", "procurement", "sourcing", "rfp", "shortlist"],
   migration: ["migrat", "switch", "transition", "move to", "moving to", "convert"],
   marketing: ["marketing", "advertis", "promot", "campaign", "outreach", "awareness", "demand gen"],
   budget: ["budget", "spend", "allocat", "fund", "financ", "cost", "expenditure", "capex", "opex"],
   office: ["office", "workspace", "workplace", "headquarter", "location", "premises", "lease", "real estate"],
-  product: ["product", "feature", "roadmap", "backlog", "release", "mvp", "prototype", "development"],
+  product: ["product", "feature", "roadmap", "backlog", "release", "mvp", "prototype", "development", "app", "application", "service"],
   launch: ["launch", "go-to-market", "gtm", "release date", "ship date", "rollout"],
   partner: ["partner", "alliance", "joint venture", "collaborat", "co-brand", "affiliate"],
   restructur: ["restructur", "reorganis", "reorganiz", "reorg", "layoff", "downsiz", "rightsiz"],
@@ -216,8 +216,8 @@ const _STEM_ALIASES = {
   event: ["event", "conference", "summit", "webinar", "seminar", "workshop", "offsite", "retreat"],
   contract: ["contract", "renewal", "renegotiat", "agreement", "deal", "engagement"],
   culture: ["culture", "values", "engagement", "morale", "wellbeing", "well-being", "team spirit"],
-  security: ["security", "cyber", "breach", "penetration", "vulnerability", "infosec", "data protect"],
-  customer: ["customer success", "customer experience", "cx", "support model", "churn", "nps", "csat", "onboard customer"],
+  security: ["security", "cyber", "breach", "penetration", "vulnerability", "infosec", "data protect", "soc2", "soc 2", "pci"],
+  customer: ["customer success", "customer experience", "cx", "support model", "churn", "nps", "csat", "onboard customer", "customer service", "help desk", "user experience", "ux"],
   supplier: ["supplier"],
 };
 for (const [topic, stems] of Object.entries(_STEM_ALIASES)) {
@@ -240,50 +240,83 @@ function extractSubject(text) {
 function synthesizeOptChips(dName, decisionType, existingOpts) {
   const name = (dName || "").toLowerCase();
   const subject = extractSubject(dName);
+  const existingNames = (existingOpts || []).map(o => (o.name || o).toLowerCase()).filter(Boolean);
   // Strip action verbs from subject so we get the OBJECT not the action
-  const actionWords = new Set(["hire","recruit","staff","choose","select","pick","migrate","switch","move","transition","replace","launch","release","ship","deploy","invest","fund","spend","allocate","build","develop","create","design","implement","close","shut","exit","expand","grow","scale","improve","optimise","optimize","enhance","upgrade","refine","negotiate","renegotiate","renew","review","evaluate","assess","plan","decide","consider"]);
+  const actionWords = new Set(["hire","recruit","staff","choose","select","pick","migrate","switch","move","transition","replace","launch","release","ship","deploy","invest","fund","spend","allocate","build","develop","create","design","implement","close","shut","exit","expand","grow","scale","improve","optimise","optimize","enhance","upgrade","refine","negotiate","renegotiate","renew","review","evaluate","assess","plan","decide","consider","determine","figure","finding","need","want","looking"]);
   const obj = subject.filter(w => !actionWords.has(w.toLowerCase()));
   const objStr = obj.slice(0, 3).join(" ") || subject.slice(0, 2).join(" ");
+  // Filter out already-picked options
+  const filterExisting = (chips) => {
+    const result = {};
+    for (const [cat, arr] of Object.entries(chips)) {
+      const filtered = arr.filter(c => !existingNames.includes(c.toLowerCase()));
+      if (filtered.length > 0) result[cat] = filtered;
+    }
+    return Object.keys(result).length > 0 ? result : chips;
+  };
 
   // Detect "X vs Y" or "X or Y" patterns
   const vsMatch = name.match(/(.+?)\s+(?:vs\.?|versus|or)\s+(.+)/i);
   if (vsMatch) {
     const sideA = vsMatch[1].trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
     const sideB = vsMatch[2].trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-    return { "Core Choices": [sideA, sideB, `Hybrid ${sideA} + ${sideB}`, "Neither — Third Option", "Defer Decision"] };
+    return filterExisting({ "Core Choices": [sideA, sideB, `Hybrid ${sideA} + ${sideB}`, "Neither — Third Option", "Defer Decision"], "Variations": [`${sideA} Now, ${sideB} Later`, `${sideB} Now, ${sideA} Later`, `Pilot Both`, `Let the Team Decide`] });
+  }
+
+  // Multi-word phrase detection for specific entities
+  const entityPhrases = name.match(/\b(salesforce|hubspot|slack|notion|asana|jira|shopify|stripe|aws|azure|gcp|google cloud|wordpress|squarespace|figma|sketch|react|angular|vue|node|python|django|rails|kubernetes|docker|terraform|datadog|splunk|snowflake|databricks|tableau|power bi|monday\.com|clickup|trello|zendesk|intercom|mailchimp|sendgrid|twilio|airtable|zapier|segment|amplitude|mixpanel|looker|dbt|airflow|kafka|redis|postgres|mysql|mongodb|elasticsearch|github|gitlab|bitbucket|vercel|netlify|heroku|digital ocean|cloudflare|fastly)\b/gi);
+  if (entityPhrases && entityPhrases.length >= 1) {
+    const entities = [...new Set(entityPhrases.map(e => e.charAt(0).toUpperCase() + e.slice(1)))];
+    if (entities.length >= 2) {
+      return filterExisting({ "Platforms": entities.slice(0, 5), "Strategy": [`Start with ${entities[0]}`, `Start with ${entities[1]}`, `Use Both`, `Neither — Find Alternative`, `Build Custom`] });
+    }
+  }
+
+  // Decision type-specific generation for binary
+  if (decisionType === "binary" && obj.length > 0) {
+    return filterExisting({
+      [objStr]: [`Yes — ${objStr}`, `No — Don't ${objStr}`, `${objStr} with Conditions`, `${objStr} — Modified Version`],
+      "Framing": [`Proceed with ${objStr}`, `Defer ${objStr}`, `${objStr} Pilot First`, `Alternative to ${objStr}`]
+    });
   }
 
   // Action-based synthesis: detect action, use object (not action) in chips
   const actions = [
-    { test: /\b(hire|recruit|staff|talent|headcount)\b/i, chips: () => ({ [`${objStr}`]: [`External Senior Hire`, `Internal Promotion`, `Contract / Freelance`, `Agency / Headhunter`, `Restructure the Role`], "Timing": ["Hire Immediately", "Hire Next Quarter", "Trial Period First", "Defer Until Budget"] }) },
+    { test: /\b(hire|recruit|staff|talent|headcount)\b/i, chips: () => ({ [`${objStr}`]: [`External Senior Hire`, `Internal Promotion`, `Contract / Freelance`, `Agency / Headhunter`, `Restructure the Role`, `Hire Two Junior Instead`], "Timing": ["Hire Immediately", "Hire Next Quarter", "Trial Period First", "Defer Until Budget"], "Source": [`LinkedIn Sourcing`, `Recruiter Partnership`, `Internal Referral`, `University Pipeline`] }) },
     { test: /\b(choose|select|pick|which)\b/i, chips: () => ({ [`${objStr} Choices`]: obj.length > 1 ? [`${obj[0]} Focus`, `${obj[1] || obj[0]} Focus`, `Combine Both`, `None — Keep Current`, `Research More`] : [`${objStr} — Version A`, `${objStr} — Version B`, `Modified ${objStr}`, `Keep Status Quo`, `Pilot Test First`] }) },
-    { test: /\b(migrat|switch|move|transition|replac)\b/i, chips: () => ({ [`${objStr} Migration`]: [`Full ${objStr} Migration`, `Phased ${objStr} Rollout`, `Parallel Run`, `Partial Switch Only`, `Stay with Current ${objStr}`], "Timeline": ["Start This Month", "Start Next Quarter", "Plan & Prep Only", "Wait for Renewal"] }) },
-    { test: /\b(launch|release|ship|go.?live|deploy)\b/i, chips: () => ({ [`${objStr} Launch`]: [`${objStr} — Launch Now`, `${objStr} — Soft Launch`, `Beta with Key Clients`, `Delay for Polish`, `Scrap & Rethink`], "Scale": ["Full Market", "Single Segment", "Internal Only First", "Partner Preview"] }) },
-    { test: /\b(invest|fund|financ|spend|allocat|budget)\b/i, chips: () => ({ [`${objStr} Investment`]: [`Full Investment in ${objStr}`, `Reduce ${objStr} Investment`, "Reallocate Budget", "Seek External Funding", "Defer Spending"], "Level": ["Aggressive Spend", "Moderate Budget", "Minimum Viable", "Zero Budget"] }) },
-    { test: /\b(build|develop|create|design|implement)\b/i, chips: () => ({ [`${objStr} Build`]: [`${objStr} — In-House`, `${objStr} — Off-the-Shelf`, "Partner / White Label", "Open Source + Customise", "Outsource Development"], "Scope": ["Full Feature Set", "MVP Only", "Phased Build", "Prototype First"] }) },
+    { test: /\b(migrat|switch|move|transition|replac)\b/i, chips: () => ({ [`${objStr} Migration`]: [`Full ${objStr} Migration`, `Phased ${objStr} Rollout`, `Parallel Run`, `Partial Switch Only`, `Stay with Current`], "Timeline": ["Start This Month", "Start Next Quarter", "Plan & Prep Only", "Wait for Renewal"], "Risk Mitigation": [`${objStr} Pilot Group`, `Rollback Plan First`, `Migrate Non-Critical First`] }) },
+    { test: /\b(launch|release|ship|go.?live|deploy)\b/i, chips: () => ({ [`${objStr} Launch`]: [`${objStr} — Launch Now`, `${objStr} — Soft Launch`, `Beta with Key Clients`, `Delay for Polish`, `Scrap & Rethink`], "Scale": ["Full Market", "Single Segment", "Internal Only First", "Partner Preview"], "De-risk": [`${objStr} Feature Flag`, `A/B Test First`, `Waitlist Launch`, `Invite-Only`] }) },
+    { test: /\b(invest|fund|financ|spend|allocat|budget)\b/i, chips: () => ({ [`${objStr} Investment`]: [`Full Investment in ${objStr}`, `Reduce ${objStr} Investment`, "Reallocate Budget", "Seek External Funding", "Defer Spending"], "Level": ["Aggressive Spend", "Moderate Budget", "Minimum Viable", "Zero Budget"], "Structure": [`One-Time ${objStr} Spend`, `Recurring ${objStr} Budget`, `Milestone-Based Funding`] }) },
+    { test: /\b(build|develop|create|design|implement)\b/i, chips: () => ({ [`${objStr} Build`]: [`${objStr} — In-House`, `${objStr} — Off-the-Shelf`, "Partner / White Label", "Open Source + Customise", "Outsource Development"], "Scope": ["Full Feature Set", "MVP Only", "Phased Build", "Prototype First"], "Approach": [`${objStr} — Agile Sprints`, `${objStr} — Waterfall`, `${objStr} — Design Sprint`] }) },
     { test: /\b(close|shut|exit|divest|discontinu|kill|sunset)\b/i, chips: () => ({ [`${objStr} Exit`]: [`Close ${objStr} Immediately`, `Wind Down ${objStr} Gradually`, "Sell / Divest", "Pivot to Adjacent", "Pause & Reassess"], "Timing": ["This Month", "End of Quarter", "End of Year", "No Fixed Date"] }) },
-    { test: /\b(expand|grow|scale|enter|open)\b/i, chips: () => ({ [`${objStr} Growth`]: [`Aggressive ${objStr} Push`, `Steady ${objStr} Build`, "Test Market First", "Strategic Partnership", "Organic Only"], "Focus": ["Revenue Growth", "User Growth", "Geographic Growth", "Product Expansion"] }) },
+    { test: /\b(expand|grow|scale|enter|open)\b/i, chips: () => ({ [`${objStr} Growth`]: [`Aggressive ${objStr} Push`, `Steady ${objStr} Build`, "Test Market First", "Strategic Partnership", "Organic Only"], "Focus": ["Revenue Growth", "User Growth", "Geographic Growth", "Product Expansion"], "Method": [`${objStr} Acquisition`, `${objStr} Partnership`, `${objStr} Organic Build`] }) },
     { test: /\b(improv|optimis|optimiz|enhanc|upgrad|refin)\b/i, chips: () => ({ [`${objStr} Improvements`]: [`Full ${objStr} Overhaul`, `Incremental ${objStr} Tweaks`, "Targeted Quick Wins", "Benchmark Then Decide", "Outsource Improvement"], "Priority": ["Highest Impact First", "Lowest Effort First", "Customer-Facing First", "Internal Process First"] }) },
     { test: /\b(negotiate|renegotiat|deal|contract|renew)\b/i, chips: () => ({ [`${objStr} Terms`]: [`Accept Current ${objStr} Terms`, `Push for Better ${objStr} Terms`, "Walk Away", "Extend Short-Term", "Competitive Tender"], "Leverage": ["Hard Negotiate", "Collaborative Discussion", "Bring Alternatives", "Escalate to Senior"] }) },
     { test: /\b(evaluat|assess|review|audit|analys|compar)\b/i, chips: () => ({ [`${objStr} Review`]: [`Continue with Current ${objStr}`, `Overhaul ${objStr}`, `Benchmark ${objStr}`, `Get External ${objStr} Audit`, `Defer ${objStr} Review`], "Depth": ["Full Deep Dive", "High-Level Scan", "Peer Comparison", "Data-Driven Audit"] }) },
+    { test: /\b(reduc|cut|eliminat|minimis|minimiz|lower|decreas)\b/i, chips: () => ({ [`${objStr} Reduction`]: [`Cut ${objStr} by 25%`, `Cut ${objStr} by 50%`, `Eliminate ${objStr} Entirely`, `Restructure ${objStr}`, `Find ${objStr} Alternative`], "Speed": ["Immediate Cuts", "Gradual Reduction", "One-Time Restructure", "Ongoing Optimisation"] }) },
+    { test: /\b(automat|streamlin|digitis|digitiz|ai|machine learn)\b/i, chips: () => ({ [`${objStr} Automation`]: [`Full ${objStr} Automation`, `Partial ${objStr} Automation`, `AI-Assisted ${objStr}`, `Manual with Better Tools`, `Outsource ${objStr}`], "Platform": ["Custom Build", "No-Code Platform", "AI / LLM Solution", "Off-the-Shelf SaaS", "RPA Tool"] }) },
+    { test: /\b(pric|charg|monetis|monetiz|subscription|fee)\b/i, chips: () => ({ [`${objStr} Pricing`]: ["Freemium Model", "Tiered Pricing", "Usage-Based", "Flat Rate", "Per-Seat"], "Position": ["Premium Pricing", "Market Rate", "Undercut Competitors", "Value-Based", "Dynamic Pricing"] }) },
+    { test: /\b(rebrand|reposit|messag|identity|logo)\b/i, chips: () => ({ [`${objStr}`]: ["Full Rebrand", "Visual Refresh Only", "Messaging Update", "Sub-Brand", "Co-Brand"], "Approach": ["Agency-Led", "In-House Creative", "Customer Research First", "Competitive Analysis First"] }) },
+    { test: /\b(retain|keep|prevent.*leav|churn|loyalty)\b/i, chips: () => ({ [`${objStr} Retention`]: ["Salary Increase", "Equity / Options", "Role Expansion", "Flexible Working", "Retention Bonus"], "Preventive": ["Career Path Discussion", "Mentor Assignment", "Project of Choice", "Counter-Offer Package"] }) },
   ];
 
   for (const a of actions) {
-    if (a.test.test(name)) return a.chips();
+    if (a.test.test(name)) return filterExisting(a.chips());
   }
 
   // No action detected — generate from the object words themselves
   if (obj.length >= 2) {
-    return {
+    return filterExisting({
       [objStr]: [`Proceed with ${obj[0]}`, `Alternative ${obj[1]}`, `Combined Approach`, `Defer ${objStr}`, `Pilot ${obj[0]} First`],
-      "Approach": ["Full Commitment", "Phased Rollout", "Limited Trial", "More Research Needed"]
-    };
+      "Approach": ["Full Commitment", "Phased Rollout", "Limited Trial", "More Research Needed"],
+      "Variations": [`${obj[0]}-Led Strategy`, `${obj[1]}-Led Strategy`, `Balanced ${objStr}`]
+    });
   }
   if (obj.length === 1) {
-    return {
+    return filterExisting({
       [objStr + " Options"]: [`${objStr} — Option A`, `${objStr} — Option B`, `Modified ${objStr}`, `No ${objStr}`, `Defer Decision`],
       "Scale": ["Full Commitment", "Phased Approach", "Limited Trial", "Explore Alternatives"]
-    };
+    });
   }
   return GENERIC_CONTEXTUAL.opt;
 }
@@ -294,53 +327,75 @@ function synthesizeCritChips(dName, opts, existingCrits) {
   const subjectStr = subject.slice(0, 2).join(" ");
   const optNames = (opts || []).map(o => (o.name || o)).filter(Boolean);
   const critLower = (existingCrits || []).map(c => (c.name || c).toLowerCase());
+  const filterUsed = (chips) => {
+    const r = {};
+    for (const [cat, arr] of Object.entries(chips)) {
+      const f = arr.filter(c => !critLower.includes(c.toLowerCase()));
+      if (f.length > 0) r[cat] = f;
+    }
+    return Object.keys(r).length > 0 ? r : chips;
+  };
 
   const result = {};
 
   // Generate option-comparative criteria when options exist
   if (optNames.length >= 2) {
-    const comparisons = [];
-    for (const opt of optNames.slice(0, 3)) {
-      const short = opt.length > 20 ? opt.substring(0, 18) + "…" : opt;
-      comparisons.push(`${short} — Cost`, `${short} — Risk`, `${short} — Speed`, `${short} — Quality`);
-    }
-    // Pick cross-option comparison criteria
-    result["Comparing Options"] = [
-      `${optNames[0]} vs ${optNames[1]} Cost`,
+    const a = optNames[0].length > 20 ? optNames[0].substring(0, 18) + "…" : optNames[0];
+    const b = optNames[1].length > 20 ? optNames[1].substring(0, 18) + "…" : optNames[1];
+    result["Head-to-Head"] = [
+      `${a} vs ${b} Cost`,
+      `${a} vs ${b} Risk`,
+      `${a} vs ${b} Speed`,
       `Which Scales Better`,
-      `Speed to Implement`,
       `Long-Term Flexibility`,
       `Team Preference`,
     ].filter(c => !critLower.includes(c.toLowerCase()));
+
+    // Per-option criteria
+    for (const opt of optNames.slice(0, 3)) {
+      const short = opt.length > 20 ? opt.substring(0, 18) + "…" : opt;
+      result["About " + short] = [
+        `${short} — Total Cost`,
+        `${short} — Implementation Time`,
+        `${short} — Risk Level`,
+        `${short} — Quality / Fit`,
+        `${short} — Learning Curve`,
+      ].filter(c => !critLower.includes(c.toLowerCase()));
+    }
   }
 
-  // Subject-derived criteria
+  // Subject-derived criteria — expanded with more patterns
   const critActions = [
-    { test: /\b(hire|recruit|talent|staff)\b/i, crits: { "Person Fit": ["Technical Skill Match", "Culture & Values Fit", "Leadership Potential", "Salary vs Budget", "Growth Trajectory"], "Role Impact": ["Team Gap Filled", "Retention Likelihood", "Onboarding Speed", "Diversity Contribution"] } },
-    { test: /\b(tech|software|platform|system|tool|crm|saas)\b/i, crits: { "Technical Fit": ["Integration with Current Stack", "Learning Curve", "Performance at Scale", "Security & Compliance", "API & Extensibility"], "Business Value": ["Cost per User", "Time to Deploy", "Vendor Reliability", "Migration Effort", "Lock-In Risk"] } },
-    { test: /\b(marketing|campaign|brand|advertis|promot)\b/i, crits: { "Performance": ["Expected ROI", "Cost per Acquisition", "Audience Reach Quality", "Brand Alignment", "Conversion Potential"], "Execution": ["Creative Resource Need", "Time to Launch", "Measurement Clarity", "Channel Expertise Required"] } },
-    { test: /\b(vendor|supplier|provider|partner|agency)\b/i, crits: { "Capability": ["Relevant Track Record", "Domain Expertise Depth", "Support Responsiveness", "Scalability", "Security Posture"], "Commercial": ["Total Cost of Ownership", "Contract Flexibility", "Payment Terms", "SLA Guarantees", "Exit Clause Fairness"] } },
-    { test: /\b(invest|fund|budget|spend|financ)\b/i, crits: { "Returns": ["Expected ROI", "Payback Period", "Revenue Uplift", "Cost Avoidance", "Strategic Value"], "Risk": ["Capital at Risk", "Downside Scenario", "Opportunity Cost", "Cash Flow Impact", "Reversibility"] } },
-    { test: /\b(product|feature|roadmap|build|launch)\b/i, crits: { "Product": ["User Demand Strength", "Technical Feasibility", "Competitive Differentiation", "Revenue Potential", "Time to Ship"], "Risk": ["Engineering Complexity", "Maintenance Burden", "Market Timing Risk", "Cannibalisation Risk"] } },
-    { test: /\b(office|remote|hybrid|workspace|location)\b/i, crits: { "People": ["Employee Preference", "Commute Impact", "Collaboration Quality", "Talent Pool Access", "Wellbeing Effect"], "Business": ["Lease / Cost Impact", "Client Accessibility", "Brand Perception", "Productivity Impact"] } },
+    { test: /\b(hire|recruit|talent|staff|headcount)\b/i, crits: { "Person Fit": ["Technical Skill Match", "Culture & Values Fit", "Leadership Potential", "Salary vs Budget", "Growth Trajectory"], "Role Impact": ["Team Gap Filled", "Retention Likelihood", "Onboarding Speed", "Diversity Contribution", "Manager Fit"] } },
+    { test: /\b(tech|software|platform|system|tool|crm|saas|app)\b/i, crits: { "Technical Fit": ["Integration with Current Stack", "Learning Curve", "Performance at Scale", "Security & Compliance", "API & Extensibility", "Mobile Experience"], "Business Value": ["Cost per User", "Time to Deploy", "Vendor Reliability", "Migration Effort", "Lock-In Risk", "Support Quality"] } },
+    { test: /\b(marketing|campaign|brand|advertis|promot|awareness)\b/i, crits: { "Performance": ["Expected ROI", "Cost per Acquisition", "Audience Reach Quality", "Brand Alignment", "Conversion Potential"], "Execution": ["Creative Resource Need", "Time to Launch", "Measurement Clarity", "Channel Expertise Required", "Scalability"] } },
+    { test: /\b(vendor|supplier|provider|partner|agency|consultant)\b/i, crits: { "Capability": ["Relevant Track Record", "Domain Expertise Depth", "Support Responsiveness", "Scalability", "Security Posture", "References"], "Commercial": ["Total Cost of Ownership", "Contract Flexibility", "Payment Terms", "SLA Guarantees", "Exit Clause Fairness"] } },
+    { test: /\b(invest|fund|budget|spend|financ|capital)\b/i, crits: { "Returns": ["Expected ROI", "Payback Period", "Revenue Uplift", "Cost Avoidance", "Strategic Value"], "Risk": ["Capital at Risk", "Downside Scenario", "Opportunity Cost", "Cash Flow Impact", "Reversibility", "Market Timing"] } },
+    { test: /\b(product|feature|roadmap|build|launch|ship)\b/i, crits: { "Product": ["User Demand Strength", "Technical Feasibility", "Competitive Differentiation", "Revenue Potential", "Time to Ship"], "Risk": ["Engineering Complexity", "Maintenance Burden", "Market Timing Risk", "Cannibalisation Risk", "Dependency Risk"] } },
+    { test: /\b(office|remote|hybrid|workspace|location|relocat)\b/i, crits: { "People": ["Employee Preference", "Commute Impact", "Collaboration Quality", "Talent Pool Access", "Wellbeing Effect"], "Business": ["Lease / Cost Impact", "Client Accessibility", "Brand Perception", "Productivity Impact"] } },
+    { test: /\b(pric|monetis|monetiz|subscription|revenue model)\b/i, crits: { "Revenue": ["Revenue Per User", "Customer Lifetime Value", "Conversion Rate Impact", "Churn Risk", "Upsell Potential"], "Market": ["Competitive Positioning", "Price Sensitivity", "Willingness to Pay", "Market Perception", "Adoption Barrier"] } },
+    { test: /\b(migrat|switch|transition|replac|mov)\b/i, crits: { "Migration": ["Data Integrity Risk", "Downtime Window", "Training Requirement", "Rollback Difficulty", "Integration Breakage"], "Business": ["User Disruption", "Productivity Dip Duration", "Cost of Transition", "Timeline Certainty", "Compliance Continuity"] } },
+    { test: /\b(expand|enter|market|international|geograph)\b/i, crits: { "Market": ["Market Size", "Competitive Landscape", "Regulatory Complexity", "Cultural Fit", "Customer Demand"], "Execution": ["Local Talent Availability", "Distribution Capability", "Capital Required", "Time to Revenue", "Cannibalisation Risk"] } },
+    { test: /\b(automat|streamlin|efficien|process|workflow)\b/i, crits: { "Value": ["Time Saved per Week", "Error Rate Reduction", "Cost Savings", "Employee Satisfaction", "Scalability Gain"], "Feasibility": ["Implementation Effort", "Change Management Risk", "System Reliability", "Maintenance Burden", "Training Need"] } },
+    { test: /\b(restructur|reorganis|reorganiz|reorg|team)\b/i, crits: { "People": ["Key Talent Retention", "Morale Impact", "Communication Clarity", "Manager Span of Control", "Career Path Impact"], "Business": ["Efficiency Gain", "Decision Speed", "Customer Impact", "Cost Reduction", "Implementation Disruption"] } },
+    { test: /\b(secur|protect|privac|complian|regulat|gdpr|soc2)\b/i, crits: { "Risk": ["Breach Probability", "Data Sensitivity Level", "Regulatory Penalty Risk", "Reputational Damage", "Third-Party Exposure"], "Implementation": ["Compliance Gap Size", "Implementation Cost", "Ongoing Monitoring Load", "Team Expertise Gap", "Timeline Pressure"] } },
+    { test: /\b(customer|client|user|support|service|experience)\b/i, crits: { "Customer Impact": ["Customer Satisfaction", "NPS Impact", "Retention Rate", "Support Volume", "Time to Resolution"], "Business": ["Revenue per Customer", "Churn Reduction", "Upsell Opportunity", "Brand Loyalty", "Referral Potential"] } },
   ];
 
   for (const a of critActions) {
-    if (a.test.test(name)) { Object.assign(result, a.crits); return result; }
+    if (a.test.test(name)) { Object.assign(result, a.crits); return filterUsed(result); }
   }
 
   // Smarter generic — use option names in category labels
-  if (optNames.length > 0) {
-    result["For " + optNames[0]] = ["Cost of " + optNames[0], "Risk of " + optNames[0], optNames[0] + " Timeline", optNames[0] + " Quality"];
-    if (optNames.length > 1) {
-      result["For " + optNames[1]] = ["Cost of " + optNames[1], "Risk of " + optNames[1], optNames[1] + " Timeline", optNames[1] + " Quality"];
-    }
-    result["Overall"] = ["Strategic Alignment", "Team Readiness", "Stakeholder Buy-In", "Reversibility"];
-  } else {
+  if (optNames.length > 0 && Object.keys(result).length <= 2) {
+    result["Overall"] = ["Strategic Alignment", "Team Readiness", "Stakeholder Buy-In", "Reversibility", "Opportunity Cost"];
+    result["Practical"] = ["Total Cost", "Implementation Time", "Quality of Outcome", "Risk Level", "Dependencies"];
+  } else if (optNames.length === 0) {
     result[subjectStr + " Factors"] = ["Total Cost", "Time to Deliver", "Quality of Outcome", "Risk Level", "Strategic Alignment"];
     result["Execution"] = ["Implementation Effort", "Team Readiness", "Stakeholder Buy-In", "Reversibility", "Dependencies"];
+    result["Impact"] = ["Revenue Impact", "Customer Impact", "Team Impact", "Competitive Impact"];
   }
-  return result;
+  return filterUsed(result);
 }
 
 function synthesizeQvOptChips(question, existingOpts) {
@@ -376,6 +431,12 @@ function synthesizeQvOptChips(question, existingOpts) {
     return {
       [subjectStr]: [`${subject[0]}`, `${subject[1]}`, `Both ${subject[0]} & ${subject[1]}`, "Neither", "Something Else"],
       "Stance": ["Strongly For", "Leaning For", "Neutral", "Leaning Against", "Strongly Against"]
+    };
+  }
+  if (subject.length === 1) {
+    return {
+      [subject[0]]: [`${subject[0]} — Yes`, `${subject[0]} — No`, `${subject[0]} — Modified`, `Need More Info`, `Not a Priority`],
+      "Confidence": ["Very Confident", "Somewhat Confident", "Unsure", "Concerned"]
     };
   }
 
@@ -1187,12 +1248,63 @@ function ResultsView({ results, dName, critCount, onDone, onBack, onImmediate, o
         </div>
 
         {ph >= 2 && (
-          <p style={{ fontFamily: F.b, fontSize: 10, fontStyle: "italic", color: C.taupe, lineHeight: 1.5, margin: "16px 0 0", textAlign: "center" }}>
-            {tie ? "A tie means your criteria weighted both options equally — your instinct or a casting vote may be the tiebreaker."
-              : gap <= 10 ? "A narrow margin means this is genuinely close. Small changes in criteria or weighting could flip the result."
-              : gap <= 30 ? "A moderate margin suggests a real difference, but consider whether any missing criteria could change things."
-              : "A strong margin. This result is robust across your criteria."}
-          </p>
+          <>
+            <p style={{ fontFamily: F.b, fontSize: 10, fontStyle: "italic", color: C.taupe, lineHeight: 1.5, margin: "16px 0 0", textAlign: "center" }}>
+              {tie ? "A tie means your criteria weighted both options equally — your instinct or a casting vote may be the tiebreaker."
+                : gap <= 10 ? "A narrow margin means this is genuinely close. Small changes in criteria or weighting could flip the result."
+                : gap <= 30 ? "A moderate margin suggests a real difference, but consider whether any missing criteria could change things."
+                : "A strong margin. This result is robust across your criteria."}
+            </p>
+
+            {/* Result confidence & analysis */}
+            <FadeIn delay={400}>
+              <div style={{ marginTop: 20, background: C.card, borderRadius: 10, border: `1px solid ${C.border}`, padding: "16px 18px" }}>
+                <p style={{ fontFamily: F.b, fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 12px", fontWeight: 600 }}>Analysis Breakdown</p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 14 }}>
+                  <div style={{ background: C.bg, borderRadius: 8, padding: "10px 8px", textAlign: "center" }}>
+                    <div style={{ fontFamily: F.d, fontSize: 20, fontWeight: 700, color: gap >= 20 ? C.sage : C.taupe }}>{gap}%</div>
+                    <div style={{ fontFamily: F.b, fontSize: 9, color: C.muted, marginTop: 2 }}>Gap</div>
+                  </div>
+                  <div style={{ background: C.bg, borderRadius: 8, padding: "10px 8px", textAlign: "center" }}>
+                    <div style={{ fontFamily: F.d, fontSize: 20, fontWeight: 700, color: C.text }}>{critCount || 0}</div>
+                    <div style={{ fontFamily: F.b, fontSize: 9, color: C.muted, marginTop: 2 }}>Criteria</div>
+                  </div>
+                  <div style={{ background: C.bg, borderRadius: 8, padding: "10px 8px", textAlign: "center" }}>
+                    <div style={{ fontFamily: F.d, fontSize: 20, fontWeight: 700, color: strength === "clear" ? C.sage : strength === "close" ? C.taupe : C.text }}>
+                      {strength === "clear" ? "High" : strength === "moderate" ? "Med" : strength === "close" ? "Low" : "—"}
+                    </div>
+                    <div style={{ fontFamily: F.b, fontSize: 9, color: C.muted, marginTop: 2 }}>Confidence</div>
+                  </div>
+                </div>
+
+                {/* Sensitivity note */}
+                {!tie && (
+                  <div style={{ background: C.bg, borderRadius: 8, padding: "10px 14px" }}>
+                    <p style={{ fontFamily: F.b, fontSize: 11, color: C.text, margin: 0, lineHeight: 1.6 }}>
+                      {strength === "clear"
+                        ? `${sorted[0].name} dominates across your criteria. Even re-weighting wouldn't change this.`
+                        : strength === "moderate"
+                          ? `${sorted[0].name} leads, but adjusting 1-2 criteria weights could narrow the gap.`
+                          : `This is razor-thin — ${sorted[0].name} and ${sorted[1].name} are nearly tied. One missing criterion could flip the result.`}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </FadeIn>
+
+            {/* What to do next */}
+            <FadeIn delay={600}>
+              <div style={{ marginTop: 10, background: C.sageSoft, borderRadius: 10, border: `1px solid ${C.sage}20`, padding: "14px 16px" }}>
+                <p style={{ fontFamily: F.b, fontSize: 10, color: C.sage, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px", fontWeight: 600 }}>Recommended next step</p>
+                <p style={{ fontFamily: F.b, fontSize: 12, color: C.text, margin: 0, lineHeight: 1.6 }}>
+                  {tie ? "Sleep on it. When the analysis can't separate options, your instinct — plus one new piece of information — is the tiebreaker."
+                    : strength === "close" ? "Pressure-test this: if you had to defend picking " + sorted[1].name + " instead, what argument would you make? If it's strong, you may be missing a criterion."
+                    : strength === "moderate" ? "Commit and set a 3-day growth checkpoint. When you reflect on this decision, you'll build your instinct for next time."
+                    : "Move fast. A clear result means your criteria aligned strongly. Trust the analysis and execute."}
+                </p>
+              </div>
+            </FadeIn>
+          </>
         )}
 
         {/* ── Gut pulse — minimal, high-contrast, instant ── */}
@@ -1260,7 +1372,7 @@ function ResultsView({ results, dName, critCount, onDone, onBack, onImmediate, o
               </div>
               {gutPicked && (
                 <p style={{ fontFamily: F.b, fontSize: 10, color: C.sage, margin: "10px 0 0", letterSpacing: "0.02em" }}>
-                  ✓ Recorded — check back in 3 days.
+                  ✓ Recorded — your growth checkpoint is in 3 days.
                 </p>
               )}
             </div>
@@ -1276,9 +1388,9 @@ function ResultsView({ results, dName, critCount, onDone, onBack, onImmediate, o
                   <span style={{ position: "absolute", top: 2, left: 18, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
                 </button>
                 <div>
-                  <p style={{ fontFamily: F.b, fontSize: 12, fontWeight: 500, color: C.text, margin: 0 }}>Remind me to reflect in 3 days</p>
+                  <p style={{ fontFamily: F.b, fontSize: 12, fontWeight: 500, color: C.text, margin: 0 }}>Set a 3-day growth checkpoint</p>
                   <p style={{ fontFamily: F.b, fontSize: 10, color: C.muted, margin: "3px 0 0", lineHeight: 1.4 }}>
-                    On by default. Tetlock's research shows structured reflection improves decision accuracy by 20-50% within a year.
+                    Your reflection will appear in Decision Growth. Research shows this improves accuracy by 20-50%.
                   </p>
                   <p style={{ fontFamily: F.b, fontSize: 9, color: C.border, margin: "2px 0 0", fontStyle: "italic" }}>
                     — Philip Tetlock, <em>Superforecasting</em> (2015)
@@ -1292,7 +1404,7 @@ function ResultsView({ results, dName, critCount, onDone, onBack, onImmediate, o
         )}
         {emailSaved && (
           <p style={{ fontFamily: F.b, fontSize: 10, color: C.sage, margin: "10px 0 0", textAlign: "center" }}>
-            {"\u2713"} Reflection reminder set for 3 days.
+            {"\u2713"} Growth checkpoint set — reflect in 3 days.
           </p>
         )}
 
@@ -2506,10 +2618,10 @@ function UnstukInner() {
                       <span style={{ fontSize: 16 }}>{"\u25C6"}</span>
                     </div>
                     <div>
-                      <div style={{ fontFamily: F.b, fontSize: 13, fontWeight: 600, color: C.text }}>Your 3-day reflection is ready</div>
+                      <div style={{ fontFamily: F.b, fontSize: 13, fontWeight: 600, color: C.text }}>Growth checkpoint ready</div>
                       <div style={{ fontFamily: F.b, fontSize: 12, color: C.muted, marginTop: 2 }}>{d.name}</div>
                       <div style={{ fontFamily: F.b, fontSize: 11, color: C.sage, marginTop: 3 }}>
-                        {readyToReflect.length === 1 ? "Takes 30 seconds — builds real decision skill" : `${readyToReflect.length} reflections ready — takes 30 seconds each`}
+                        {readyToReflect.length === 1 ? "30-second reflection — the #1 way to improve your decisions" : `${readyToReflect.length} reflections ready — 30 seconds each`}
                       </div>
                     </div>
                   </button>
@@ -2522,8 +2634,8 @@ function UnstukInner() {
                   <button onClick={() => setScreen("growth")}
                     style={{ width: "100%", background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 18px", cursor: "pointer", marginTop: 20, textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div>
-                      <div style={{ fontFamily: F.b, fontSize: 12, fontWeight: 500, color: C.text }}>{reflected.length} insight{reflected.length === 1 ? "" : "s"} earned</div>
-                      <div style={{ fontFamily: F.b, fontSize: 11, color: C.muted, marginTop: 2 }}>See how your decisions are going</div>
+                      <div style={{ fontFamily: F.b, fontSize: 12, fontWeight: 500, color: C.text }}>Your Decision Growth</div>
+                      <div style={{ fontFamily: F.b, fontSize: 11, color: C.muted, marginTop: 2 }}>{reflected.length} reflection{reflected.length === 1 ? "" : "s"} · {reflected.filter(d => d.reflection?.outcome === "Better than expected").length} beat expectations</div>
                     </div>
                     <span style={{ fontFamily: F.b, fontSize: 18, color: C.sage }}>{"\u203A"}</span>
                   </button>
@@ -3201,8 +3313,18 @@ function UnstukInner() {
                             {binaryCount > 0 && multiCount > 0 && <p style={{ margin: "0 0 4px" }}>Split: {binaryCount} binary, {multiCount} multi-option.</p>}
                             <p style={{ margin: "0 0 4px" }}>Average criteria: {avgCriteria} per decision.</p>
                             {history.length >= 3 && <p style={{ margin: "0 0 4px" }}>You tend to decide in the {peak.toLowerCase()}.</p>}
-                            {gutRate !== null && gutRate >= 70 && <p style={{ margin: 0, color: C.sage }}>Your gut is well-calibrated ({gutRate}% match with data).</p>}
-                            {gutRate !== null && gutRate < 50 && gutRate > 0 && <p style={{ margin: 0, color: C.accent }}>Instinct and analysis often disagree ({gutRate}% match). The analysis may catch things instinct misses.</p>}
+                            {gutRate !== null && gutRate >= 70 && <p style={{ margin: "0 0 4px", color: C.sage }}>Your gut is well-calibrated ({gutRate}% match with data).</p>}
+                            {gutRate !== null && gutRate < 50 && gutRate > 0 && <p style={{ margin: "0 0 4px", color: C.accent }}>Instinct and analysis often disagree ({gutRate}% match). The analysis may catch things instinct misses.</p>}
+                            {(() => {
+                              const reflectedH = history.filter(d => d.reflection);
+                              const betterCount = reflectedH.filter(d => d.reflection.outcome === "Better than expected").length;
+                              if (reflectedH.length >= 3 && betterCount / reflectedH.length >= 0.5) return <p style={{ margin: "0 0 4px", color: C.sage }}>Over half your reflected decisions beat expectations. You're making good calls.</p>;
+                              return null;
+                            })()}
+                            {(() => {
+                              const avgOpts = history.length > 0 ? (history.reduce((s, d) => s + (d.options?.length || (d.type === "binary" ? 2 : 0)), 0) / history.length).toFixed(1) : 0;
+                              return avgOpts > 0 ? <p style={{ margin: 0 }}>Average options considered: {avgOpts}.</p> : null;
+                            })()}
                           </div>
                         </div>
                       )}
@@ -3236,8 +3358,8 @@ function UnstukInner() {
             <FadeIn>
               <button onClick={() => setScreen("growth")} style={{ width: "100%", background: C.sageSoft, border: `1px solid ${C.sage}25`, borderRadius: 10, padding: "14px 18px", cursor: "pointer", marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div style={{ textAlign: "left" }}>
-                  <div style={{ fontFamily: F.b, fontSize: 12, fontWeight: 600, color: C.sage }}>{reflected.length} insight{reflected.length === 1 ? "" : "s"} earned</div>
-                  <div style={{ fontFamily: F.b, fontSize: 11, color: C.muted, marginTop: 2 }}>See your growth pattern</div>
+                  <div style={{ fontFamily: F.b, fontSize: 12, fontWeight: 600, color: C.sage }}>Decision Growth</div>
+                  <div style={{ fontFamily: F.b, fontSize: 11, color: C.muted, marginTop: 2 }}>{reflected.length} reflection{reflected.length === 1 ? "" : "s"} · {reflected.filter(d => d.reflection?.outcome === "Better than expected").length} beat expectations</div>
                 </div>
                 <span style={{ fontFamily: F.b, fontSize: 16, color: C.sage }}>›</span>
               </button>
@@ -3246,12 +3368,13 @@ function UnstukInner() {
 
           {readyToReflect.length > 0 && (
             <FadeIn>
-              <div style={{ background: C.taupeSoft, border: `1px solid ${C.taupe}25`, borderRadius: 10, padding: "14px 18px", marginBottom: 20 }}>
-                <div style={{ fontFamily: F.b, fontSize: 12, fontWeight: 500, color: C.taupe }}>
-                  {readyToReflect.length} decision{readyToReflect.length === 1 ? " is" : "s are"} ready for reflection
+              <button onClick={() => { const d = readyToReflect[0]; setReflectId(d.id); setReflectStep(0); setReflectAnswers({}); setScreen("reflect"); trackEvent("reflect"); }}
+                style={{ width: "100%", background: C.taupeSoft, border: `1px solid ${C.taupe}25`, borderRadius: 10, padding: "14px 18px", marginBottom: 20, cursor: "pointer", textAlign: "left" }}>
+                <div style={{ fontFamily: F.b, fontSize: 12, fontWeight: 600, color: C.taupe }}>
+                  {readyToReflect.length} growth checkpoint{readyToReflect.length === 1 ? "" : "s"} ready
                 </div>
-                <div style={{ fontFamily: F.b, fontSize: 11, color: C.muted, marginTop: 3 }}>Reflecting within a week produces the strongest calibration gains.</div>
-              </div>
+                <div style={{ fontFamily: F.b, fontSize: 11, color: C.muted, marginTop: 3 }}>Tap to reflect on "{readyToReflect[0].name}" — 30 seconds to sharpen your instinct.</div>
+              </button>
             </FadeIn>
           )}
 
@@ -3301,11 +3424,35 @@ function UnstukInner() {
                             ))}
                           </div>
                         )}
-                        {/* Criteria summary */}
+                        {/* Criteria summary with importance */}
                         {d.criteria && (
-                          <p style={{ fontFamily: F.b, fontSize: 11, color: C.border, margin: "0 0 12px", lineHeight: 1.5 }}>
-                            {d.criteria.length} criteria: {d.criteria.map((c) => c.name).join(", ")}
-                          </p>
+                          <div style={{ marginBottom: 12 }}>
+                            <p style={{ fontFamily: F.b, fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 6px" }}>Criteria ({d.criteria.length})</p>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                              {d.criteria.map(c => (
+                                <span key={c.id || c.name} style={{ fontFamily: F.b, fontSize: 10, color: c.importance >= 3 ? C.sage : C.muted, background: c.importance >= 3 ? C.sageSoft : C.bg, border: `1px solid ${c.importance >= 3 ? C.sage + "30" : C.border}`, borderRadius: 4, padding: "3px 8px" }}>
+                                  {c.name}{c.importance >= 3 ? " ★" : ""}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Reflection summary if available */}
+                        {hasReflection && (
+                          <div style={{ background: C.sageSoft, borderRadius: 8, padding: "10px 14px", marginBottom: 12 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <div>
+                                <span style={{ fontFamily: F.b, fontSize: 10, color: C.sage, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Reflection</span>
+                                <p style={{ fontFamily: F.b, fontSize: 11, color: C.text, margin: "3px 0 0" }}>
+                                  Chose: {d.reflection.chose} · {d.reflection.outcome}
+                                </p>
+                              </div>
+                              <span style={{ fontFamily: F.b, fontSize: 18, color: d.reflection.outcome === "Better than expected" ? C.sage : d.reflection.outcome === "Worse than expected" ? C.error : C.muted }}>
+                                {d.reflection.outcome === "Better than expected" ? "↑" : d.reflection.outcome === "Worse than expected" ? "↓" : "→"}
+                              </span>
+                            </div>
+                          </div>
                         )}
                         {/* Comparison choices */}
                         {d.comparisons && d.comparisons.length > 0 && (
@@ -3517,7 +3664,7 @@ function UnstukInner() {
                   {"\u2022"} This takes about 30 seconds. Research by Philip Tetlock found that people who systematically review their predictions improve accuracy by 20-50% within a year.
                 </p>
               )}
-              <p style={{ fontFamily: F.b, fontSize: 11, color: C.sage, fontWeight: 500, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.08em" }}>Reflecting on</p>
+              <p style={{ fontFamily: F.b, fontSize: 9, color: C.sage, fontWeight: 600, margin: "0 0 6px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Growth · Reflection</p>
               <p style={{ fontFamily: F.b, fontSize: 13, color: C.text, fontWeight: 600, margin: 0 }}>{dec.name}</p>
             </div>
             <H size="md">{q.q}</H>
@@ -3564,11 +3711,12 @@ function UnstukInner() {
               <div style={{ width: 48, height: 48, borderRadius: "50%", background: C.sageSoft, border: `2px solid ${C.sage}30`, display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
                 <span style={{ fontSize: 22 }}>&#9670;</span>
               </div>
+              <p style={{ fontFamily: F.b, fontSize: 9, color: C.sage, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 6px" }}>Growth · Insight</p>
               <H size="lg">Insight earned</H>
               <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, marginTop: 6, lineHeight: 1.6 }}>
-                You just closed the loop. Studies in metacognition show this kind of structured follow-up is the primary mechanism behind expert-level judgment.
+                You just closed the loop on a real decision. This is how expert-level judgment is built — one reflection at a time.
               </p>
-              <p style={{ fontFamily: F.b, fontSize: 12, color: C.muted, marginTop: 6 }}>{dec.name}</p>
+              <p style={{ fontFamily: F.b, fontSize: 12, color: C.text, fontWeight: 500, marginTop: 6 }}>{dec.name}</p>
             </div>
 
             {/* What happened */}
@@ -3636,17 +3784,26 @@ function UnstukInner() {
               </FadeIn>
             )}
 
-            {/* Streak */}
+            {/* Growth progress */}
             <FadeIn delay={800}>
-              <div style={{ textAlign: "center", padding: "20px 0 10px", borderTop: `1px solid ${C.border}40` }}>
-                <div style={{ fontFamily: F.d, fontSize: 32, fontWeight: 700, color: C.sage }}>{reflected.length}</div>
-                <div style={{ fontFamily: F.b, fontSize: 11, color: C.muted }}>decision{reflected.length === 1 ? "" : "s"} reflected on</div>
+              <div style={{ background: C.sageSoft, borderRadius: 12, padding: "18px 20px", marginTop: 10, border: `1px solid ${C.sage}20` }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <div style={{ fontFamily: F.b, fontSize: 10, color: C.sage, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>Your Growth</div>
+                  <div style={{ fontFamily: F.d, fontSize: 20, fontWeight: 700, color: C.sage }}>{reflected.length}</div>
+                </div>
+                <div style={{ height: 6, borderRadius: 3, background: C.card, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${Math.min(reflected.length * 10, 100)}%`, borderRadius: 3, background: C.sage, transition: "width 0.8s ease" }} />
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                  <span style={{ fontFamily: F.b, fontSize: 9, color: C.muted }}>{reflected.length} reflection{reflected.length === 1 ? "" : "s"}</span>
+                  <span style={{ fontFamily: F.b, fontSize: 9, color: C.muted }}>{reflected.length >= 10 ? "Expert level" : reflected.length >= 5 ? "Building skill" : reflected.length >= 3 ? "Patterns emerging" : "Keep going"}</span>
+                </div>
               </div>
             </FadeIn>
 
             <div style={{ marginTop: 16 }}>
-              <Btn onClick={() => setScreen("history")} style={{ width: "100%" }}>Done</Btn>
-              {reflected.length >= 2 && <Btn v="secondary" onClick={() => setScreen("growth")} style={{ width: "100%", marginTop: 8 }}>View growth pattern</Btn>}
+              <Btn onClick={() => setScreen("growth")} style={{ width: "100%" }}>View my growth</Btn>
+              <Btn v="secondary" onClick={() => setScreen("home")} style={{ width: "100%", marginTop: 8 }}>Back to home</Btn>
             </div>
           </FadeIn>
         </div>
@@ -3704,8 +3861,66 @@ function UnstukInner() {
         <div style={{ maxWidth: 440, margin: "0 auto", padding: "36px 24px" }}>
           <BackBtn onClick={() => setScreen("home")} />
           <FadeIn>
-            <H size="lg">Your growth</H>
-            <p style={{ fontFamily: F.b, fontSize: 12, color: C.muted, margin: "8px 0 28px" }}>How your decision-making is evolving.</p>
+            <H size="lg">Your Decision Growth</H>
+            <p style={{ fontFamily: F.b, fontSize: 12, color: C.muted, margin: "8px 0 6px" }}>How your decision-making is evolving — powered by your 3-day reflections.</p>
+
+            {/* Pending reflections CTA */}
+            {(() => {
+              const now2 = Date.now();
+              const pendingReflections = history.filter(d => !d.reflection && (now2 - d.timestamp) > 3 * 86400000);
+              if (pendingReflections.length === 0) return null;
+              return (
+                <div style={{ background: C.taupeSoft, border: `1px solid ${C.taupe}25`, borderRadius: 10, padding: "14px 18px", marginBottom: 20, marginTop: 14 }}>
+                  <div style={{ fontFamily: F.b, fontSize: 12, fontWeight: 600, color: C.taupe, marginBottom: 6 }}>
+                    {pendingReflections.length} reflection{pendingReflections.length === 1 ? "" : "s"} waiting
+                  </div>
+                  <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, margin: "0 0 10px", lineHeight: 1.5 }}>
+                    Each reflection sharpens your instinct accuracy and builds your decision profile. Takes 30 seconds.
+                  </p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {pendingReflections.slice(0, 3).map(d => (
+                      <button key={d.id} onClick={() => { setReflectId(d.id); setReflectStep(0); setReflectAnswers({}); setScreen("reflect"); trackEvent("reflect"); }}
+                        className="ustk-touch" style={{ fontFamily: F.b, fontSize: 12, color: C.text, background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span>{d.name}</span>
+                        <span style={{ fontFamily: F.b, fontSize: 10, color: C.sage }}>Reflect ›</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Decision Quality Score */}
+            {total >= 2 && (() => {
+              // Composite score: 40% outcome, 25% instinct accuracy, 20% no-regrets, 15% reflection rate
+              const outcomeScore = total > 0 ? (betterThanExpected / total) * 100 : 0;
+              const instinctScore = gutAccuracy !== null ? gutAccuracy : 50;
+              const regretScore = total > 0 ? ((total - wouldChangeSomething) / total) * 100 : 0;
+              const reflectRatio = history.length > 0 ? (total / history.length) * 100 : 0;
+              const qualityScore = Math.round(outcomeScore * 0.4 + instinctScore * 0.25 + regretScore * 0.2 + Math.min(reflectRatio, 100) * 0.15);
+              const level = qualityScore >= 80 ? "Exceptional" : qualityScore >= 65 ? "Strong" : qualityScore >= 50 ? "Developing" : "Early";
+              const levelColor = qualityScore >= 80 ? C.sage : qualityScore >= 65 ? C.sage : qualityScore >= 50 ? C.taupe : C.muted;
+              return (
+                <FadeIn delay={50}>
+                  <div style={{ background: `linear-gradient(135deg, ${C.sageSoft}, ${C.card})`, borderRadius: 12, border: `1px solid ${C.sage}20`, padding: "20px 22px", marginBottom: 16, textAlign: "center" }}>
+                    <div style={{ fontFamily: F.b, fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Decision Quality Score</div>
+                    <div style={{ fontFamily: F.d, fontSize: 44, fontWeight: 700, color: levelColor, lineHeight: 1 }}>{qualityScore}</div>
+                    <div style={{ fontFamily: F.b, fontSize: 12, fontWeight: 600, color: levelColor, marginTop: 4 }}>{level}</div>
+                    <div style={{ height: 6, borderRadius: 3, background: C.accentLt, overflow: "hidden", marginTop: 12, maxWidth: 200, margin: "12px auto 0" }}>
+                      <div style={{ height: "100%", width: `${qualityScore}%`, borderRadius: 3, background: levelColor, transition: "width 0.8s ease" }} />
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, maxWidth: 200, margin: "10px auto 0" }}>
+                      {[{ l: "Outcomes", v: Math.round(outcomeScore) }, { l: "Instinct", v: Math.round(instinctScore) }, { l: "No regrets", v: Math.round(regretScore) }].map(s => (
+                        <div key={s.l} style={{ textAlign: "center" }}>
+                          <div style={{ fontFamily: F.d, fontSize: 14, fontWeight: 700, color: C.text }}>{s.v}%</div>
+                          <div style={{ fontFamily: F.b, fontSize: 8, color: C.muted }}>{s.l}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </FadeIn>
+              );
+            })()}
 
             {/* Stats row */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: gutAccuracy !== null ? 10 : 28 }}>
@@ -3883,6 +4098,85 @@ function UnstukInner() {
                         </div>
                       </div>
                     ) : null;
+                  })()}
+
+                  {/* Learning velocity — improvement over time */}
+                  {reflected.length >= 4 && (() => {
+                    const half = Math.floor(reflected.length / 2);
+                    const firstHalf = reflected.slice(0, half);
+                    const secondHalf = reflected.slice(half);
+                    const firstBetter = firstHalf.filter(d => d.reflection?.outcome === "Better than expected").length / firstHalf.length;
+                    const secondBetter = secondHalf.filter(d => d.reflection?.outcome === "Better than expected").length / secondHalf.length;
+                    const improving = secondBetter > firstBetter;
+                    const delta = Math.round(Math.abs(secondBetter - firstBetter) * 100);
+                    const firstRegrets = firstHalf.filter(d => d.reflection?.lesson !== "Nothing — I'd decide the same way").length / firstHalf.length;
+                    const secondRegrets = secondHalf.filter(d => d.reflection?.lesson !== "Nothing — I'd decide the same way").length / secondHalf.length;
+                    const lessRegrets = secondRegrets < firstRegrets;
+                    return (
+                      <div style={{ background: C.card, borderRadius: 10, border: `1px solid ${C.border}`, padding: "14px 16px", marginBottom: 8 }}>
+                        <p style={{ fontFamily: F.b, fontSize: 12, fontWeight: 500, color: C.text, margin: "0 0 10px" }}>Learning velocity</p>
+                        <div style={{ display: "flex", gap: 10 }}>
+                          <div style={{ flex: 1, background: improving ? C.sageSoft : C.bg, borderRadius: 8, padding: "10px" }}>
+                            <div style={{ fontFamily: F.d, fontSize: 20, fontWeight: 700, color: improving ? C.sage : C.muted }}>
+                              {improving ? "↑" : delta === 0 ? "→" : "↓"} {delta}%
+                            </div>
+                            <div style={{ fontFamily: F.b, fontSize: 9, color: C.muted, marginTop: 2 }}>
+                              {improving ? "More outcomes beating expectations" : delta === 0 ? "Consistent outcomes" : "Outcomes dipped — keep reflecting"}
+                            </div>
+                          </div>
+                          <div style={{ flex: 1, background: lessRegrets ? C.sageSoft : C.bg, borderRadius: 8, padding: "10px" }}>
+                            <div style={{ fontFamily: F.d, fontSize: 20, fontWeight: 700, color: lessRegrets ? C.sage : C.muted }}>
+                              {lessRegrets ? "↑" : "→"}
+                            </div>
+                            <div style={{ fontFamily: F.b, fontSize: 9, color: C.muted, marginTop: 2 }}>
+                              {lessRegrets ? "Fewer regrets over time" : "Regret rate stable"}
+                            </div>
+                          </div>
+                        </div>
+                        <p style={{ fontFamily: F.b, fontSize: 10, color: C.border, margin: "8px 0 0" }}>Comparing your first {half} reflections to your last {reflected.length - half}.</p>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Personalised improvement recommendations */}
+                  {reflected.length >= 3 && (() => {
+                    const recs = [];
+                    const lessonCounts = {};
+                    reflected.forEach(d => { const l = d.reflection?.lesson; if (l && l !== "Nothing — I'd decide the same way") lessonCounts[l] = (lessonCounts[l] || 0) + 1; });
+                    const topLesson = Object.entries(lessonCounts).sort((a, b) => b[1] - a[1])[0];
+
+                    if (topLesson) {
+                      const tips = {
+                        "I'd weigh different criteria": { title: "Sharpen your criteria", tip: "Before your next decision, list criteria FIRST — before looking at options. This reduces bias from anchoring on a favourite." },
+                        "I'd decide faster": { title: "Speed up your process", tip: "Set a time cap before starting. Most decisions don't improve with more deliberation — they improve with better criteria upfront." },
+                        "I'd get more information first": { title: "Close information gaps", tip: "Before deciding, ask: 'What would change my mind?' If you can find that info in under a day, get it. Otherwise, decide now." },
+                        "I'd consider more options": { title: "Expand your option set", tip: "Spend 5 minutes brainstorming before committing to options. Ask 'What would [someone I respect] consider?' to break your frame." },
+                      };
+                      const rec = tips[topLesson[0]];
+                      if (rec) recs.push({ ...rec, count: topLesson[1] });
+                    }
+
+                    if (gutAccuracy !== null && gutAccuracy < 50) recs.push({ title: "Calibrate your instinct", tip: "Your gut and reality disagree often. After each decision, write down your confidence level (1-10). Tracking this builds awareness.", count: null });
+                    if (gutAccuracy !== null && gutAccuracy >= 75) recs.push({ title: "Trust your instinct more", tip: "Your gut is well-calibrated. For low-stakes decisions, consider going with your instinct to save time and energy.", count: null });
+
+                    const overrodeCount = reflected.filter(d => d.reflection?.followedApp === "No, I went with my instinct").length;
+                    const overrodeBad = reflected.filter(d => d.reflection?.followedApp === "No, I went with my instinct" && d.reflection?.outcome === "Worse than expected").length;
+                    if (overrodeCount >= 2 && overrodeBad / overrodeCount > 0.5) recs.push({ title: "Lean into the analysis", tip: "When you override the structured analysis, outcomes tend to be worse. Try following the analysis for 3 decisions and see what happens.", count: overrodeBad });
+
+                    if (recs.length === 0) return null;
+                    return (
+                      <div style={{ background: C.sageSoft, borderRadius: 10, border: `1px solid ${C.sage}20`, padding: "14px 16px", marginBottom: 8 }}>
+                        <p style={{ fontFamily: F.b, fontSize: 12, fontWeight: 500, color: C.sage, margin: "0 0 10px" }}>Your improvement plan</p>
+                        {recs.slice(0, 3).map((r, i) => (
+                          <div key={i} style={{ marginBottom: i < recs.length - 1 ? 10 : 0 }}>
+                            <p style={{ fontFamily: F.b, fontSize: 12, fontWeight: 600, color: C.text, margin: "0 0 3px" }}>
+                              {r.title}{r.count ? ` (${r.count}x)` : ""}
+                            </p>
+                            <p style={{ fontFamily: F.b, fontSize: 11, color: C.text, margin: 0, lineHeight: 1.6 }}>{r.tip}</p>
+                          </div>
+                        ))}
+                      </div>
+                    );
                   })()}
 
                   {/* Share your stats */}
