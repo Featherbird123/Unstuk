@@ -2302,7 +2302,7 @@ function UnstukInner() {
               <span style={{ fontSize: 18, flexShrink: 0 }}>{"\u2728"}</span>
               <div>
                 <div style={{ fontFamily: F.b, fontSize: 12, fontWeight: 600, color: C.text }}>Upgrade to Pro — $30/mo</div>
-                <div style={{ fontFamily: F.b, fontSize: 10, color: C.muted, lineHeight: 1.4 }}>Unlimited decisions after your free one of each type</div>
+                <div style={{ fontFamily: F.b, fontSize: 10, color: C.muted, lineHeight: 1.4 }}>Unlimited decisions after your 10 free of each type</div>
               </div>
               <span style={{ fontFamily: F.b, fontSize: 18, color: C.sage, flexShrink: 0 }}>{"›"}</span>
             </button>
@@ -3137,7 +3137,7 @@ function UnstukInner() {
     const dec = history.find((d) => d.id === reflectId);
     if (!dec) { setScreen("history"); return null; }
     const _rc = history.filter((d) => d.reflection).length;
-    if (_rc >= 1 && !unlocked) { trackEvent("paywall"); setScreen("upgrade"); return null; }
+    if (_rc >= 10 && !unlocked) { trackEvent("paywall"); setScreen("upgrade"); return null; }
     const w = dec.results ? [...dec.results].sort((a, b) => b.score - a.score)[0] : null;
     const daysSince = Math.floor((Date.now() - dec.timestamp) / 86400000);
 
@@ -3399,7 +3399,7 @@ function UnstukInner() {
   // ─── GROWTH ───
   if (screen === "growth") {
     const _rc2 = history.filter((d) => d.reflection).length;
-    if (_rc2 >= 1 && !unlocked) { setScreen("upgrade"); return null; }
+    if (_rc2 >= 10 && !unlocked) { setScreen("upgrade"); return null; }
     // Growth screen renders below
     const reflected = history.filter((d) => d.reflection).sort((a, b) => a.timestamp - b.timestamp);
     const total = reflected.length;
@@ -3686,7 +3686,7 @@ function UnstukInner() {
 
   // ─── 30-DAY REVIEW ───
   if (screen === "review30") {
-    if (!unlocked) { setScreen("upgrade"); return null; }
+    if (history.filter((d) => d.reflection).length >= 10 && !unlocked) { setScreen("upgrade"); return null; }
     const dec = history.find((d) => d.id === reflectId);
     if (!dec?.reflection) { setScreen("home"); return null; }
     const w = dec.results ? [...dec.results].sort((a, b) => b.score - a.score)[0] : null;
@@ -3788,12 +3788,12 @@ function UnstukInner() {
             <div style={{ fontSize: 40, marginBottom: 20 }}>&#10024;</div>
             <H size="lg">You've used your free decision</H>
             <p style={{ fontFamily: F.b, fontSize: 14, color: C.muted, lineHeight: 1.7, margin: "16px 0 8px" }}>
-              Every Unstuk user gets one decision of each type free — so you can experience the full process before committing. Upgrade to Pro for unlimited access.
+              Every Unstuk user gets 10 decisions of each type free — so you can experience the full process before committing. Upgrade to Pro for unlimited access.
             </p>
 
             <Card style={{ padding: "20px 20px 10px", marginBottom: 18, textAlign: "left" }}>
               <div style={{ fontFamily: F.b, fontSize: 13, color: C.muted, lineHeight: 1.8, marginBottom: 12 }}>
-                <div style={{ marginBottom: 2 }}><span style={{ marginRight: 8 }}>—</span>Free: 1 binary, 1 multi-option, 1 quick poll, 1 reflection</div>
+                <div style={{ marginBottom: 2 }}><span style={{ marginRight: 8 }}>—</span>Free: 10 binary, 10 multi-option, 10 quick poll, 10 reflections</div>
                 <div><span style={{ marginRight: 8 }}>—</span>Pro: unlimited everything, forever</div>
               </div>
             </Card>
