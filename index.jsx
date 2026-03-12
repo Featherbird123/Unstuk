@@ -45,29 +45,149 @@ const FALLBACK_CHIPS = {
     "Operations & Finance": ["Tech Stack Migration", "Vendor Shortlist", "Budget Reallocation", "Office Relocation", "Process Automation"],
     "Marketing & Sales": ["Brand Repositioning", "Channel Strategy", "CRM Platform Selection", "Campaign Budget Split", "Sales Territory Plan"],
   },
-  opt: {
-    "Build vs Buy": ["Build In-House", "Outsource", "Partner / Joint Venture", "License Existing", "Acquire"],
-    "Action": ["Proceed Now", "Defer 3 Months", "Pilot First", "Do Nothing", "Restructure Approach"],
-    "Scale": ["Full Rollout", "Phased Approach", "Single Market Test", "Minimum Viable"],
-  },
-  crit: {
-    "Financial": ["Total Cost of Ownership", "Revenue Impact", "Payback Period", "Cash Flow Effect", "Budget Fit"],
-    "Strategic": ["Time to Market", "Scalability", "Competitive Advantage", "Alignment with Vision", "Market Timing"],
-    "Risk & Governance": ["Risk Level", "Reversibility", "Regulatory Compliance", "Data Security", "Reputational Impact"],
-    "People & Culture": ["Team Capacity", "Stakeholder Buy-In", "Culture Fit", "Talent Retention", "Change Management"],
-  },
   "qv-name": {
     "Team & Planning": ["Which launch date works best?", "Where should we hold the offsite?", "Which vendor should we shortlist?", "What should be our Q3 priority?"],
     "Feedback": ["How should we handle this client issue?", "Which design direction do you prefer?", "What's blocking you most right now?", "Which meeting format works best?"],
     "Strategy": ["Should we enter this market?", "Which feature should ship first?", "How should we allocate the budget?", "Which candidate should we advance?"],
   },
-  "qv-opt": {
-    "Agreement": ["Strongly Agree", "Agree", "Neutral", "Disagree", "Strongly Disagree"],
-    "Priority": ["High Priority", "Medium Priority", "Low Priority", "Not a Priority"],
-    "Timing": ["This Week", "This Month", "This Quarter", "Next Year", "Not Now"],
-    "Direction": ["Option A", "Option B", "Option C", "None of These", "Need More Info"],
+};
+
+// Topic-specific contextual chips keyed by detected keywords in decision name
+const TOPIC_CHIPS = {
+  hire: {
+    opt: { "Candidates": ["Internal Promotion", "External Senior Hire", "Contract-to-Hire", "Agency Recruiter", "Referral Candidate"], "Structure": ["Full-Time Role", "Part-Time Role", "Contractor", "Fractional / Advisory", "Interim Appointment"] },
+    crit: { "Evaluation": ["Culture Fit", "Technical Skill Match", "Leadership Potential", "Salary Expectations", "Notice Period"], "Strategic": ["Team Gap Coverage", "Growth Trajectory", "Retention Risk", "Onboarding Cost", "Diversity Impact"] },
+  },
+  pricing: {
+    opt: { "Models": ["Freemium", "Tiered Pricing", "Usage-Based", "Flat Rate", "Per-Seat Licensing"], "Strategy": ["Premium Positioning", "Market Penetration", "Competitive Match", "Value-Based Pricing", "Dynamic Pricing"] },
+    crit: { "Financial": ["Revenue Impact", "Margin Protection", "Customer Lifetime Value", "Churn Risk", "Cash Flow Effect"], "Market": ["Competitive Positioning", "Market Perception", "Adoption Barrier", "Upsell Potential", "Price Sensitivity"] },
+  },
+  vendor: {
+    opt: { "Vendors": ["Current Incumbent", "Market Leader", "Specialist Provider", "Emerging Challenger", "In-House Build"], "Approach": ["Single Vendor", "Multi-Vendor", "Managed Service", "Open-Source + Support"] },
+    crit: { "Capability": ["Feature Completeness", "Integration Ease", "Support Quality", "Uptime SLA", "Security Certification"], "Commercial": ["Total Cost of Ownership", "Contract Flexibility", "Scalability", "Vendor Lock-In Risk", "Reference Quality"] },
+  },
+  migration: {
+    opt: { "Approach": ["Big-Bang Migration", "Phased Rollout", "Parallel Run", "Incremental Migration", "Hybrid Transition"], "Timing": ["Immediate Start", "Next Quarter", "Aligned with Renewal", "Deferred to Next Year"] },
+    crit: { "Technical": ["Data Integrity Risk", "Downtime Impact", "Integration Complexity", "Rollback Capability", "Performance Impact"], "Business": ["User Disruption", "Training Requirement", "Cost Overrun Risk", "Compliance Continuity", "Business Continuity"] },
+  },
+  marketing: {
+    opt: { "Channels": ["Paid Social", "Content Marketing", "Email Campaign", "Influencer Partnership", "Events / Webinars"], "Creative": ["Brand Refresh", "New Campaign", "Repositioning", "Co-Marketing", "Guerrilla / Viral"] },
+    crit: { "Performance": ["Projected ROI", "Cost Per Lead", "Brand Awareness Lift", "Conversion Rate", "Audience Reach"], "Execution": ["Time to Launch", "Creative Resource Need", "Channel Expertise", "Measurement Clarity", "Scalability"] },
+  },
+  budget: {
+    opt: { "Allocation": ["Increase Investment", "Maintain Current Level", "Reallocate from Other Areas", "Reduce Spend", "Zero-Base Review"], "Funding": ["Revenue Funded", "CapEx Funded", "External Financing", "Phased Funding"] },
+    crit: { "Financial": ["Expected ROI", "Payback Period", "Cash Flow Impact", "Opportunity Cost", "Risk-Adjusted Return"], "Strategic": ["Strategic Alignment", "Urgency", "Competitive Pressure", "Revenue Dependency", "Stakeholder Priority"] },
+  },
+  office: {
+    opt: { "Location": ["City Centre", "Suburban Hub", "Remote-First", "Co-Working Space", "Satellite Office"], "Format": ["Open Plan", "Activity-Based", "Hybrid Hot-Desk", "Private Offices", "Fully Remote"] },
+    crit: { "Practical": ["Commute Impact", "Lease Cost", "Space Flexibility", "Talent Access", "Client Proximity"], "Culture": ["Collaboration Quality", "Employee Satisfaction", "Brand Image", "Sustainability", "Wellbeing Impact"] },
+  },
+  product: {
+    opt: { "Direction": ["New Feature Build", "Existing Feature Improvement", "Platform Pivot", "Integration Focus", "Technical Debt Paydown"], "Scope": ["MVP Launch", "Full Feature Set", "Phased Delivery", "Beta / Early Access"] },
+    crit: { "Product": ["User Demand Signal", "Technical Feasibility", "Time to Market", "Revenue Potential", "Differentiation Value"], "Risk": ["Engineering Complexity", "Dependency Risk", "Market Timing", "Cannibalisation Risk", "Support Burden"] },
+  },
+  launch: {
+    opt: { "Timing": ["Immediate Launch", "Soft Launch First", "Q1 Target", "Event-Aligned Launch", "Competitor-Reactive"], "Scale": ["Global Rollout", "Single Market First", "Key Accounts Only", "Invite-Only Beta", "Regional Pilot"] },
+    crit: { "Readiness": ["Product Readiness", "Go-to-Market Plan", "Support Capacity", "Partner Alignment", "Regulatory Clearance"], "Impact": ["Market Timing", "Revenue Opportunity", "Competitive Window", "Brand Perception", "Customer Expectation"] },
+  },
+  partner: {
+    opt: { "Structure": ["Strategic Alliance", "Joint Venture", "Licensing Deal", "Distribution Agreement", "Equity Partnership"], "Partners": ["Industry Leader", "Complementary Startup", "Channel Partner", "Academic Institution", "Government Body"] },
+    crit: { "Fit": ["Strategic Alignment", "Cultural Compatibility", "Resource Complementarity", "Market Access", "Brand Association"], "Terms": ["Revenue Share Fairness", "IP Ownership", "Exit Flexibility", "Governance Clarity", "Exclusivity Terms"] },
+  },
+  restructur: {
+    opt: { "Models": ["Functional Restructure", "Matrix Organisation", "Flat Structure", "Business Unit Split", "Shared Services Model"], "Approach": ["Immediate Reorganisation", "Phased Transition", "Pilot Division First", "Consult Then Decide"] },
+    crit: { "People": ["Employee Impact", "Key Talent Retention", "Morale Risk", "Communication Clarity", "Change Fatigue"], "Operations": ["Efficiency Gain", "Cost Reduction", "Decision Speed", "Customer Impact", "Implementation Complexity"] },
+  },
+  tech: {
+    opt: { "Solutions": ["Build Custom", "SaaS Platform", "Open-Source Tool", "Enterprise Suite", "Low-Code Solution"], "Approach": ["Replace Entirely", "Augment Existing", "Integrate Best-of-Breed", "Consolidate Tools"] },
+    crit: { "Technical": ["Scalability", "Security", "Integration Ease", "Maintenance Burden", "Performance"], "Business": ["Total Cost of Ownership", "Team Adoption", "Vendor Lock-In", "Future Flexibility", "Time to Value"] },
+  },
+  compliance: {
+    opt: { "Approach": ["Full Compliance Programme", "Phased Implementation", "Third-Party Audit", "Self-Assessment First", "Industry Consortium"], "Scope": ["Global Standard", "Regional Compliance", "Minimum Viable Compliance", "Best-in-Class Target"] },
+    crit: { "Risk": ["Regulatory Penalty Risk", "Reputational Exposure", "Audit Readiness", "Data Protection Gap", "Incident Response"], "Operational": ["Implementation Cost", "Process Change Scope", "Training Requirement", "Ongoing Monitoring", "Third-Party Dependency"] },
+  },
+  brand: {
+    opt: { "Direction": ["Full Rebrand", "Brand Refresh", "Sub-Brand Creation", "Brand Extension", "Co-Branding"], "Approach": ["Agency-Led", "In-House Creative", "Crowdsourced", "Customer Co-Creation", "Data-Driven Design"] },
+    crit: { "Impact": ["Brand Recognition", "Customer Perception", "Internal Alignment", "Market Differentiation", "Emotional Connection"], "Practical": ["Implementation Cost", "Rollout Timeline", "Legal Clearance", "Digital Asset Migration", "Stakeholder Buy-In"] },
+  },
+  sales: {
+    opt: { "Strategy": ["Direct Sales Team", "Channel Partners", "Inside Sales", "Self-Serve Model", "Account-Based Selling"], "Focus": ["New Customer Acquisition", "Upsell Existing", "Market Expansion", "Enterprise Focus", "SMB Volume"] },
+    crit: { "Performance": ["Revenue Per Rep", "Sales Cycle Length", "Win Rate Impact", "Customer Acquisition Cost", "Pipeline Quality"], "Execution": ["Team Readiness", "Tool Requirements", "Training Investment", "Territory Coverage", "Quota Achievability"] },
+  },
+  expansion: {
+    opt: { "Markets": ["Adjacent Market", "International Expansion", "New Segment", "Vertical Specialisation", "Geographic Cluster"], "Mode": ["Organic Growth", "Acquisition", "Franchise Model", "Joint Venture", "Licensing"] },
+    crit: { "Market": ["Market Size", "Competitive Intensity", "Regulatory Barriers", "Cultural Fit", "Customer Demand Signal"], "Operational": ["Execution Capability", "Capital Requirement", "Time to Revenue", "Risk Level", "Cannibalisation Risk"] },
+  },
+  remote: {
+    opt: { "Models": ["Fully Remote", "Hybrid 3/2", "Hybrid 2/3", "Office-First + Flex", "Remote-First + Hubs"], "Tools": ["Existing Stack", "New Collaboration Suite", "Async-First Tools", "Virtual Office Platform"] },
+    crit: { "People": ["Productivity Impact", "Collaboration Quality", "Employee Preference", "Talent Pool Access", "Wellbeing"], "Operations": ["Cost Savings", "Security Compliance", "Management Overhead", "Culture Maintenance", "Onboarding Effectiveness"] },
+  },
+  crm: {
+    opt: { "Platforms": ["Salesforce", "HubSpot", "Microsoft Dynamics", "Pipedrive", "Custom Build"], "Approach": ["Full Replacement", "Phased Migration", "Integration Layer", "Best-of-Breed Stack"] },
+    crit: { "Fit": ["Feature Completeness", "Ease of Use", "Customisability", "Integration Ecosystem", "Mobile Experience"], "Value": ["Total Cost", "Implementation Time", "Training Need", "Data Migration Risk", "Scalability"] },
   },
 };
+
+const GENERIC_CONTEXTUAL = {
+  opt: { "Approaches": ["Proceed as Proposed", "Modified Approach", "Alternative Strategy", "Defer Decision", "Pilot First"], "Scale": ["Full Rollout", "Phased Approach", "Limited Trial", "Minimum Viable"] },
+  crit: { "Financial": ["Total Cost", "Revenue Impact", "Payback Period", "Budget Fit"], "Strategic": ["Time to Market", "Scalability", "Competitive Advantage", "Strategic Alignment"], "Risk": ["Risk Level", "Reversibility", "Stakeholder Buy-In", "Implementation Complexity"] },
+};
+
+function deriveQvOptChips(questionText, aiContext) {
+  const q = questionText.toLowerCase();
+  if (q.includes("when") || q.includes("date") || q.includes("deadline") || q.includes("schedule") || q.includes("launch")) {
+    return { "Timing": ["This Week", "Next Week", "This Month", "Next Quarter", "Flexible / No Rush"], "Urgency": ["ASAP", "Within 2 Weeks", "End of Quarter", "Next Half", "Not Now"] };
+  }
+  if (q.includes("where") || q.includes("location") || q.includes("venue") || q.includes("offsite") || q.includes("office")) {
+    return { "Location": ["Main Office", "Remote / Virtual", "Off-Site Venue", "Co-Working Space", "Client Site"], "Format": ["In-Person Only", "Hybrid", "Fully Virtual", "Rotating Locations"] };
+  }
+  if (q.includes("how much") || q.includes("budget") || q.includes("spend") || q.includes("allocat") || q.includes("invest")) {
+    return { "Range": ["Under $10K", "$10K–$50K", "$50K–$100K", "$100K–$500K", "$500K+"], "Approach": ["Increase Budget", "Maintain Current", "Reallocate", "Reduce Spend", "Need More Data"] };
+  }
+  if (q.includes("priority") || q.includes("important") || q.includes("focus") || q.includes("urgent")) {
+    return { "Priority": ["Critical / P0", "High Priority", "Medium Priority", "Low Priority", "Not a Priority"], "Timeframe": ["Immediate", "This Quarter", "This Year", "Backlog", "Revisit Later"] };
+  }
+  if (q.includes("vendor") || q.includes("shortlist") || q.includes("provider") || q.includes("supplier")) {
+    return { "Evaluation": ["Current Provider", "Market Leader", "Best Value", "Specialist Niche", "New Entrant"], "Action": ["Shortlist Top 3", "Deep Dive Top 2", "Go with Recommendation", "Extend Search", "RFP Process"] };
+  }
+  if (q.includes("feature") || q.includes("ship") || q.includes("roadmap") || q.includes("build")) {
+    return { "Priority": ["Ship Now", "Next Sprint", "This Quarter", "Backlog", "Deprioritise"], "Approach": ["Full Build", "MVP First", "Iterate Existing", "Partner Integration", "Buy Not Build"] };
+  }
+  if (q.includes("candidate") || q.includes("hire") || q.includes("who should")) {
+    return { "Decision": ["Candidate A", "Candidate B", "Candidate C", "Re-Open Search", "Restructure the Role"], "Timing": ["Offer Immediately", "Second Round First", "Reference Check First", "Delay Decision"] };
+  }
+  if (q.includes("should we") || q.includes("do you think") || q.includes("agree")) {
+    return { "Agreement": ["Definitely Yes", "Leaning Yes", "Unsure — Need More Info", "Leaning No", "Definitely No"] };
+  }
+  if (q.includes("how") || q.includes("approach") || q.includes("handle") || q.includes("deal with") || q.includes("respond")) {
+    return { "Response": ["Act Immediately", "Plan Then Act", "Delegate to Team", "Escalate to Leadership", "Gather More Input"], "Style": ["Direct Conversation", "Written Communication", "Formal Process", "Collaborative Workshop", "External Mediation"] };
+  }
+  if (q.includes("design") || q.includes("direction") || q.includes("creative") || q.includes("style")) {
+    return { "Direction": ["Option A", "Option B", "Option C", "Combine Elements", "Start Fresh"], "Feedback": ["Strong Yes", "Good with Changes", "Neutral", "Concerns", "Not Right"] };
+  }
+  if (q.includes("meeting") || q.includes("format") || q.includes("structure")) {
+    return { "Format": ["Weekly Standup", "Biweekly Deep-Dive", "Monthly Review", "Async Updates Only", "Ad-Hoc as Needed"], "Duration": ["15 Minutes", "30 Minutes", "45 Minutes", "60 Minutes", "90 Minutes"] };
+  }
+  if (q.includes("block") || q.includes("challenge") || q.includes("problem") || q.includes("issue")) {
+    return { "Blocker": ["Resource Constraints", "Unclear Requirements", "Technical Debt", "Dependencies", "Stakeholder Alignment"], "Action": ["Escalate Now", "Workaround", "Pause and Reassess", "Additional Resource", "Scope Reduction"] };
+  }
+  if (q.includes("market") || q.includes("enter") || q.includes("expand")) {
+    return { "Decision": ["Enter Now", "Pilot First", "Partner Entry", "Wait for Signal", "Focus Elsewhere"], "Scale": ["Full Commitment", "Staged Entry", "Test Market Only", "Digital-First"] };
+  }
+  // Generic fallback for any other question
+  return { "Response": ["Definitely Yes", "Leaning Yes", "Unsure", "Leaning No", "Definitely No"], "Priority": ["High Priority", "Medium", "Low Priority", "Not Now"] };
+}
+
+function getContextualFallbacks(storageKey, aiContext) {
+  if (storageKey === "name" || storageKey === "qv-name") return FALLBACK_CHIPS[storageKey] || {};
+  const ctx = (aiContext?.dName || "").toLowerCase();
+  if (storageKey === "qv-opt") return deriveQvOptChips(ctx, aiContext);
+  if (!ctx || ctx.length < 3) return GENERIC_CONTEXTUAL[storageKey] || {};
+  for (const [kw, data] of Object.entries(TOPIC_CHIPS)) {
+    if (ctx.includes(kw)) return data[storageKey] || GENERIC_CONTEXTUAL[storageKey] || {};
+  }
+  return GENERIC_CONTEXTUAL[storageKey] || {};
+}
 
 async function fetchAiChipSuggestions({ step, picked, context, count = 8, history = [] }) {
   try {
@@ -172,7 +292,7 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, 
   const typed = (aiContext?.typed || "").trim().toLowerCase();
 
   // Build sections: filter fallbacks by typed text for responsiveness
-  const fallbackData = FALLBACK_CHIPS[storageKey] || {};
+  const fallbackData = getContextualFallbacks(storageKey, aiContext);
   const sections = [];
   const [manualExpand, setManualExpand] = useState(false);
   const skipTypedFilter = manualExpand && collapsed;
@@ -1287,7 +1407,7 @@ function UnstukInner() {
     try { await window.storage.set("unstuk_active_qvCode", code); } catch(e) {}
     trackEvent("quickvote_create");
     const exL = qvExpiry === 0 ? "No time limit" : qvExpiry < 1 ? `${Math.round(qvExpiry * 60)} mins` : qvExpiry <= 1 ? "1 hour" : qvExpiry <= 24 ? `${qvExpiry} hours` : `${Math.round(qvExpiry / 24)} days`;
-    const qvShareText = `📊 Quick Poll: ${sanitize(qvQuestion.trim())}\n\nOptions:\n${opts.map((o, i) => `${i + 1}. ${o}`).join("\n")}\n\nCode: ${code}\n\nRespond at unstuk.app${qvExpiry > 0 ? `\n\nCloses in: ${exL}` : ""}`;
+    const qvShareText = `📊 Quick Poll: ${sanitize(qvQuestion.trim())}\n\nOptions:\n${opts.map((o, i) => `${i + 1}. ${o}`).join("\n")}\n\nRespond at unstuk.app${qvExpiry > 0 ? `\n\nCloses in: ${exL}` : ""}`;
     setShareSheetData({ text: qvShareText, title: "Share Quick Poll", afterClose: () => setScreen("home") });
     setScreen("qv_share");
   };
@@ -1608,7 +1728,7 @@ function UnstukInner() {
                 <button key={t.v} onClick={() => setQvExpiry(t.v)} style={{ fontFamily: F.b, fontSize: 11, padding: "7px 14px", borderRadius: 8, border: `1.5px solid ${qvExpiry === t.v ? C.sage : C.border}`, background: qvExpiry === t.v ? C.sage : "transparent", color: qvExpiry === t.v ? "#fff" : C.text, cursor: "pointer", transition: "all 0.15s", fontWeight: qvExpiry === t.v ? 600 : 400 }}>{t.label}</button>
               ))}
             </div>
-            <p style={{ fontFamily: F.b, fontSize: 10, color: C.taupe, margin: "14px 0 0", fontStyle: "italic" }}>A unique poll code will be generated for sharing</p>
+            <p style={{ fontFamily: F.b, fontSize: 10, color: C.taupe, margin: "14px 0 0", fontStyle: "italic" }}>Your poll will be ready to share instantly</p>
           </div>
           <Btn onClick={() => createQuickVote()} disabled={!canCreate} style={{ width: "100%", fontSize: 14, padding: "15px 20px" }}>
             {canCreate ? "Create & Share Poll →" : "Add 2 options to create"}
@@ -1632,16 +1752,14 @@ function UnstukInner() {
               <div style={{ fontSize: 28, marginBottom: 8 }}>{"\u2705"}</div>
               <H size="md">Vote Created</H>
               <Sub>Share this with anyone — they can vote instantly</Sub>
-              <div style={{ margin: "20px 0", padding: "18px 24px", background: C.taupeSoft, borderRadius: 12, border: `1px solid ${C.taupe}20`, cursor: "pointer" }}
-                onClick={() => copyToClipboard(qvCode, setQvCopied)}>
-                <p style={{ fontFamily: F.b, fontSize: 9, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 6px" }}>Poll code — tap to copy</p>
-                <p style={{ fontFamily: F.d, fontSize: 36, fontWeight: 700, color: qvCopied ? C.sage : C.text, letterSpacing: "0.15em", margin: 0, transition: "color 0.2s" }}>{qvCode}</p>
-                <p style={{ fontFamily: F.b, fontSize: 10, color: C.sage, margin: "6px 0 0", opacity: qvCopied ? 1 : 0, transition: "opacity 0.2s" }}>{"✓"} Copied!</p>
+              <div style={{ margin: "20px 0", padding: "18px 24px", background: C.taupeSoft, borderRadius: 12, border: `1px solid ${C.taupe}20` }}>
+                <p style={{ fontFamily: F.b, fontSize: 13, color: C.text, margin: "0 0 6px", fontWeight: 500 }}>{qvQuestion}</p>
+                <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, margin: 0 }}>{qvOptions.filter(Boolean).length} options · {qvExpiry > 0 ? expiryLabel : "No time limit"}</p>
               </div>
               {qvExpiry > 0 && <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, margin: "8px 0" }}>Closes in {expiryLabel}</p>}
               <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
                 <Btn v="sage" onClick={() => {
-                  const text = `\uD83D\uDCA1 Get thinking, get unstuk \u2014 Quick Poll: ${qvQuestion}\n\nOptions:\n${qvOptions.filter(Boolean).map((o, i) => `${i + 1}. ${o}`).join("\n")}\n\nCode: ${qvCode}\n\nRespond at unstuk.app`;
+                  const text = `\uD83D\uDCA1 Get thinking, get unstuk \u2014 Quick Poll: ${qvQuestion}\n\nOptions:\n${qvOptions.filter(Boolean).map((o, i) => `${i + 1}. ${o}`).join("\n")}\n\nRespond at unstuk.app`;
                   setShareSheetData({ text, title: "Share Quick Poll" });
                 }} style={{ flex: 1 }}>Share vote</Btn>
                 <Btn onClick={async () => {
