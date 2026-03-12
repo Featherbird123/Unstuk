@@ -1708,6 +1708,24 @@ function UnstukInner() {
         try { const al = await window.storage.get("unstuk_analytics"); if (al) { const parsed = JSON.parse(al.value); if (Array.isArray(parsed)) parsed.forEach(e => _evtLog.push(e)); } } catch(e) {}
         if (u && verifyUnlock(u.value)) setUnlocked(true);
       } catch (e) { /* not unlocked */ }
+
+      // Deep linking: ?join=CODE goes straight to group join, ?poll=CODE goes straight to quick poll vote
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const joinParam = params.get("join");
+        const pollParam = params.get("poll");
+        if (joinParam && joinParam.length >= 4) {
+          setJoinCode(joinParam.toUpperCase());
+          setScreen("joingroup");
+          // Clean URL without reload
+          window.history.replaceState({}, "", window.location.pathname);
+        } else if (pollParam && pollParam.length >= 4) {
+          setQvJoinCode(pollParam.toUpperCase());
+          setScreen("qv_vote");
+          // Clean URL without reload
+          window.history.replaceState({}, "", window.location.pathname);
+        }
+      } catch(e) {}
     })();
   }, []);
 
@@ -1813,7 +1831,7 @@ function UnstukInner() {
     try { await window.storage.set("unstuk_active_qvCode", code); } catch(e) {}
     trackEvent("quickvote_create");
     const exL = qvExpiry === 0 ? "No time limit" : qvExpiry < 1 ? `${Math.round(qvExpiry * 60)} mins` : qvExpiry <= 1 ? "1 hour" : qvExpiry <= 24 ? `${qvExpiry} hours` : `${Math.round(qvExpiry / 24)} days`;
-    const qvShareText = `📊 Quick Poll: ${sanitize(qvQuestion.trim())}\n\nOptions:\n${opts.map((o, i) => `${i + 1}. ${o}`).join("\n")}\n\nRespond at unstuk.app${qvExpiry > 0 ? `\n\nCloses in: ${exL}` : ""}`;
+    const qvShareText = `📊 Quick Poll: ${sanitize(qvQuestion.trim())}\n\nOptions:\n${opts.map((o, i) => `${i + 1}. ${o}`).join("\n")}\n\nVote here: https://unstuk.app?poll=${code}${qvExpiry > 0 ? `\n\nCloses in: ${exL}` : ""}`;
     setShareSheetData({ text: qvShareText, title: "Share Quick Poll", afterClose: () => setScreen("home") });
     setScreen("qv_share");
   };
@@ -2168,7 +2186,7 @@ function UnstukInner() {
               {qvExpiry > 0 && <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, margin: "8px 0" }}>Closes in {expiryLabel}</p>}
               <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
                 <Btn v="sage" onClick={() => {
-                  const text = `\uD83D\uDCA1 Get thinking, get unstuk \u2014 Quick Poll: ${qvQuestion}\n\nOptions:\n${qvOptions.filter(Boolean).map((o, i) => `${i + 1}. ${o}`).join("\n")}\n\nRespond at unstuk.app`;
+                  const text = `\uD83D\uDCA1 Quick Poll: ${qvQuestion}\n\nOptions:\n${qvOptions.filter(Boolean).map((o, i) => `${i + 1}. ${o}`).join("\n")}\n\nVote here: https://unstuk.app?poll=${qvCode}`;
                   setShareSheetData({ text, title: "Share Quick Poll" });
                 }} style={{ flex: 1 }}>Share vote</Btn>
                 <Btn onClick={async () => {
@@ -2495,12 +2513,33 @@ function UnstukInner() {
                 {qvLoading ? "Loading…" : qvCode ? "⚡ View Quick Poll Results" : "⚡ Quick Poll Results"}
               </Btn>
 
-              {history.length > 0 && (
-                <div style={{ display: "flex", gap: 10 }}>
-                  <Btn v="secondary" onClick={() => setScreen("history")} style={{ flex: 1, padding: "15px 16px", fontSize: 14 }}>History</Btn>
-                  <Btn v="secondary" onClick={() => setScreen("growth")} style={{ flex: 1, padding: "15px 16px", fontSize: 14 }}>Growth</Btn>
-                </div>
-              )}
+              {history.length > 0 && (() => {
+                const now = Date.now();
+                const readyToReflect = history.filter(d => !d.reflection && (now - d.timestamp) > 3 * 86400000);
+                const reflected = history.filter(d => d.reflection);
+                return (
+                  <div style={{ background: C.sageSoft, borderRadius: 12, border: `1px solid ${C.sage}25`, padding: "14px 16px", marginTop: 4 }}>
+                    {/* Growth checkpoint alert - integrated */}
+                    {readyToReflect.length > 0 && (
+                      <button onClick={() => { const d = readyToReflect[0]; setReflectId(d.id); setReflectStep(0); setReflectAnswers({}); setScreen("reflect"); trackEvent("reflect"); }}
+                        style={{ width: "100%", background: C.card, border: `1px solid ${C.taupe}30`, borderRadius: 8, padding: "10px 14px", cursor: "pointer", textAlign: "left", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div>
+                          <div style={{ fontFamily: F.b, fontSize: 11, fontWeight: 600, color: C.taupe }}>{readyToReflect.length} growth checkpoint{readyToReflect.length === 1 ? "" : "s"} ready</div>
+                          <div style={{ fontFamily: F.b, fontSize: 10, color: C.muted, marginTop: 1 }}>"{readyToReflect[0].name}" — 30 sec</div>
+                        </div>
+                        <span style={{ fontFamily: F.b, fontSize: 12, color: C.sage, fontWeight: 600 }}>Reflect ›</span>
+                      </button>
+                    )}
+                    {/* History & Growth buttons */}
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <Btn v="sage" onClick={() => setScreen("history")} style={{ flex: 1, padding: "15px 16px", fontSize: 14 }}>History</Btn>
+                      <Btn v="sage" onClick={() => setScreen("growth")} style={{ flex: 1, padding: "15px 16px", fontSize: 14 }}>
+                        Growth{reflected.length > 0 ? ` (${reflected.length})` : ""}
+                      </Btn>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
           </FadeIn>
@@ -2601,49 +2640,7 @@ function UnstukInner() {
           })()}
 
 
-          {/* Reflection nudge — shows when decisions are ready to reflect */}
-          {(() => {
-            const now = Date.now();
-            const readyToReflect = history.filter((d) => !d.reflection && (now - d.timestamp) > 3 * 86400000);
-
-            const reflected = history.filter((d) => d.reflection);
-
-            if (readyToReflect.length > 0) {
-              const d = readyToReflect[0];
-              return (
-                <FadeIn delay={250}>
-                  <button onClick={() => { setReflectId(d.id); setReflectStep(0); setReflectAnswers({}); setScreen("reflect"); trackEvent("reflect"); }}
-                    style={{ width: "100%", background: C.sageSoft, border: `1px solid ${C.sage}25`, borderRadius: 12, padding: "16px 18px", cursor: "pointer", marginTop: 20, textAlign: "left", display: "flex", alignItems: "center", gap: 14 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: "50%", background: C.card, border: `1px solid ${C.sage}30`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <span style={{ fontSize: 16 }}>{"\u25C6"}</span>
-                    </div>
-                    <div>
-                      <div style={{ fontFamily: F.b, fontSize: 13, fontWeight: 600, color: C.text }}>Growth checkpoint ready</div>
-                      <div style={{ fontFamily: F.b, fontSize: 12, color: C.muted, marginTop: 2 }}>{d.name}</div>
-                      <div style={{ fontFamily: F.b, fontSize: 11, color: C.sage, marginTop: 3 }}>
-                        {readyToReflect.length === 1 ? "30-second reflection — the #1 way to improve your decisions" : `${readyToReflect.length} reflections ready — 30 seconds each`}
-                      </div>
-                    </div>
-                  </button>
-                </FadeIn>
-              );
-            }
-            if (reflected.length > 0) {
-              return (
-                <FadeIn delay={250}>
-                  <button onClick={() => setScreen("growth")}
-                    style={{ width: "100%", background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 18px", cursor: "pointer", marginTop: 20, textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <div>
-                      <div style={{ fontFamily: F.b, fontSize: 12, fontWeight: 500, color: C.text }}>Your Decision Growth</div>
-                      <div style={{ fontFamily: F.b, fontSize: 11, color: C.muted, marginTop: 2 }}>{reflected.length} reflection{reflected.length === 1 ? "" : "s"} · {reflected.filter(d => d.reflection?.outcome === "Better than expected").length} beat expectations</div>
-                    </div>
-                    <span style={{ fontFamily: F.b, fontSize: 18, color: C.sage }}>{"\u203A"}</span>
-                  </button>
-                </FadeIn>
-              );
-            }
-            return null;
-          })()}
+          {/* Reflection nudge and growth link now integrated into History/Growth section above */}
 
           <FadeIn delay={300}>
             <button onClick={() => {
@@ -2940,9 +2937,7 @@ function UnstukInner() {
   // ─── GROUP CREATED (show code to share) ───
   if (screen === "groupcreated" && groupCode) {
     const expiryLabel = groupExpiry < 1 ? `${Math.round(groupExpiry * 60)} mins` : groupExpiry <= 1 ? "1 hour" : groupExpiry <= 24 ? `${groupExpiry} hours` : `${Math.round(groupExpiry / 24)} days`;
-    const shareMsg = groupRequireCode
-      ? `Get thinking, get unstuk \u2014 Join our team decision on Unstuk!\n\nCode: ${groupCode}\n\nOpen Unstuk \u2192 Join with Code \u2192 enter the code.\n\nunstuk.app`
-      : `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\n\nOpen Unstuk and join this decision when prompted.\n\nDeadline: ${expiryLabel}`;
+    const shareMsg = `Get thinking, get unstuk \u2014 Join our team decision on Unstuk!\n\nCode: ${groupCode}\n\nTap to join: https://unstuk.app?join=${groupCode}\n\nDeadline: ${expiryLabel}`;
     return (
       <div style={{ minHeight: "100vh", background: C.bg, fontFamily: F.b }}>
         <div style={{ maxWidth: 440, margin: "0 auto", padding: "60px 24px", textAlign: "center" }}>
@@ -4618,9 +4613,7 @@ function UnstukInner() {
         setIsGroupMode(false);
         trackEvent("group");
         const exL = groupExpiry < 1 ? `${Math.round(groupExpiry*60)} mins` : groupExpiry <= 1 ? "1 hour" : groupExpiry <= 24 ? `${groupExpiry} hours` : `${Math.round(groupExpiry/24)} days`;
-        const msg = groupRequireCode
-          ? `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\nJoin code: ${code}\n\nOpen Unstuk \u2192 tap \u201cJoin with Code\u201d \u2192 enter the code above.\n\nDeadline: ${exL}`
-          : `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\n\nOpen Unstuk and join this decision when prompted.\n\nDeadline: ${exL}`;
+        const msg = `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk!\n\nDecision: ${dName}\nCode: ${code}\n\nTap to join: https://unstuk.app?join=${code}\n\nDeadline: ${exL}`;
         setShareSheetData({ text: msg, title: "Invite to Team Decision", afterClose: () => setScreen("home") });
       };
       return (
@@ -4674,7 +4667,7 @@ function UnstukInner() {
       if (!cur) {
         if (!res) { setTimeout(() => setRes(scoreBin()), 0); return null; }
         /* Results ready */
-                return <ResultsView results={res} dName={dName} critCount={crits.length} onDone={isGroupMode && groupCode ? async () => { const data = await loadGroupResults(groupCode); if (data) { setGroupData(data); setScreen("groupresults"); } else setScreen("home"); } : () => { setIsGroupMode(false); setScreen("home"); }} onBack={() => { setRes(null); setSavedId(null); setBCh((prev) => prev.slice(0, -1)); setBIdx(crits.length - 1); setBPick(null); }} onImmediate={saveImmediate} gutDoneExternal={resultsGutDone} setGutDoneExternal={setResultsGutDone} groupCreatedExternal={resultsGroupCreated} setGroupCreatedExternal={setResultsGroupCreated} groupErr={groupSubmitErr} setGroupExpiry={setGroupExpiry} groupExpiryVal={groupExpiry} setGroupHideIndiv={setGroupHideIndiv} groupHideIndivVal={groupHideIndiv} onOpenShareSheet={setShareSheetData} onGroup={!groupCode ? async () => { const code = await createGroup({ name: dName, type: "binary", criteria: crits, binaryOption1: bo1, binaryOption2: bo2 }, res, "Creator", groupExpiry); if (code) { setGroupCode(code); try { await window.storage.set("unstuk_active_groupCode", code); } catch(e) {} setIsGroupMode(false); trackEvent("group"); const exL = groupExpiry < 1 ? `${Math.round(groupExpiry*60)} mins` : groupExpiry<=1 ? "1 hour" : groupExpiry<=24 ? `${groupExpiry} hours` : `${Math.round(groupExpiry/24)} days`; const msg = groupRequireCode ? `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\nJoin code: ${code}\n\nOpen Unstuk \u2192 tap "Join with Code" \u2192 enter the code above.\n\nDeadline: ${exL}` : `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\n\nOpen Unstuk and join this decision when prompted.\n\nDeadline: ${exL}`; setShareSheetData({ text: msg, title: "Invite to Team Decision" }); } } : null} />;
+                return <ResultsView results={res} dName={dName} critCount={crits.length} onDone={isGroupMode && groupCode ? async () => { const data = await loadGroupResults(groupCode); if (data) { setGroupData(data); setScreen("groupresults"); } else setScreen("home"); } : () => { setIsGroupMode(false); setScreen("home"); }} onBack={() => { setRes(null); setSavedId(null); setBCh((prev) => prev.slice(0, -1)); setBIdx(crits.length - 1); setBPick(null); }} onImmediate={saveImmediate} gutDoneExternal={resultsGutDone} setGutDoneExternal={setResultsGutDone} groupCreatedExternal={resultsGroupCreated} setGroupCreatedExternal={setResultsGroupCreated} groupErr={groupSubmitErr} setGroupExpiry={setGroupExpiry} groupExpiryVal={groupExpiry} setGroupHideIndiv={setGroupHideIndiv} groupHideIndivVal={groupHideIndiv} onOpenShareSheet={setShareSheetData} onGroup={!groupCode ? async () => { const code = await createGroup({ name: dName, type: "binary", criteria: crits, binaryOption1: bo1, binaryOption2: bo2 }, res, "Creator", groupExpiry); if (code) { setGroupCode(code); try { await window.storage.set("unstuk_active_groupCode", code); } catch(e) {} setIsGroupMode(false); trackEvent("group"); const exL = groupExpiry < 1 ? `${Math.round(groupExpiry*60)} mins` : groupExpiry<=1 ? "1 hour" : groupExpiry<=24 ? `${groupExpiry} hours` : `${Math.round(groupExpiry/24)} days`; const msg = groupRequireCode ? `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\nJoin code: ${code}\n\nTap to join: https://unstuk.app?join=${code}\n\nDeadline: ${exL}` : `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\n\nTap to join: https://unstuk.app?join=${code}\n\nDeadline: ${exL}`; setShareSheetData({ text: msg, title: "Invite to Team Decision" }); } } : null} />;
 
       }
       if (bPick === null) {
@@ -4775,7 +4768,7 @@ function UnstukInner() {
       if (mIdx >= mPairs.length) {
         if (!res) { setTimeout(() => setRes(scoreMul()), 0); return null; }
         /* Multi results ready */
-                return <ResultsView results={res} dName={dName} critCount={crits.length} onDone={isGroupMode && groupCode ? async () => { const data = await loadGroupResults(groupCode); if (data) { setGroupData(data); setScreen("groupresults"); } else setScreen("home"); } : () => { setIsGroupMode(false); setScreen("home"); }} onBack={() => { setRes(null); setSavedId(null); setMCo((prev) => prev.slice(0, -1)); setMIdx(mPairs.length - 1); }} onImmediate={saveImmediate} gutDoneExternal={resultsGutDone} setGutDoneExternal={setResultsGutDone} groupCreatedExternal={resultsGroupCreated} setGroupCreatedExternal={setResultsGroupCreated} groupErr={groupSubmitErr} setGroupExpiry={setGroupExpiry} groupExpiryVal={groupExpiry} setGroupHideIndiv={setGroupHideIndiv} groupHideIndivVal={groupHideIndiv} onOpenShareSheet={setShareSheetData} onGroup={!groupCode ? async () => { const code = await createGroup({ name: dName, type: "multi", criteria: crits, options: opts, baseOption: baseOpt }, res, "Creator", groupExpiry); if (code) { setGroupCode(code); try { await window.storage.set("unstuk_active_groupCode", code); } catch(e) {} setIsGroupMode(false); trackEvent("group"); const exL = groupExpiry < 1 ? `${Math.round(groupExpiry*60)} mins` : groupExpiry<=1 ? "1 hour" : groupExpiry<=24 ? `${groupExpiry} hours` : `${Math.round(groupExpiry/24)} days`; const msg = groupRequireCode ? `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\nJoin code: ${code}\n\nOpen Unstuk \u2192 tap "Join with Code" \u2192 enter the code above.\n\nDeadline: ${exL}` : `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\n\nOpen Unstuk and join this decision when prompted.\n\nDeadline: ${exL}`; setShareSheetData({ text: msg, title: "Invite to Team Decision" }); } } : null} />;
+                return <ResultsView results={res} dName={dName} critCount={crits.length} onDone={isGroupMode && groupCode ? async () => { const data = await loadGroupResults(groupCode); if (data) { setGroupData(data); setScreen("groupresults"); } else setScreen("home"); } : () => { setIsGroupMode(false); setScreen("home"); }} onBack={() => { setRes(null); setSavedId(null); setMCo((prev) => prev.slice(0, -1)); setMIdx(mPairs.length - 1); }} onImmediate={saveImmediate} gutDoneExternal={resultsGutDone} setGutDoneExternal={setResultsGutDone} groupCreatedExternal={resultsGroupCreated} setGroupCreatedExternal={setResultsGroupCreated} groupErr={groupSubmitErr} setGroupExpiry={setGroupExpiry} groupExpiryVal={groupExpiry} setGroupHideIndiv={setGroupHideIndiv} groupHideIndivVal={groupHideIndiv} onOpenShareSheet={setShareSheetData} onGroup={!groupCode ? async () => { const code = await createGroup({ name: dName, type: "multi", criteria: crits, options: opts, baseOption: baseOpt }, res, "Creator", groupExpiry); if (code) { setGroupCode(code); try { await window.storage.set("unstuk_active_groupCode", code); } catch(e) {} setIsGroupMode(false); trackEvent("group"); const exL = groupExpiry < 1 ? `${Math.round(groupExpiry*60)} mins` : groupExpiry<=1 ? "1 hour" : groupExpiry<=24 ? `${groupExpiry} hours` : `${Math.round(groupExpiry/24)} days`; const msg = groupRequireCode ? `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\nJoin code: ${code}\n\nTap to join: https://unstuk.app?join=${code}\n\nDeadline: ${exL}` : `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\n\nTap to join: https://unstuk.app?join=${code}\n\nDeadline: ${exL}`; setShareSheetData({ text: msg, title: "Invite to Team Decision" }); } } : null} />;
       }
       const pair = mPairs[mIdx];
       const op = opts.find((o) => o.id === pair.oId);
