@@ -3650,7 +3650,7 @@ function UnstukInner() {
     return (
       <div style={{ minHeight: "100vh", background: C.bg, fontFamily: F.b }}>
         <div style={{ maxWidth: 440, margin: "0 auto", padding: "36px 24px" }}>
-          <BackBtn onClick={() => reflectStep > 0 ? setReflectStep(reflectStep - 1) : setScreen(prevScreenRef.current === "growth" || prevScreenRef.current === "home" ? prevScreenRef.current : "home")} />
+          <BackBtn onClick={() => reflectStep > 0 ? setReflectStep(reflectStep - 1) : setScreen("home")} />
           <FadeIn key={reflectStep}>
             <Dots current={reflectStep} total={questions.length} />
             <div style={{ marginBottom: 8 }}>
@@ -3693,7 +3693,7 @@ function UnstukInner() {
   // ─── INSIGHT (single decision reflection result) ───
   if (screen === "insight") {
     const dec = history.find((d) => d.id === reflectId);
-    if (!dec?.reflection) { setScreen("history"); return null; }
+    if (!dec?.reflection) { setScreen("home"); return null; }
     const r = dec.reflection;
     const w = dec.results ? [...dec.results].sort((a, b) => b.score - a.score)[0] : null;
     const reflected = history.filter((d) => d.reflection);
