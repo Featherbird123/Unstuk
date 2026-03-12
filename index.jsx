@@ -2513,28 +2513,6 @@ function UnstukInner() {
               <span style={{ fontFamily: F.b, fontSize: 18, color: C.sage, flexShrink: 0 }}>{"›"}</span>
             </button>
           </FadeIn>
-          {/* ── Invite a Friend ── */}
-          <FadeIn delay={350}>
-            <button onClick={() => {
-              const code = secureCode(6);
-              const now = Date.now();
-              const expires = now + 14 * 24 * 60 * 60 * 1000;
-              try { window.storage.set("unstuk_invite_" + code, JSON.stringify({ created: now, expires: expires, inviter: "user" })); } catch(e) {}
-              trackEvent("invite_create", { code });
-              setShareSheetData({ text: "I\u2019ve been using Unstuk for better business decisions. Try it free with my invite code: " + code + "\n\nhttps://unstuk.app", title: "Invite a friend to Unstuk" });
-            }} style={{
-              width: "100%", marginTop: 20, padding: "14px 18px", borderRadius: 12,
-              background: C.card, border: `1px solid ${C.border}`, cursor: "pointer", textAlign: "left",
-              display: "flex", alignItems: "center", gap: 12,
-            }}>
-              <span style={{ fontSize: 18, flexShrink: 0 }}>{"\u2709"}</span>
-              <div>
-                <div style={{ fontFamily: F.b, fontSize: 12, fontWeight: 600, color: C.text }}>Invite a friend</div>
-                <div style={{ fontFamily: F.b, fontSize: 10, color: C.muted, lineHeight: 1.4 }}>Share a unique invite code (expires in 14 days)</div>
-              </div>
-              <span style={{ fontFamily: F.b, fontSize: 18, color: C.sage, flexShrink: 0 }}>{"›"}</span>
-            </button>
-          </FadeIn>
 
           {/* ── Upgrade / Pro ── */}
           <FadeIn delay={380}>
