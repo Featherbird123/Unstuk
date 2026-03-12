@@ -135,47 +135,45 @@ const GENERIC_CONTEXTUAL = {
 
 function deriveQvOptChips(questionText, aiContext) {
   const q = questionText.toLowerCase();
-  if (q.includes("when") || q.includes("date") || q.includes("deadline") || q.includes("schedule") || q.includes("launch")) {
-    return { "Timing": ["This Week", "Next Week", "This Month", "Next Quarter", "Flexible / No Rush"], "Urgency": ["ASAP", "Within 2 Weeks", "End of Quarter", "Next Half", "Not Now"] };
+  const existingOpts = (aiContext?.opts || []).map(o => (o.name || o).toLowerCase());
+  // Score each pattern — pick the BEST match, not first match
+  const patterns = [
+    { score: 0, keywords: ["when", "date", "deadline", "timeline", "schedule"], chips: { "Timing": ["This Week", "Next Week", "End of Month", "Next Quarter", "No Fixed Date"], "Urgency": ["ASAP", "Within 2 Weeks", "End of Quarter", "Flexible"] } },
+    { score: 0, keywords: ["launch date", "launch"], chips: { "Launch Window": ["Immediate Launch", "2-Week Sprint", "End of Month", "Next Quarter", "Align with Event"], "Readiness": ["Ready Now", "Almost Ready", "Needs More Work", "Not Ready"] } },
+    { score: 0, keywords: ["where", "location", "venue", "offsite", "office", "space"], chips: { "Location": ["Main Office", "Remote / Virtual", "Off-Site Venue", "Co-Working Space", "Client Site"], "Format": ["In-Person Only", "Hybrid Mix", "Fully Virtual", "Rotating Locations"] } },
+    { score: 0, keywords: ["how much", "budget", "spend", "cost", "allocat", "invest", "funding"], chips: { "Range": ["Under $10K", "$10K–$50K", "$50K–$100K", "$100K+", "Variable"], "Approach": ["Increase Budget", "Maintain Current", "Reallocate Internally", "Reduce Spend", "Need More Data"] } },
+    { score: 0, keywords: ["priority", "important", "focus", "urgent", "critical", "rank"], chips: { "Priority": ["Critical / P0", "High Priority", "Medium Priority", "Low Priority", "Not a Priority"], "Timeframe": ["Immediate", "This Quarter", "This Year", "Backlog"] } },
+    { score: 0, keywords: ["vendor", "shortlist", "provider", "supplier", "platform", "tool", "software", "system"], chips: { "Evaluation": ["Current Provider", "Market Leader", "Best Value", "Specialist Niche", "New Entrant"], "Next Step": ["Shortlist Top 3", "Deep Dive Top 2", "Go with Recommendation", "Extend Search", "Run RFP"] } },
+    { score: 0, keywords: ["feature", "ship", "roadmap", "build", "develop", "release"], chips: { "Priority": ["Ship Now", "Next Sprint", "This Quarter", "Backlog", "Deprioritise"], "Approach": ["Full Build", "MVP First", "Iterate Existing", "Partner Integration", "Buy Not Build"] } },
+    { score: 0, keywords: ["candidate", "hire", "recruit", "who should", "applicant", "role"], chips: { "Decision": ["Candidate A", "Candidate B", "Candidate C", "Re-Open Search", "Restructure Role"], "Timing": ["Offer Now", "Second Round", "Reference Check", "Delay Decision"] } },
+    { score: 0, keywords: ["design", "direction", "creative", "style", "look", "visual", "brand", "logo"], chips: { "Direction": ["Direction A", "Direction B", "Direction C", "Combine Elements", "Start Fresh"], "Feedback": ["Love It", "Good with Tweaks", "Neutral", "Has Concerns", "Wrong Direction"] } },
+    { score: 0, keywords: ["meeting", "format", "structure", "cadence", "standup", "sync"], chips: { "Format": ["Weekly Standup", "Biweekly Deep-Dive", "Monthly Review", "Async Only", "Ad-Hoc"], "Length": ["15 Minutes", "30 Minutes", "45 Minutes", "60 Minutes"] } },
+    { score: 0, keywords: ["block", "challenge", "problem", "issue", "obstacle", "bottleneck", "stuck"], chips: { "Blocker": ["Resource Constraints", "Unclear Requirements", "Technical Debt", "External Dependencies", "Stakeholder Alignment"], "Response": ["Escalate Now", "Find Workaround", "Pause & Reassess", "Request Resource", "Reduce Scope"] } },
+    { score: 0, keywords: ["market", "enter", "expand", "grow", "territory", "region", "international"], chips: { "Decision": ["Enter Now", "Pilot First", "Partner Entry", "Wait for Signal", "Focus Elsewhere"], "Scale": ["Full Commitment", "Staged Entry", "Single Market Test", "Digital-First Entry"] } },
+    { score: 0, keywords: ["strategy", "plan", "approach", "direction", "path", "way forward"], chips: { "Approach": ["Aggressive Growth", "Steady Build", "Pivot Direction", "Consolidate First", "Wait & Watch"], "Commitment": ["Full Commitment", "Phased Rollout", "Pilot Only", "More Research Needed"] } },
+    { score: 0, keywords: ["lunch", "food", "eat", "restaurant", "catering", "meal", "dinner", "coffee"], chips: { "Cuisine": ["Italian", "Japanese / Sushi", "Mexican", "Thai / Asian", "Mediterranean"], "Format": ["Sit-Down Restaurant", "Casual / Fast", "Catering to Office", "Potluck", "Food Court"] } },
+    { score: 0, keywords: ["team", "event", "activity", "bonding", "outing", "celebration", "social"], chips: { "Activity": ["Team Dinner", "Outdoor Activity", "Workshop", "Escape Room", "Volunteering"], "Format": ["Half-Day Event", "Full-Day Event", "Evening Only", "Virtual Event", "Weekend Retreat"] } },
+    { score: 0, keywords: ["name", "title", "call", "rebrand", "naming"], chips: { "Style": ["Descriptive Name", "Abstract / Creative", "Acronym", "Founder-Based", "Geographic"], "Tone": ["Professional", "Playful", "Bold", "Classic", "Modern / Techy"] } },
+    { score: 0, keywords: ["colour", "color", "theme", "palette"], chips: { "Palette": ["Blue / Corporate", "Green / Natural", "Bold / Vibrant", "Neutral / Minimal", "Dark / Premium"], "Style": ["Modern Flat", "Gradient", "Monochrome", "Earth Tones", "Brand Aligned"] } },
+    { score: 0, keywords: ["client", "customer", "account", "deal", "contract", "renewal"], chips: { "Action": ["Renew As-Is", "Renegotiate Terms", "Expand Scope", "Reduce Scope", "Let Expire"], "Urgency": ["Immediate Action", "This Week", "Before Renewal", "No Rush", "Needs Discussion"] } },
+    { score: 0, keywords: ["process", "workflow", "automat", "efficien", "improve", "streamline"], chips: { "Approach": ["Automate Fully", "Partial Automation", "Redesign Process", "Keep Current", "Outsource"], "Scope": ["Quick Win First", "Full Overhaul", "Phased Improvement", "Pilot Department"] } },
+    { score: 0, keywords: ["train", "learn", "develop", "skill", "upskill", "course", "certification"], chips: { "Format": ["Online Course", "In-Person Workshop", "Mentoring Programme", "Conference", "Self-Directed"], "Investment": ["Under $500", "$500–$2K", "$2K–$5K", "$5K+", "Company Budget"] } },
+    { score: 0, keywords: ["content", "campaign", "channel", "social media", "advertis", "promot"], chips: { "Channel": ["LinkedIn", "Instagram", "Email Marketing", "Google Ads", "Content / Blog"], "Approach": ["Organic Focus", "Paid Focus", "Mixed Strategy", "Influencer-Led", "Community-Led"] } },
+    { score: 0, keywords: ["should we", "do you think", "agree", "consensus", "opinion", "vote"], chips: { "Agreement": ["Definitely Yes", "Leaning Yes", "Unsure — Need Info", "Leaning No", "Definitely No"] } },
+    { score: 0, keywords: ["how", "approach", "handle", "deal with", "respond", "tackle", "address"], chips: { "Response": ["Act Immediately", "Plan Then Act", "Delegate to Team", "Escalate to Leadership", "Gather More Input"], "Style": ["Direct Approach", "Collaborative Discussion", "Formal Process", "External Advice"] } },
+  ];
+  // Score each pattern by keyword match count and specificity
+  for (const p of patterns) {
+    for (const kw of p.keywords) {
+      if (q.includes(kw)) p.score += kw.length; // longer keywords = more specific = higher score
+    }
   }
-  if (q.includes("where") || q.includes("location") || q.includes("venue") || q.includes("offsite") || q.includes("office")) {
-    return { "Location": ["Main Office", "Remote / Virtual", "Off-Site Venue", "Co-Working Space", "Client Site"], "Format": ["In-Person Only", "Hybrid", "Fully Virtual", "Rotating Locations"] };
-  }
-  if (q.includes("how much") || q.includes("budget") || q.includes("spend") || q.includes("allocat") || q.includes("invest")) {
-    return { "Range": ["Under $10K", "$10K–$50K", "$50K–$100K", "$100K–$500K", "$500K+"], "Approach": ["Increase Budget", "Maintain Current", "Reallocate", "Reduce Spend", "Need More Data"] };
-  }
-  if (q.includes("priority") || q.includes("important") || q.includes("focus") || q.includes("urgent")) {
-    return { "Priority": ["Critical / P0", "High Priority", "Medium Priority", "Low Priority", "Not a Priority"], "Timeframe": ["Immediate", "This Quarter", "This Year", "Backlog", "Revisit Later"] };
-  }
-  if (q.includes("vendor") || q.includes("shortlist") || q.includes("provider") || q.includes("supplier")) {
-    return { "Evaluation": ["Current Provider", "Market Leader", "Best Value", "Specialist Niche", "New Entrant"], "Action": ["Shortlist Top 3", "Deep Dive Top 2", "Go with Recommendation", "Extend Search", "RFP Process"] };
-  }
-  if (q.includes("feature") || q.includes("ship") || q.includes("roadmap") || q.includes("build")) {
-    return { "Priority": ["Ship Now", "Next Sprint", "This Quarter", "Backlog", "Deprioritise"], "Approach": ["Full Build", "MVP First", "Iterate Existing", "Partner Integration", "Buy Not Build"] };
-  }
-  if (q.includes("candidate") || q.includes("hire") || q.includes("who should")) {
-    return { "Decision": ["Candidate A", "Candidate B", "Candidate C", "Re-Open Search", "Restructure the Role"], "Timing": ["Offer Immediately", "Second Round First", "Reference Check First", "Delay Decision"] };
-  }
-  if (q.includes("should we") || q.includes("do you think") || q.includes("agree")) {
-    return { "Agreement": ["Definitely Yes", "Leaning Yes", "Unsure — Need More Info", "Leaning No", "Definitely No"] };
-  }
-  if (q.includes("how") || q.includes("approach") || q.includes("handle") || q.includes("deal with") || q.includes("respond")) {
-    return { "Response": ["Act Immediately", "Plan Then Act", "Delegate to Team", "Escalate to Leadership", "Gather More Input"], "Style": ["Direct Conversation", "Written Communication", "Formal Process", "Collaborative Workshop", "External Mediation"] };
-  }
-  if (q.includes("design") || q.includes("direction") || q.includes("creative") || q.includes("style")) {
-    return { "Direction": ["Option A", "Option B", "Option C", "Combine Elements", "Start Fresh"], "Feedback": ["Strong Yes", "Good with Changes", "Neutral", "Concerns", "Not Right"] };
-  }
-  if (q.includes("meeting") || q.includes("format") || q.includes("structure")) {
-    return { "Format": ["Weekly Standup", "Biweekly Deep-Dive", "Monthly Review", "Async Updates Only", "Ad-Hoc as Needed"], "Duration": ["15 Minutes", "30 Minutes", "45 Minutes", "60 Minutes", "90 Minutes"] };
-  }
-  if (q.includes("block") || q.includes("challenge") || q.includes("problem") || q.includes("issue")) {
-    return { "Blocker": ["Resource Constraints", "Unclear Requirements", "Technical Debt", "Dependencies", "Stakeholder Alignment"], "Action": ["Escalate Now", "Workaround", "Pause and Reassess", "Additional Resource", "Scope Reduction"] };
-  }
-  if (q.includes("market") || q.includes("enter") || q.includes("expand")) {
-    return { "Decision": ["Enter Now", "Pilot First", "Partner Entry", "Wait for Signal", "Focus Elsewhere"], "Scale": ["Full Commitment", "Staged Entry", "Test Market Only", "Digital-First"] };
-  }
-  // Generic fallback for any other question
-  return { "Response": ["Definitely Yes", "Leaning Yes", "Unsure", "Leaning No", "Definitely No"], "Priority": ["High Priority", "Medium", "Low Priority", "Not Now"] };
+  const best = patterns.sort((a, b) => b.score - a.score)[0];
+  if (best.score > 0) return best.chips;
+  // No keyword match — extract key nouns from question for category label
+  const words = q.replace(/[?.,!]/g, "").split(/\s+/).filter(w => w.length > 3 && !["what", "which", "should", "would", "could", "does", "have", "this", "that", "with", "from", "your", "about", "best", "most", "team"].includes(w));
+  const topic = words.slice(0, 2).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  return { [topic || "Options"]: ["Option A", "Option B", "Option C", "None of These", "Need More Discussion"], "Position": ["Strongly For", "Moderately For", "Neutral", "Moderately Against", "Strongly Against"] };
 }
 
 function getContextualFallbacks(storageKey, aiContext) {
@@ -183,30 +181,40 @@ function getContextualFallbacks(storageKey, aiContext) {
   const ctx = (aiContext?.dName || "").toLowerCase();
   if (storageKey === "qv-opt") return deriveQvOptChips(ctx, aiContext);
   if (!ctx || ctx.length < 3) return GENERIC_CONTEXTUAL[storageKey] || {};
+  // Match ALL matching topics and merge their chips for richer context
+  const merged = {};
+  let matched = false;
   for (const [kw, data] of Object.entries(TOPIC_CHIPS)) {
-    if (ctx.includes(kw)) return data[storageKey] || GENERIC_CONTEXTUAL[storageKey] || {};
+    if (ctx.includes(kw) && data[storageKey]) {
+      matched = true;
+      for (const [cat, chips] of Object.entries(data[storageKey])) {
+        if (!merged[cat]) merged[cat] = [];
+        for (const c of chips) { if (!merged[cat].includes(c)) merged[cat].push(c); }
+      }
+    }
   }
+  if (matched) return merged;
   return GENERIC_CONTEXTUAL[storageKey] || {};
 }
 
 async function fetchAiChipSuggestions({ step, picked, context, count = 8, history = [] }) {
   try {
-    const decisionCtx = context.dName ? `Decision: ${context.dName}` : "";
-    const optsCtx = context.opts && context.opts.length ? `\nOptions so far: ${context.opts.map(o => o.name).join(", ")}` : "";
-    const critsCtx = context.crits && context.crits.length ? `\nCriteria so far: ${context.crits.map(cr => cr.name).join(", ")}` : "";
-    const alreadyPicked = picked && picked.length ? `\nAlready chosen: ${picked.join(", ")}` : "";
-    const typedCtx = context.typed && context.typed.trim() ? `\nUser is currently typing: "${context.typed.trim()}" — suggestions MUST complete, complement or closely relate to what they are typing. Prioritise relevance to their partial input.` : "";
-    const historyCtx = history.length > 0 ? `\nUser's previous decisions: ${history.slice(0, 5).join(", ")}. Include 1-2 suggestions inspired by their history, but ${count - 2}+ should be fresh and new.` : "";
+    const decisionCtx = context.dName ? `Context: "${context.dName}"` : "";
+    const optsCtx = context.opts && context.opts.length ? `\nOptions already chosen: ${context.opts.map(o => o.name || o).join(", ")}` : "";
+    const critsCtx = context.crits && context.crits.length ? `\nCriteria already chosen: ${context.crits.map(cr => cr.name || cr).join(", ")}` : "";
+    const alreadyPicked = picked && picked.length ? `\nDo NOT repeat these: ${picked.join(", ")}` : "";
+    const typedCtx = context.typed && context.typed.trim() ? `\nUser is typing: "${context.typed.trim()}" — every suggestion MUST directly complete, relate to, or extend what they're typing. Match their intent precisely.` : "";
+    const historyCtx = history.length > 0 ? `\nUser's past decisions: ${history.slice(0, 5).join(", ")}. Weave 1-2 history-inspired suggestions in, but ${count - 2}+ must be fresh.` : "";
     const typeHint = step === "name"
-      ? "decision names (3-5 words, e.g. 'CRM Migration', 'Head of Growth Hire', 'Q3 Budget Allocation')"
+      ? "decision names — specific, actionable business decisions (3-5 words, e.g. 'CRM Migration', 'Head of Growth Hire')"
       : step === "opt"
-      ? "concrete mutually-exclusive options tailored to this specific decision — evidence-based, current best practice"
+      ? `concrete, mutually-exclusive options for THIS SPECIFIC decision "${context.dName || ""}". Each option must be a real, actionable choice someone would consider for this exact situation. Be deeply specific — not generic placeholders.`
       : step === "qv-name"
-      ? "short poll questions as full sentences for teams (e.g. 'Which launch date works best for the team?', 'What should be our Q3 priority?')"
+      ? "short poll questions as full sentences for business teams (e.g. 'Which launch date works best?', 'What should be our Q3 priority?')"
       : step === "qv-opt"
-      ? "short poll answer options (2-4 words, mutually exclusive, clear and distinct)"
-      : "distinct evaluation criteria for this decision — based on best-practice frameworks (MCDA, balanced scorecard, risk analysis)";
-    const prompt = `Business decision tool. Generate exactly ${count} ${typeHint}.\n${decisionCtx}${optsCtx}${critsCtx}${alreadyPicked}${typedCtx}${historyCtx}\nRules: specific to context, 2-5 words, Title Case, no years unless user wrote one, professional, cutting-edge, evidence-based.\nJSON only: {"chips":["item1","item2",...]}`;
+      ? `short poll answer options (2-4 words each) that are SPECIFIC, DIRECT ANSWERS to the question "${context.dName || ""}". Each must be a real answer someone would give to this exact question. NOT generic scales or templates — actual contextual answers.${optsCtx}`
+      : `distinct evaluation criteria specifically for deciding "${context.dName || ""}" with options [${(context.opts||[]).map(o=>o.name||o).join(", ")}]. Each criterion must be a real factor someone would weigh for this exact decision.`;
+    const prompt = `You are an expert business advisor. Generate exactly ${count} ${typeHint}.\n${decisionCtx}${optsCtx}${critsCtx}${alreadyPicked}${typedCtx}${historyCtx}\n\nRules:\n- DEEPLY specific to the context — never generic\n- Each suggestion must only make sense for THIS decision/question\n- 2-5 words, Title Case\n- Professional, evidence-based, current best practice\n- Mutually exclusive — no overlapping suggestions\nJSON only: {"chips":["item1","item2",...]}`;
     const response = await fetch("/api/ai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -291,20 +299,25 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, 
   const aiChips = chips.filter(ch => !usedLower.includes(ch.toLowerCase()));
   const typed = (aiContext?.typed || "").trim().toLowerCase();
 
-  // Build sections: filter fallbacks by typed text for responsiveness
-  const fallbackData = getContextualFallbacks(storageKey, aiContext);
+  // Build sections: AI chips replace fallbacks when available
   const sections = [];
   const [manualExpand, setManualExpand] = useState(false);
   const skipTypedFilter = manualExpand && collapsed;
-  Object.keys(fallbackData).forEach(cat => {
-    const filtered = fallbackData[cat].filter(c => {
-      if (usedLower.includes(c.toLowerCase())) return false;
-      if (!skipTypedFilter && typed.length > 1) return c.toLowerCase().includes(typed);
-      return true;
+  if (aiChips.length > 0) {
+    // AI chips are the primary display — deeply contextual
+    sections.push({ label: "Suggested for you", chips: aiChips, isAi: true });
+  } else {
+    // Fallback chips while AI loads or if unavailable
+    const fallbackData = getContextualFallbacks(storageKey, aiContext);
+    Object.keys(fallbackData).forEach(cat => {
+      const filtered = fallbackData[cat].filter(c => {
+        if (usedLower.includes(c.toLowerCase())) return false;
+        if (!skipTypedFilter && typed.length > 1) return c.toLowerCase().includes(typed);
+        return true;
+      });
+      if (filtered.length > 0) sections.push({ label: cat, chips: filtered });
     });
-    if (filtered.length > 0) sections.push({ label: cat, chips: filtered });
-  });
-  if (aiChips.length > 0) sections.push({ label: "Tailored for you", chips: aiChips, isAi: true });
+  }
 
   const chipStyle = { fontFamily: F.b, fontSize: 11, padding: "6px 12px", borderRadius: 20, border: `1.5px solid ${C.border}`, background: "#fff", color: C.text, cursor: "pointer", lineHeight: 1.2, transition: "border-color 0.15s, background 0.15s", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" };
 
@@ -548,7 +561,7 @@ function TxtIn({ value, onChange, onSubmit, onFocus, placeholder, autoFocus = tr
     onChange(v);
   };
   const hasClear = value.trim().length > 0;
-  const rightPad = maxLen ? (hasClear ? 62 : 48) : (hasClear ? 32 : 16);
+  const rightPad = maxLen ? (hasClear ? 84 : 48) : (hasClear ? 52 : 16);
   return (
     <div style={{ position: "relative" }}>
       <input ref={ref} id={inputId || undefined} type="text" value={value} onChange={handleChange}
@@ -560,7 +573,7 @@ function TxtIn({ value, onChange, onSubmit, onFocus, placeholder, autoFocus = tr
         onBlur={(e) => (e.target.style.borderColor = C.border)}
       />
       {hasClear && (
-        <button onClick={() => { onChange(""); ref.current?.focus(); }} style={{ position: "absolute", right: maxLen ? 40 : 8, top: "50%", transform: "translateY(-50%)", width: 20, height: 20, borderRadius: "50%", border: "none", background: C.border + "30", color: C.muted, fontSize: 11, lineHeight: 1, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0, transition: "background 0.15s" }} onMouseEnter={e => e.currentTarget.style.background = C.border + "60"} onMouseLeave={e => e.currentTarget.style.background = C.border + "30"}>{"×"}</button>
+        <button onClick={() => { onChange(""); ref.current?.focus(); }} style={{ position: "absolute", right: maxLen ? 44 : 8, top: "50%", transform: "translateY(-50%)", border: "none", background: "transparent", color: C.muted, fontFamily: F.b, fontSize: 9, letterSpacing: "0.02em", cursor: "pointer", padding: "3px 6px", borderRadius: 4, transition: "color 0.15s, background 0.15s", opacity: 0.6 }} onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = C.border + "20"; }} onMouseLeave={e => { e.currentTarget.style.opacity = "0.6"; e.currentTarget.style.background = "transparent"; }}>remove</button>
       )}
       {maxLen && value.length > 0 && (
         <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontFamily: F.b, fontSize: 10, color: value.length >= maxLen ? C.taupe : C.border }}>
@@ -1722,7 +1735,7 @@ function UnstukInner() {
                 const emptyIdx = qvOptions.findIndex(o => !o.trim());
                 if (emptyIdx !== -1) { const n = [...qvOptions]; n[emptyIdx] = name; setQvOptions(n); }
                 else if (qvOptions.length < 6) setQvOptions([...qvOptions, name]);
-              }} aiContext={{ dName: qvQuestion || "poll options", opts: qvOptions.filter(Boolean).map(o => ({name: o})), crits: [], typed: "" }} focusNext={`qvopt-${qvOptions.findIndex(o => !o.trim()) !== -1 ? qvOptions.findIndex(o => !o.trim()) : qvOptions.length}`} />
+              }} aiContext={{ dName: qvQuestion || "poll options", opts: qvOptions.filter(Boolean).map(o => ({name: o})), crits: [], typed: qvOptions.find(o => o && !o.trim()) || qvOptions[qvOptions.length - 1] || "" }} focusNext={`qvopt-${qvOptions.findIndex(o => !o.trim()) !== -1 ? qvOptions.findIndex(o => !o.trim()) : qvOptions.length}`} />
             </div>
           </div>
           <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, padding: "18px 16px", marginBottom: 12 }}>
