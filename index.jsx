@@ -52,7 +52,8 @@ const FALLBACK_CHIPS = {
   },
 };
 
-// Topic-specific contextual chips keyed by detected keywords in decision name
+// Topic-specific contextual chips keyed by detected stems in decision name
+// Each key can match multiple stems via the _TOPIC_STEMS lookup below
 const TOPIC_CHIPS = {
   hire: {
     opt: { "Candidates": ["Internal Promotion", "External Senior Hire", "Contract-to-Hire", "Agency Recruiter", "Referral Candidate"], "Structure": ["Full-Time Role", "Part-Time Role", "Contractor", "Fractional / Advisory", "Interim Appointment"] },
@@ -126,7 +127,102 @@ const TOPIC_CHIPS = {
     opt: { "Platforms": ["Salesforce", "HubSpot", "Microsoft Dynamics", "Pipedrive", "Custom Build"], "Approach": ["Full Replacement", "Phased Migration", "Integration Layer", "Best-of-Breed Stack"] },
     crit: { "Fit": ["Feature Completeness", "Ease of Use", "Customisability", "Integration Ecosystem", "Mobile Experience"], "Value": ["Total Cost", "Implementation Time", "Training Need", "Data Migration Risk", "Scalability"] },
   },
+  invest: {
+    opt: { "Options": ["Proceed with Investment", "Reduce Investment Size", "Seek Co-Investors", "Defer to Next Round", "Pass Entirely"], "Structure": ["Equity Stake", "Convertible Note", "Revenue Share", "Debt Financing", "SAFE Agreement"] },
+    crit: { "Returns": ["Expected ROI", "Time to Return", "Risk-Adjusted Value", "Market Opportunity", "Exit Potential"], "Risk": ["Capital at Risk", "Market Volatility", "Execution Risk", "Regulatory Risk", "Concentration Risk"] },
+  },
+  outsourc: {
+    opt: { "Models": ["Full Outsource", "Selective Outsource", "Nearshore Team", "Offshore Team", "Keep In-House"], "Partners": ["Large Agency", "Boutique Specialist", "Freelancer Network", "Managed Service", "Hybrid Model"] },
+    crit: { "Quality": ["Output Quality", "Communication Ease", "Domain Expertise", "Response Time", "Cultural Alignment"], "Commercial": ["Cost Savings", "Contract Flexibility", "IP Protection", "Scalability", "Transition Risk"] },
+  },
+  acquisit: {
+    opt: { "Targets": ["Target Company A", "Target Company B", "Acqui-Hire Focus", "Technology Acquisition", "Market Access Buy"], "Approach": ["Full Acquisition", "Majority Stake", "Strategic Investment", "Asset Purchase", "Merger of Equals"] },
+    crit: { "Value": ["Revenue Synergies", "Cost Synergies", "Technology Value", "Talent Value", "Customer Base"], "Risk": ["Integration Complexity", "Culture Clash Risk", "Valuation Fairness", "Due Diligence Gaps", "Regulatory Approval"] },
+  },
+  fundrais: {
+    opt: { "Routes": ["VC Round", "Angel Investors", "Revenue-Based Financing", "Bank Loan", "Bootstrapping"], "Stage": ["Pre-Seed", "Seed Round", "Series A", "Bridge Round", "Growth Round"] },
+    crit: { "Terms": ["Valuation", "Dilution Impact", "Investor Value-Add", "Board Control", "Liquidation Preference"], "Timing": ["Runway Extension", "Time to Close", "Market Conditions", "Traction Required", "Follow-On Potential"] },
+  },
+  retent: {
+    opt: { "Strategies": ["Salary Increase", "Equity / Options Grant", "Role Expansion", "Flexible Working", "Retention Bonus"], "Alternatives": ["Promotion Path", "Lateral Move", "Mentorship Programme", "Sabbatical Offer", "Counter-Offer"] },
+    crit: { "Employee": ["Flight Risk Level", "Performance Rating", "Institutional Knowledge", "Replacement Difficulty", "Team Impact"], "Financial": ["Cost of Retention", "Cost of Replacement", "Market Rate Gap", "Budget Availability", "Precedent Set"] },
+  },
+  rebrand: {
+    opt: { "Scope": ["Full Rebrand", "Visual Refresh", "Name Change Only", "Messaging Update", "Sub-Brand Creation"], "Approach": ["Agency-Led", "In-House Team", "Phased Rebrand", "Big Reveal Launch", "Gradual Transition"] },
+    crit: { "Impact": ["Brand Recognition Risk", "Customer Confusion", "Market Differentiation", "Employee Buy-In", "Competitive Positioning"], "Execution": ["Budget Required", "Timeline", "Legal / Trademark", "Digital Migration", "Print / Physical Update"] },
+  },
+  automat: {
+    opt: { "Solutions": ["Full Automation", "Partial Automation", "AI-Assisted Workflow", "RPA Implementation", "No-Code Platform"], "Approach": ["Build Custom", "Off-the-Shelf Tool", "Integrate APIs", "Hire Specialist", "Phase Gradually"] },
+    crit: { "Value": ["Time Saved", "Error Reduction", "Cost Savings", "Employee Satisfaction", "Scalability"], "Risk": ["Implementation Effort", "Change Management", "System Reliability", "Maintenance Burden", "Job Impact"] },
+  },
+  supplier: {
+    opt: { "Vendors": ["Current Incumbent", "Market Leader", "Specialist Provider", "Emerging Challenger", "In-House Build"], "Approach": ["Single Vendor", "Multi-Vendor", "Managed Service", "Open-Source + Support"] },
+    crit: { "Capability": ["Feature Completeness", "Integration Ease", "Support Quality", "Uptime SLA", "Security Certification"], "Commercial": ["Total Cost of Ownership", "Contract Flexibility", "Scalability", "Vendor Lock-In Risk", "Reference Quality"] },
+  },
+  pivot: {
+    opt: { "Direction": ["Market Pivot", "Product Pivot", "Business Model Pivot", "Channel Pivot", "Technology Pivot"], "Scale": ["Full Pivot", "Partial Pivot", "Test & Learn", "Gradual Shift", "Parallel Track"] },
+    crit: { "Strategic": ["Market Opportunity Size", "Competitive Advantage", "Team Capability", "Customer Demand Signal", "Revenue Potential"], "Execution": ["Speed to Market", "Capital Required", "Existing Asset Leverage", "Partner Impact", "Risk of Failure"] },
+  },
+  event: {
+    opt: { "Format": ["In-Person Conference", "Virtual Webinar", "Hybrid Event", "Workshop / Masterclass", "Networking Mixer"], "Scale": ["Intimate (< 30)", "Medium (30–100)", "Large (100–500)", "Flagship (500+)"] },
+    crit: { "Impact": ["Attendee Value", "Lead Generation", "Brand Visibility", "Speaker Quality", "Content Relevance"], "Logistics": ["Venue Cost", "Planning Timeline", "Team Capacity", "Sponsor Interest", "Travel Burden"] },
+  },
+  contract: {
+    opt: { "Action": ["Renew As-Is", "Renegotiate Terms", "Switch Provider", "Bring In-House", "Let Expire"], "Timing": ["Renew Now", "Negotiate Before Deadline", "Extend Short-Term", "Defer Decision"] },
+    crit: { "Value": ["Cost vs Benefit", "Service Quality", "Flexibility of Terms", "Switching Cost", "Market Alternatives"], "Risk": ["Business Continuity", "Data Migration", "Relationship Impact", "Legal Obligations", "Timing Pressure"] },
+  },
+  culture: {
+    opt: { "Initiatives": ["Values Refresh", "Team Rituals", "Communication Overhaul", "Recognition Programme", "Diversity Initiative"], "Approach": ["Top-Down Mandate", "Grassroots Movement", "External Facilitator", "Pulse Surveys First", "Leadership Coaching"] },
+    crit: { "Impact": ["Employee Engagement", "Retention Effect", "Productivity Impact", "Brand Alignment", "Inclusion Improvement"], "Feasibility": ["Leadership Buy-In", "Budget Required", "Time Investment", "Measurement Difficulty", "Sustainability"] },
+  },
+  security: {
+    opt: { "Approach": ["Full Security Audit", "Penetration Testing", "Compliance Framework", "Tool Upgrade", "Managed Security Service"], "Scope": ["Infrastructure Focus", "Application Security", "Data Protection", "Identity & Access", "Full Stack"] },
+    crit: { "Risk": ["Breach Probability", "Data Sensitivity", "Regulatory Exposure", "Reputational Impact", "Financial Loss Potential"], "Operational": ["Implementation Cost", "Team Expertise", "Business Disruption", "Maintenance Load", "Vendor Dependency"] },
+  },
+  customer: {
+    opt: { "Strategy": ["Premium Support", "Self-Service Portal", "Dedicated Account Manager", "Community-Led", "AI Chatbot First"], "Focus": ["Onboarding Improvement", "Churn Reduction", "Upsell / Expand", "NPS Improvement", "Response Time"] },
+    crit: { "Impact": ["Customer Satisfaction", "Retention Rate", "Revenue Per Customer", "Support Cost", "Brand Loyalty"], "Execution": ["Team Capacity", "Tool Requirements", "Training Need", "Implementation Time", "Measurement Clarity"] },
+  },
 };
+// Stem-to-topic mapping — multiple stems can point to the same topic for fuzzy matching
+const _TOPIC_STEMS = {};
+const _STEM_ALIASES = {
+  hire: ["hire", "hiring", "recruit", "recruitment", "talent", "headcount", "staffing", "employ", "candidate", "onboard"],
+  pricing: ["pricing", "price", "rate", "monetis", "monetiz", "subscription", "fee", "tariff"],
+  vendor: ["vendor", "supplier", "provider", "procurement", "sourcing", "rfp", "shortlist"],
+  migration: ["migrat", "switch", "transition", "move to", "moving to", "convert"],
+  marketing: ["marketing", "advertis", "promot", "campaign", "outreach", "awareness", "demand gen"],
+  budget: ["budget", "spend", "allocat", "fund", "financ", "cost", "expenditure", "capex", "opex"],
+  office: ["office", "workspace", "workplace", "headquarter", "location", "premises", "lease", "real estate"],
+  product: ["product", "feature", "roadmap", "backlog", "release", "mvp", "prototype", "development"],
+  launch: ["launch", "go-to-market", "gtm", "release date", "ship date", "rollout"],
+  partner: ["partner", "alliance", "joint venture", "collaborat", "co-brand", "affiliate"],
+  restructur: ["restructur", "reorganis", "reorganiz", "reorg", "layoff", "downsiz", "rightsiz"],
+  tech: ["tech", "software", "system", "platform", "stack", "infrastructure", "saas", "tool select"],
+  compliance: ["compliance", "regulat", "audit", "governance", "gdpr", "sox", "hipaa", "iso", "certif"],
+  brand: ["brand", "identity", "logo", "visual identity", "design system", "creative direction"],
+  sales: ["sales", "selling", "revenue", "pipeline", "quota", "territory", "account exec"],
+  expansion: ["expansion", "expand", "grow", "growth", "scale", "enter market", "new market", "international"],
+  remote: ["remote", "hybrid", "work from home", "wfh", "distributed", "flexible work"],
+  crm: ["crm", "salesforce", "hubspot", "pipedrive", "dynamics", "customer relationship"],
+  invest: ["invest", "funding", "capital", "equity", "stake", "portfolio", "return"],
+  outsourc: ["outsourc", "offshoring", "nearshore", "subcontract", "agency hire", "freelanc"],
+  acquisit: ["acqui", "takeover", "buyout", "merger", "m&a", "consolidat"],
+  fundrais: ["fundrais", "raise capital", "series", "round", "vc", "angel", "seed fund"],
+  retent: ["retent", "retain", "keep talent", "counter offer", "flight risk", "turnover"],
+  rebrand: ["rebrand", "rename", "reposit"],
+  automat: ["automat", "rpa", "workflow", "streamlin", "efficienc", "ai tool", "no-code"],
+  pivot: ["pivot", "reposit", "change direction", "new direction", "strategic shift"],
+  event: ["event", "conference", "summit", "webinar", "seminar", "workshop", "offsite", "retreat"],
+  contract: ["contract", "renewal", "renegotiat", "agreement", "deal", "engagement"],
+  culture: ["culture", "values", "engagement", "morale", "wellbeing", "well-being", "team spirit"],
+  security: ["security", "cyber", "breach", "penetration", "vulnerability", "infosec", "data protect"],
+  customer: ["customer success", "customer experience", "cx", "support model", "churn", "nps", "csat", "onboard customer"],
+  supplier: ["supplier"],
+};
+for (const [topic, stems] of Object.entries(_STEM_ALIASES)) {
+  for (const s of stems) _TOPIC_STEMS[s] = topic;
+}
 
 const GENERIC_CONTEXTUAL = {
   opt: { "Approaches": ["Proceed as Proposed", "Modified Approach", "Alternative Strategy", "Defer Decision", "Pilot First"], "Scale": ["Full Rollout", "Phased Approach", "Limited Trial", "Minimum Viable"] },
@@ -179,13 +275,18 @@ function deriveQvOptChips(questionText, aiContext) {
 function getContextualFallbacks(storageKey, aiContext) {
   if (storageKey === "name" || storageKey === "qv-name") return FALLBACK_CHIPS[storageKey] || {};
   const ctx = (aiContext?.dName || "").toLowerCase();
-  if (storageKey === "qv-opt") return deriveQvOptChips(ctx, aiContext);
+  if (storageKey === "qv-opt") return deriveQvOptChips(aiContext?.dName || "", aiContext);
   if (!ctx || ctx.length < 3) return GENERIC_CONTEXTUAL[storageKey] || {};
-  // Match ALL matching topics and merge their chips for richer context
+  // Stem-based matching: find all topic matches via alias stems
+  const matchedTopics = new Set();
+  for (const [stem, topic] of Object.entries(_TOPIC_STEMS)) {
+    if (ctx.includes(stem)) matchedTopics.add(topic);
+  }
   const merged = {};
   let matched = false;
-  for (const [kw, data] of Object.entries(TOPIC_CHIPS)) {
-    if (ctx.includes(kw) && data[storageKey]) {
+  for (const topic of matchedTopics) {
+    const data = TOPIC_CHIPS[topic];
+    if (data && data[storageKey]) {
       matched = true;
       for (const [cat, chips] of Object.entries(data[storageKey])) {
         if (!merged[cat]) merged[cat] = [];
@@ -194,12 +295,22 @@ function getContextualFallbacks(storageKey, aiContext) {
     }
   }
   if (matched) return merged;
+  // Smart generic: extract key words from decision name for better fallback labels
+  const words = ctx.replace(/[^a-z\s]/g, "").split(/\s+/).filter(w => w.length > 3 && !["this", "that", "with", "from", "what", "which", "should", "would", "could", "about", "your", "their", "best", "most", "decision", "review"].includes(w));
+  if (words.length > 0) {
+    const topic = words.slice(0, 2).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    if (storageKey === "opt") return { [topic + " Options"]: ["Proceed as Proposed", "Modified Approach", "Alternative Strategy", "Defer Decision", "Pilot First"], "Scale": ["Full Rollout", "Phased Approach", "Limited Trial", "Minimum Viable"] };
+    if (storageKey === "crit") return { [topic + " Factors"]: ["Total Cost", "Revenue Impact", "Time to Deliver", "Risk Level"], "Strategic Fit": ["Strategic Alignment", "Competitive Advantage", "Team Readiness", "Scalability"], "Execution": ["Implementation Effort", "Stakeholder Buy-In", "Reversibility", "Dependencies"] };
+  }
   return GENERIC_CONTEXTUAL[storageKey] || {};
 }
 
 async function fetchAiChipSuggestions({ step, picked, context, count = 8, history = [] }) {
   try {
-    const decisionCtx = context.dName ? `Context: "${context.dName}"` : "";
+    const dName = context.dName || "";
+    const decisionType = context.decisionType || ""; // "binary", "multi", "qv"
+    const decisionCtx = dName ? `Decision: "${dName}"` : "";
+    const typeCtx = decisionType ? `\nDecision type: ${decisionType === "binary" ? "Binary (exactly 2 options — suggest opposing/contrasting choices)" : decisionType === "qv" ? "Quick Poll (team vote — suggest concrete, short answers)" : "Multi-option (3-6 distinct alternatives)"}` : "";
     const optsCtx = context.opts && context.opts.length ? `\nOptions already chosen: ${context.opts.map(o => o.name || o).join(", ")}` : "";
     const critsCtx = context.crits && context.crits.length ? `\nCriteria already chosen: ${context.crits.map(cr => cr.name || cr).join(", ")}` : "";
     const alreadyPicked = picked && picked.length ? `\nDo NOT repeat these: ${picked.join(", ")}` : "";
@@ -207,14 +318,16 @@ async function fetchAiChipSuggestions({ step, picked, context, count = 8, histor
     const historyCtx = history.length > 0 ? `\nUser's past decisions: ${history.slice(0, 5).join(", ")}. Weave 1-2 history-inspired suggestions in, but ${count - 2}+ must be fresh.` : "";
     const typeHint = step === "name"
       ? "decision names — specific, actionable business decisions (3-5 words, e.g. 'CRM Migration', 'Head of Growth Hire')"
+      : step === "opt" && decisionType === "binary"
+      ? `exactly ${count} concrete options for the binary decision "${dName}". Think about what the TWO most natural opposing choices would be for this decision, then suggest variations. E.g. for "Agency vs In-House": suggest "External Agency", "In-House Team", "Hybrid Model", "Freelancer Network". Each must be a REAL, SPECIFIC choice for THIS decision — not generic placeholders like "Option A".`
       : step === "opt"
-      ? `concrete, mutually-exclusive options for THIS SPECIFIC decision "${context.dName || ""}". Each option must be a real, actionable choice someone would consider for this exact situation. Be deeply specific — not generic placeholders.`
+      ? `exactly ${count} concrete, mutually-exclusive options for THIS SPECIFIC decision "${dName}". Each option must be a real, actionable choice someone would actually consider. Be deeply specific to the decision context. E.g. for "CRM Platform Selection": "Salesforce Enterprise", "HubSpot Pro", "Pipedrive", "Custom Build", "Keep Current System".`
       : step === "qv-name"
       ? "short poll questions as full sentences for business teams (e.g. 'Which launch date works best?', 'What should be our Q3 priority?')"
       : step === "qv-opt"
-      ? `short poll answer options (2-4 words each) that are SPECIFIC, DIRECT ANSWERS to the question "${context.dName || ""}". Each must be a real answer someone would give to this exact question. NOT generic scales or templates — actual contextual answers.${optsCtx}`
-      : `distinct evaluation criteria specifically for deciding "${context.dName || ""}" with options [${(context.opts||[]).map(o=>o.name||o).join(", ")}]. Each criterion must be a real factor someone would weigh for this exact decision.`;
-    const prompt = `You are an expert business advisor. Generate exactly ${count} ${typeHint}.\n${decisionCtx}${optsCtx}${critsCtx}${alreadyPicked}${typedCtx}${historyCtx}\n\nRules:\n- DEEPLY specific to the context — never generic\n- Each suggestion must only make sense for THIS decision/question\n- 2-5 words, Title Case\n- Professional, evidence-based, current best practice\n- Mutually exclusive — no overlapping suggestions\nJSON only: {"chips":["item1","item2",...]}`;
+      ? `short poll answer options (2-4 words each) that are SPECIFIC, DIRECT ANSWERS to the question "${dName}". Each must be a real answer someone would vote for. NOT generic agreement scales — actual choices. E.g. for "Where should we hold the offsite?": "Lake House Venue", "City Hotel", "Mountain Lodge", "Company Office", "Virtual Only".${optsCtx}`
+      : `distinct evaluation criteria specifically for deciding "${dName}" with options [${(context.opts||[]).map(o=>o.name||o).join(", ")}]. Each criterion must be a real factor someone would weigh for this exact decision — not generic business jargon. E.g. for "CRM Platform Selection" with Salesforce/HubSpot: "Integration with Existing Stack", "Per-Seat Pricing at Scale", "Sales Team Adoption Ease".`;
+    const prompt = `You are an expert business advisor with deep domain knowledge. Generate exactly ${count} ${typeHint}.\n${decisionCtx}${typeCtx}${optsCtx}${critsCtx}${alreadyPicked}${typedCtx}${historyCtx}\n\nRules:\n- DEEPLY specific to this exact context — never generic\n- Each suggestion must only make sense for THIS decision/question — a reader should be able to guess the decision from the suggestions alone\n- 2-5 words, Title Case\n- Professional, evidence-based, current best practice\n- Mutually exclusive — no overlapping suggestions\nJSON only: {"chips":["item1","item2",...]}`;
     const response = await fetch("/api/ai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1710,7 +1823,7 @@ function UnstukInner() {
             <p style={{ fontFamily: F.b, fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", fontWeight: 600 }}>Question</p>
             <TxtIn value={qvQuestion} onChange={setQvQuestion} placeholder="e.g. Which vendor should we shortlist?" maxLen={100} autoFocus={false} />
             <div style={{ marginTop: 10 }}>
-              <ChipPicker storageKey="qv-name" usedNames={qvQuestion ? [qvQuestion] : []} onPick={(name) => { setQvQuestion(name); setTimeout(() => { const el = document.getElementById("qvopt-0"); if (el) { el.focus(); el.style.borderColor = C.accent; el.style.boxShadow = `0 0 0 3px ${C.accent}25`; setTimeout(() => { el.style.borderColor = C.border; el.style.boxShadow = "0 1px 4px rgba(0,0,0,0.06)"; }, 1800); } }, 150); }} aiContext={{ dName: "quick poll question", opts: [], crits: [], typed: qvQuestion }} collapsed={!!qvQuestion.trim()} />
+              <ChipPicker storageKey="qv-name" usedNames={qvQuestion ? [qvQuestion] : []} onPick={(name) => { setQvQuestion(name); setTimeout(() => { const el = document.getElementById("qvopt-0"); if (el) { el.focus(); el.style.borderColor = C.accent; el.style.boxShadow = `0 0 0 3px ${C.accent}25`; setTimeout(() => { el.style.borderColor = C.border; el.style.boxShadow = "0 1px 4px rgba(0,0,0,0.06)"; }, 1800); } }, 150); }} aiContext={{ dName: "quick poll question", opts: [], crits: [], typed: qvQuestion, decisionType: "qv" }} collapsed={!!qvQuestion.trim()} />
             </div>
           </div>
           <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, padding: "18px 16px", marginBottom: 12 }}>
@@ -1734,7 +1847,7 @@ function UnstukInner() {
                 const emptyIdx = qvOptions.findIndex(o => !o.trim());
                 if (emptyIdx !== -1) { const n = [...qvOptions]; n[emptyIdx] = name; setQvOptions(n); }
                 else if (qvOptions.length < 6) setQvOptions([...qvOptions, name]);
-              }} aiContext={{ dName: qvQuestion || "poll options", opts: qvOptions.filter(Boolean).map(o => ({name: o})), crits: [], typed: qvOptions.find(o => o && !o.trim()) || qvOptions[qvOptions.length - 1] || "" }} focusNext={`qvopt-${qvOptions.findIndex(o => !o.trim()) !== -1 ? qvOptions.findIndex(o => !o.trim()) : qvOptions.length}`} />
+              }} aiContext={{ dName: qvQuestion || "poll options", opts: qvOptions.filter(Boolean).map(o => ({name: o})), crits: [], typed: qvOptions.find(o => o && !o.trim()) || qvOptions[qvOptions.length - 1] || "", decisionType: "qv" }} focusNext={`qvopt-${qvOptions.findIndex(o => !o.trim()) !== -1 ? qvOptions.findIndex(o => !o.trim()) : qvOptions.length}`} />
             </div>
           </div>
           <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, padding: "18px 16px", marginBottom: 12 }}>
@@ -3866,7 +3979,7 @@ function UnstukInner() {
               goStep("type");
             }} disabled={!dName.trim()} style={{ padding: "12px 20px", fontSize: 13, whiteSpace: "nowrap", flexShrink: 0 }}>Next</Btn>
           </div>
-          <ChipPicker storageKey="name" usedNames={dName ? [dName] : []} aiContext={{ dName, opts, crits, typed: dName }} onPick={(name) => setDName(name)}
+          <ChipPicker storageKey="name" usedNames={dName ? [dName] : []} aiContext={{ dName, opts, crits, typed: dName, decisionType: dType || "" }} onPick={(name) => setDName(name)}
             collapsed={!!dName.trim()} />
         </FadeIn>
       );
@@ -3936,7 +4049,7 @@ function UnstukInner() {
                   setTimeout(() => goStep("criteria"), 50);
                 }} disabled={!newOpt.trim()} style={{ width: "100%", fontSize: 14, padding: "13px 28px", marginTop: 10 }}>Next →</Btn>
               )}
-              <ChipPicker storageKey="opt" usedNames={[...opts.map((o) => o.name), newOpt].filter(Boolean)} aiContext={{ dName, opts, crits: [], typed: newOpt }} onPick={(name) => {
+              <ChipPicker storageKey="opt" usedNames={[...opts.map((o) => o.name), newOpt].filter(Boolean)} aiContext={{ dName, opts, crits: [], typed: newOpt, decisionType: "multi" }} onPick={(name) => {
                 if (opts.length < 6) { const nid = uid(); setOpts((p) => [...p, { id: nid, name }]); setRewardTick((t) => t + 1); setAddFlash("option"); setTimeout(() => setAddFlash(null), 800); setLastAddedOpt(nid); setTimeout(() => setLastAddedOpt(null), 2500); }
               }}
                 focusNext="multiOpt" />
@@ -3967,7 +4080,7 @@ function UnstukInner() {
               <Btn onClick={() => { if (isBlockedContent(bo1) || isBlockedContent(bo2)) { setBlocked(true); return; } goStep("criteria"); }} disabled={!bo1.trim() || !bo2.trim()} style={{ width: "100%", fontSize: 13, padding: "13px 28px", marginTop: 4 }}>Next</Btn>
             </div>
           </div>
-          <ChipPicker storageKey="opt" usedNames={[bo1, bo2].filter(Boolean)} aiContext={{ dName, opts: [{name: bo1}, {name: bo2}].filter(o => o.name), crits, typed: !bo1.trim() ? bo1 : bo2 }} onPick={(name) => {
+          <ChipPicker storageKey="opt" usedNames={[bo1, bo2].filter(Boolean)} aiContext={{ dName, opts: [{name: bo1}, {name: bo2}].filter(o => o.name), crits, typed: !bo1.trim() ? bo1 : bo2, decisionType: "binary" }} onPick={(name) => {
             if (!bo1.trim()) { setBo1(name); setTimeout(() => { const el = document.getElementById("binB"); if (el) { el.focus(); el.style.borderColor = C.accent; el.style.boxShadow = `0 0 0 3px ${C.accent}25`; setTimeout(() => { el.style.borderColor = C.border; el.style.boxShadow = "0 1px 4px rgba(0,0,0,0.06)"; }, 1800); } }, 150); }
             else if (!bo2.trim()) setBo2(name);
           }}
@@ -4034,7 +4147,7 @@ function UnstukInner() {
                   )}
                 </div>
               </div>
-              <ChipPicker storageKey="crit" usedNames={[...crits.map((cr) => cr.name), newCrit].filter(Boolean)} aiContext={{ dName, opts, crits, typed: newCrit }} onPick={(name) => { if (newImp !== null && crits.length < 10) { const cid = uid(); setCrits((p) => [...p, { id: cid, name: name.trim(), importance: newImp }]); setNewCrit(""); setRewardTick((t) => t + 1); setAddFlash("criteria"); setTimeout(() => setAddFlash(null), 800); setLastAddedCrit(cid); setTimeout(() => setLastAddedCrit(null), 1500); } else { setNewCrit(name); } }}
+              <ChipPicker storageKey="crit" usedNames={[...crits.map((cr) => cr.name), newCrit].filter(Boolean)} aiContext={{ dName, opts, crits, typed: newCrit, decisionType: dType || "multi" }} onPick={(name) => { if (newImp !== null && crits.length < 10) { const cid = uid(); setCrits((p) => [...p, { id: cid, name: name.trim(), importance: newImp }]); setNewCrit(""); setRewardTick((t) => t + 1); setAddFlash("criteria"); setTimeout(() => setAddFlash(null), 800); setLastAddedCrit(cid); setTimeout(() => setLastAddedCrit(null), 1500); } else { setNewCrit(name); } }}
                 />
             </>
           )}
