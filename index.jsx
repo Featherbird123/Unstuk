@@ -158,11 +158,11 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, 
   const handlePick = (name) => {
     onPick(name);
     load([name]);
-    // Focus next input and highlight it
+    // Focus next input and highlight it with accent border
     if (focusNext) {
       setTimeout(() => {
         const el = typeof focusNext === "string" ? document.getElementById(focusNext) : null;
-        if (el) { el.focus(); el.style.borderColor = C.sage; el.style.boxShadow = `0 0 0 3px ${C.sage}20`; setTimeout(() => { el.style.boxShadow = "0 1px 4px rgba(0,0,0,0.06)"; }, 1200); }
+        if (el) { el.focus(); el.style.borderColor = C.accent; el.style.boxShadow = `0 0 0 3px ${C.accent}25`; setTimeout(() => { el.style.borderColor = C.border; el.style.boxShadow = "0 1px 4px rgba(0,0,0,0.06)"; }, 1800); }
       }, 80);
     }
   };
@@ -174,10 +174,12 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, 
   // Build sections: filter fallbacks by typed text for responsiveness
   const fallbackData = FALLBACK_CHIPS[storageKey] || {};
   const sections = [];
+  const [manualExpand, setManualExpand] = useState(false);
+  const skipTypedFilter = manualExpand && collapsed;
   Object.keys(fallbackData).forEach(cat => {
     const filtered = fallbackData[cat].filter(c => {
       if (usedLower.includes(c.toLowerCase())) return false;
-      if (typed.length > 1) return c.toLowerCase().includes(typed);
+      if (!skipTypedFilter && typed.length > 1) return c.toLowerCase().includes(typed);
       return true;
     });
     if (filtered.length > 0) sections.push({ label: cat, chips: filtered });
@@ -186,10 +188,14 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, 
 
   const chipStyle = { fontFamily: F.b, fontSize: 11, padding: "6px 12px", borderRadius: 20, border: `1.5px solid ${C.border}`, background: "#fff", color: C.text, cursor: "pointer", lineHeight: 1.2, transition: "border-color 0.15s, background 0.15s", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" };
 
-  if (collapsed) {
+  const isCollapsed = collapsed && !manualExpand;
+  // Reset manual expand when collapsed changes to false (field cleared)
+  useEffect(() => { if (!collapsed) setManualExpand(false); }, [collapsed]);
+
+  if (isCollapsed) {
     return (
-      <div style={{ marginTop: 6, marginBottom: 2, opacity: 0.45, transition: "opacity 0.3s", overflow: "hidden", maxHeight: 22, cursor: "default" }}>
-        <p style={{ fontFamily: F.b, fontSize: 9, color: C.taupe, margin: 0, fontStyle: "italic" }}>{"\u2713"} Done — suggestions for next field below</p>
+      <div onClick={() => setManualExpand(true)} style={{ marginTop: 6, marginBottom: 2, opacity: 0.45, transition: "opacity 0.3s", overflow: "hidden", maxHeight: 22, cursor: "pointer" }}>
+        <p style={{ fontFamily: F.b, fontSize: 9, color: C.taupe, margin: 0, fontStyle: "italic" }}>{"\u2713"} Done — tap to see suggestions again</p>
       </div>
     );
   }
@@ -1567,7 +1573,7 @@ function UnstukInner() {
             <p style={{ fontFamily: F.b, fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", fontWeight: 600 }}>Question</p>
             <TxtIn value={qvQuestion} onChange={setQvQuestion} placeholder="e.g. Which vendor should we shortlist?" maxLen={100} autoFocus={false} />
             <div style={{ marginTop: 10 }}>
-              <ChipPicker storageKey="qv-name" usedNames={qvQuestion ? [qvQuestion] : []} onPick={(name) => { setQvQuestion(name); }} aiContext={{ dName: "quick poll question", opts: [], crits: [], typed: qvQuestion }} collapsed={!!qvQuestion.trim()} focusNext="qvopt-0" />
+              <ChipPicker storageKey="qv-name" usedNames={qvQuestion ? [qvQuestion] : []} onPick={(name) => { setQvQuestion(name); setTimeout(() => { const el = document.getElementById("qvopt-0"); if (el) { el.focus(); el.style.borderColor = C.accent; el.style.boxShadow = `0 0 0 3px ${C.accent}25`; setTimeout(() => { el.style.borderColor = C.border; el.style.boxShadow = "0 1px 4px rgba(0,0,0,0.06)"; }, 1800); } }, 150); }} aiContext={{ dName: "quick poll question", opts: [], crits: [], typed: qvQuestion }} collapsed={!!qvQuestion.trim()} />
             </div>
           </div>
           <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, padding: "18px 16px", marginBottom: 12 }}>
@@ -1591,7 +1597,7 @@ function UnstukInner() {
                 const emptyIdx = qvOptions.findIndex(o => !o.trim());
                 if (emptyIdx !== -1) { const n = [...qvOptions]; n[emptyIdx] = name; setQvOptions(n); }
                 else if (qvOptions.length < 6) setQvOptions([...qvOptions, name]);
-              }} aiContext={{ dName: qvQuestion || "poll options", opts: [], crits: [], typed: "" }} collapsed={qvOptions.filter(o => o.trim()).length >= 2} focusNext={`qvopt-${qvOptions.findIndex(o => !o.trim()) !== -1 ? qvOptions.findIndex(o => !o.trim()) : qvOptions.length}`} />
+              }} aiContext={{ dName: qvQuestion || "poll options", opts: qvOptions.filter(Boolean).map(o => ({name: o})), crits: [], typed: "" }} focusNext={`qvopt-${qvOptions.findIndex(o => !o.trim()) !== -1 ? qvOptions.findIndex(o => !o.trim()) : qvOptions.length}`} />
             </div>
           </div>
           <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, padding: "18px 16px", marginBottom: 12 }}>
@@ -1602,12 +1608,7 @@ function UnstukInner() {
                 <button key={t.v} onClick={() => setQvExpiry(t.v)} style={{ fontFamily: F.b, fontSize: 11, padding: "7px 14px", borderRadius: 8, border: `1.5px solid ${qvExpiry === t.v ? C.sage : C.border}`, background: qvExpiry === t.v ? C.sage : "transparent", color: qvExpiry === t.v ? "#fff" : C.text, cursor: "pointer", transition: "all 0.15s", fontWeight: qvExpiry === t.v ? 600 : 400 }}>{t.label}</button>
               ))}
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
-              <button onClick={() => setQvRequireCode(!qvRequireCode)} style={{ width: 36, height: 20, borderRadius: 10, border: "none", background: qvRequireCode ? C.sage : C.border, cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
-                <span style={{ position: "absolute", top: 2, left: qvRequireCode ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
-              </button>
-              <span style={{ fontFamily: F.b, fontSize: 11, color: C.muted }}>Require join code</span>
-            </div>
+            <p style={{ fontFamily: F.b, fontSize: 10, color: C.taupe, margin: "14px 0 0", fontStyle: "italic" }}>A unique poll code will be generated for sharing</p>
           </div>
           <Btn onClick={() => createQuickVote()} disabled={!canCreate} style={{ width: "100%", fontSize: 14, padding: "15px 20px" }}>
             {canCreate ? "Create & Share Poll →" : "Add 2 options to create"}
@@ -3651,10 +3652,10 @@ function UnstukInner() {
             </div>
           </div>
           <ChipPicker storageKey="opt" usedNames={[bo1, bo2].filter(Boolean)} aiContext={{ dName, opts: [{name: bo1}, {name: bo2}].filter(o => o.name), crits, typed: !bo1.trim() ? bo1 : bo2 }} onPick={(name) => {
-            if (!bo1.trim()) setBo1(name);
+            if (!bo1.trim()) { setBo1(name); setTimeout(() => { const el = document.getElementById("binB"); if (el) { el.focus(); el.style.borderColor = C.accent; el.style.boxShadow = `0 0 0 3px ${C.accent}25`; setTimeout(() => { el.style.borderColor = C.border; el.style.boxShadow = "0 1px 4px rgba(0,0,0,0.06)"; }, 1800); } }, 150); }
             else if (!bo2.trim()) setBo2(name);
           }}
-            collapsed={!!bo1.trim() && !!bo2.trim()} focusNext={!bo1.trim() ? "binB" : undefined} />
+            collapsed={!!bo1.trim() && !!bo2.trim()} />
         </FadeIn>
       );
     }
