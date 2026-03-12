@@ -1206,39 +1206,7 @@ function ShareSheet({ text, title, onClose }) {
   );
 }
 
-// ─── Privacy Modal ───
-function PrivacyModal({ onClose }) {
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 24 }} onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 12, padding: 28, maxWidth: 420, width: "100%", maxHeight: "85vh", overflow: "auto", boxShadow: "0 12px 40px rgba(0,0,0,0.12)" }}>
-        <H size="md">Terms & Information</H>
-        <div style={{ fontFamily: F.b, fontSize: 13, color: C.text, lineHeight: 1.7, marginTop: 16 }}>
-
-          <p style={{ margin: "0 0 6px", fontWeight: 600 }}>1. How Your Data Is Handled</p>
-          <p style={{ margin: "0 0 10px" }}>Unstuk is designed to store decision data on your device. We do not intentionally collect or transmit personal data to external servers. However, we cannot guarantee absolute security or that data will never be exposed through device vulnerabilities, operating system behaviour, or circumstances beyond our control. We do not knowingly use cookies, analytics, or tracking technologies, though third-party platforms (such as app stores or operating systems) may collect their own data independently of Unstuk.</p>
-
-          <p style={{ margin: "0 0 6px", fontWeight: 600 }}>2. Data Retention</p>
-          <p style={{ margin: "0 0 10px" }}>Decision history is intended to be automatically removed after 60 days. You may delete individual decisions at any time. Uninstalling the app should remove locally stored data, though residual data may persist depending on your device and operating system. We do not maintain backups or cloud copies of your data.</p>
-
-          <p style={{ margin: "0 0 6px", fontWeight: 600 }}>3. Acceptable Use</p>
-          <p style={{ margin: "0 0 10px" }}>By using Unstuk you agree to the following: (a) You will use Unstuk solely for lawful, personal decision-making purposes. (b) You will not use Unstuk to plan, facilitate, organise, or evaluate any activity that is illegal, harmful, violent, abusive, discriminatory, or that may cause harm to any person, animal, property, or entity. (c) Prohibited uses include but are not limited to decisions involving violence, criminal activity, harassment, exploitation, self-harm, abuse, fraud, or any activity that violates applicable local, national, or international law. (d) We reserve the right to implement content filtering to enforce these terms. (e) Violation of these terms may result in termination of your access to Unstuk.</p>
-
-          <p style={{ margin: "0 0 6px", fontWeight: 600 }}>4. Disclaimer</p>
-          <p style={{ margin: "0 0 10px" }}>UNSTUK IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT. Unstuk is a general-purpose thinking tool only. It does not provide and must not be relied upon as professional, legal, financial, medical, psychological, or any other form of expert advice. It is not a substitute for independent professional judgement. You are solely responsible for your decisions and their consequences, regardless of any output provided by this application. By using Unstuk, you agree to indemnify and hold harmless its creators, developers, and distributors from any and all claims, liabilities, damages, costs, and expenses (including legal fees) arising from or in connection with your use of this application. The creators accept no responsibility or liability for any loss, damage, injury, or adverse outcome of any kind, to the maximum extent permitted by applicable law in your jurisdiction.</p>
-
-          <p style={{ margin: "0 0 6px", fontWeight: 600 }}>5. Intellectual Property</p>
-          <p style={{ margin: "0 0 10px" }}>Unstuk, its name, design, and methodology are the property of their respective owners. You may not copy, modify, distribute, reverse-engineer, or create derivative works without prior written consent.</p>
-
-          <p style={{ margin: "0 0 6px", fontWeight: 600 }}>6. General</p>
-          <p style={{ margin: "0 0 10px" }}>These terms are governed by applicable law in your jurisdiction. We may update these terms at any time. Continued use constitutes acceptance of any changes. If any provision is found unenforceable, the remainder continues in effect. Nothing in these terms creates any guarantee, warranty, or assurance beyond what is explicitly stated.</p>
-
-          <p style={{ margin: 0, color: C.muted, fontSize: 11 }}>Last updated: {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })} · © {new Date().getFullYear()} Unstuk.</p>
-        </div>
-        <div style={{ marginTop: 20 }}><Btn v="secondary" onClick={onClose}>Close</Btn></div>
-      </div>
-    </div>
-  );
-}
+// PrivacyModal removed — content merged into Privacy Policy and Terms & Legal screens
 
 // ─── Content blocked message ───
 function BlockedMsg({ onBack }) {
@@ -1280,7 +1248,6 @@ function UnstukInner() {
   const [tempDay, setTempDay] = useState(1);
   const [tempTime, setTempTime] = useState("Morning");
   const [tempGoal, setTempGoal] = useState(1);
-  const [showPrivacy, setShowPrivacy] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [seenOnboard, setSeenOnboard] = useState(true);
   const [seenWhatsNew, setSeenWhatsNew] = useState(true);
@@ -2334,8 +2301,8 @@ function UnstukInner() {
             }}>
               <span style={{ fontSize: 18, flexShrink: 0 }}>{"\u2728"}</span>
               <div>
-                <div style={{ fontFamily: F.b, fontSize: 12, fontWeight: 600, color: C.text }}>Upgrade to Pro</div>
-                <div style={{ fontFamily: F.b, fontSize: 10, color: C.muted, lineHeight: 1.4 }}>Unlimited decisions, AI suggestions, team tools</div>
+                <div style={{ fontFamily: F.b, fontSize: 12, fontWeight: 600, color: C.text }}>Upgrade to Pro — $30/mo</div>
+                <div style={{ fontFamily: F.b, fontSize: 10, color: C.muted, lineHeight: 1.4 }}>Unlimited decisions after your free one of each type</div>
               </div>
               <span style={{ fontFamily: F.b, fontSize: 18, color: C.sage, flexShrink: 0 }}>{"›"}</span>
             </button>
@@ -2343,20 +2310,17 @@ function UnstukInner() {
 
           {/* ── Footer links ── */}
           <FadeIn delay={400}>
-            <div style={{ marginTop: 24, display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 12 }}>
-              <button onClick={() => { setTutSlide(0); setScreen("tutorial"); }} style={{ fontFamily: F.b, fontSize: 10, color: C.border, background: "none", border: "none", cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.04em" }}>How it works</button>
-              <span style={{ color: C.border, fontSize: 8 }}>·</span>
-              <button onClick={() => setScreen("privacy")} style={{ fontFamily: F.b, fontSize: 10, color: C.border, background: "none", border: "none", cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.04em" }}>Privacy Policy</button>
-              <span style={{ color: C.border, fontSize: 8 }}>·</span>
-              <button onClick={() => setScreen("legal")} style={{ fontFamily: F.b, fontSize: 10, color: C.border, background: "none", border: "none", cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.04em" }}>Legal Disclaimer</button>
-              <span style={{ color: C.border, fontSize: 8 }}>·</span>
-              <button onClick={() => setShowPrivacy(true)} style={{ fontFamily: F.b, fontSize: 10, color: C.border, background: "none", border: "none", cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.04em" }}>Terms</button>
+            <div style={{ marginTop: 24, display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 14 }}>
+              <button onClick={() => { setTutSlide(0); setScreen("tutorial"); }} style={{ fontFamily: F.b, fontSize: 12, color: C.muted, background: "none", border: "none", cursor: "pointer", letterSpacing: "0.02em" }}>How it works</button>
+              <span style={{ color: C.border, fontSize: 10 }}>·</span>
+              <button onClick={() => setScreen("privacy")} style={{ fontFamily: F.b, fontSize: 12, color: C.muted, background: "none", border: "none", cursor: "pointer", letterSpacing: "0.02em" }}>Privacy</button>
+              <span style={{ color: C.border, fontSize: 10 }}>·</span>
+              <button onClick={() => setScreen("legal")} style={{ fontFamily: F.b, fontSize: 12, color: C.muted, background: "none", border: "none", cursor: "pointer", letterSpacing: "0.02em" }}>Terms & Legal</button>
             </div>
           </FadeIn>
         </div>
         {showShare && <ShareSheet text={"Get thinking, get unstuk \u2014 I\u2019ve been using Unstuk for business decisions. Weighted analysis in 2 minutes, team alignment built in. Your thinking, structured.\n\nTry it free: unstuk.app"} title="Share Unstuk" onClose={() => setShowShare(false)} />}
         {shareSheetData && <ShareSheet text={shareSheetData.text} title={shareSheetData.title} onClose={() => { const ac = shareSheetData?.afterClose; setShareSheetData(null); if (ac) ac(); }} />}
-        {showPrivacy && <PrivacyModal onClose={() => setShowPrivacy(false)} />}
       </div>
     );
   }
@@ -2369,10 +2333,10 @@ function UnstukInner() {
           <FadeIn>
             <BackBtn onClick={() => setScreen("home")} />
             <H size="lg">Privacy Policy</H>
-            <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, marginBottom: 24 }}>Last updated: {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
+            <p style={{ fontFamily: F.b, fontSize: 12, color: C.muted, marginBottom: 24 }}>Last updated: {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
 
             <Card style={{ padding: "24px 20px", marginBottom: 16 }}>
-              <div style={{ fontFamily: F.b, fontSize: 13, color: C.text, lineHeight: 1.8 }}>
+              <div style={{ fontFamily: F.b, fontSize: 14, color: C.text, lineHeight: 1.8 }}>
                 <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>1. Local-Only Data Storage</p>
                 <p style={{ margin: "0 0 18px" }}>All your decision data is stored locally on your device using localStorage. Your decisions, reflections, and preferences never leave your device unless you explicitly choose to share them.</p>
 
@@ -2406,32 +2370,32 @@ function UnstukInner() {
     );
   }
 
-  // ─── LEGAL DISCLAIMER ───
+  // ─── TERMS & LEGAL ───
   if (screen === "legal") {
     return (
       <div style={{ minHeight: "100vh", background: C.bg, fontFamily: F.b }}>
         <div style={{ maxWidth: 440, margin: "0 auto", padding: "60px 24px" }}>
           <FadeIn>
             <BackBtn onClick={() => setScreen("home")} />
-            <H size="lg">Legal Disclaimer</H>
-            <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, marginBottom: 24 }}>Please read carefully before using Unstuk.</p>
+            <H size="lg">Terms & Legal</H>
+            <p style={{ fontFamily: F.b, fontSize: 12, color: C.muted, marginBottom: 24 }}>Please read carefully before using Unstuk.</p>
 
             <Card style={{ padding: "24px 20px", marginBottom: 16 }}>
-              <div style={{ fontFamily: F.b, fontSize: 13, color: C.text, lineHeight: 1.8 }}>
-                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>1. Decision-Support Tool Only</p>
-                <p style={{ margin: "0 0 18px" }}>Unstuk is a decision-support tool designed to help structure your thinking. It does not provide professional advice of any kind. All outputs are informational aids, not recommendations.</p>
+              <div style={{ fontFamily: F.b, fontSize: 14, color: C.text, lineHeight: 1.8 }}>
+                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>1. Acceptable Use</p>
+                <p style={{ margin: "0 0 18px" }}>You will use Unstuk solely for lawful, personal or business decision-making purposes. You will not use Unstuk to plan, facilitate, or evaluate any activity that is illegal, harmful, violent, abusive, discriminatory, or that may cause harm to any person, animal, property, or entity. Prohibited uses include decisions involving violence, criminal activity, harassment, exploitation, self-harm, abuse, fraud, or any activity that violates applicable law. We reserve the right to implement content filtering to enforce these terms. Violation may result in termination of access.</p>
 
-                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>2. No Guarantee of Outcomes</p>
-                <p style={{ margin: "0 0 18px" }}>Unstuk does not guarantee any particular outcome. All decisions and their consequences remain entirely the responsibility of the user. Past results or analyses do not predict future outcomes.</p>
+                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>2. Decision-Support Tool Only</p>
+                <p style={{ margin: "0 0 18px" }}>Unstuk is a decision-support tool designed to help structure your thinking. It does not provide professional advice of any kind. All outputs are informational aids, not recommendations.</p>
 
                 <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>3. Not Professional Advice</p>
                 <p style={{ margin: "0 0 18px" }}>Unstuk is not a substitute for legal, financial, medical, psychological, or any other form of professional advice. If your decision requires professional expertise, consult a qualified professional in the relevant field.</p>
 
-                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>4. Limitation of Liability</p>
-                <p style={{ margin: "0 0 18px" }}>To the maximum extent permitted by applicable law, Unstuk and its creators accept no liability for any business losses, damages, or adverse outcomes arising from decisions made using this tool. This includes, without limitation, loss of revenue, profit, anticipated savings, business opportunity, goodwill, or data.</p>
+                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>4. No Guarantee of Outcomes</p>
+                <p style={{ margin: "0 0 18px" }}>Unstuk does not guarantee any particular outcome. All decisions and their consequences remain entirely the responsibility of the user. Past results or analyses do not predict future outcomes.</p>
 
-                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>5. Academic References</p>
-                <p style={{ margin: "0 0 18px" }}>Any academic references, research citations, or decision-science frameworks mentioned within Unstuk are provided for educational purposes only. They do not constitute endorsements and should not be relied upon as authoritative guidance for specific decisions.</p>
+                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>5. Limitation of Liability</p>
+                <p style={{ margin: "0 0 18px" }}>To the maximum extent permitted by applicable law, Unstuk and its creators accept no liability for any business losses, damages, or adverse outcomes arising from decisions made using this tool. This includes, without limitation, loss of revenue, profit, anticipated savings, business opportunity, goodwill, or data.</p>
 
                 <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>6. Service Provided "As Is"</p>
                 <p style={{ margin: "0 0 18px" }}>Unstuk is provided "as is" and "as available" without warranties of any kind, whether express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, accuracy, or non-infringement.</p>
@@ -2442,8 +2406,13 @@ function UnstukInner() {
                 <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>8. Indemnification</p>
                 <p style={{ margin: "0 0 18px" }}>By using Unstuk, you agree to indemnify and hold harmless its creators, developers, and distributors from any and all claims, liabilities, damages, costs, and expenses (including legal fees) arising from or in connection with your use of this application or any decisions made based on its outputs.</p>
 
-                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>9. Governing Law</p>
-                <p style={{ margin: 0 }}>These terms shall be governed by and construed in accordance with the laws of the jurisdiction in which the company operates. Any disputes arising in connection with these terms shall be subject to the exclusive jurisdiction of the courts in that jurisdiction.</p>
+                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>9. Intellectual Property</p>
+                <p style={{ margin: "0 0 18px" }}>Unstuk, its name, design, and methodology are the property of their respective owners. You may not copy, modify, distribute, reverse-engineer, or create derivative works without prior written consent.</p>
+
+                <p style={{ margin: "0 0 14px", fontWeight: 600, color: C.sage }}>10. Governing Law</p>
+                <p style={{ margin: "0 0 18px" }}>These terms are governed by applicable law in your jurisdiction. We may update these terms at any time. Continued use constitutes acceptance of any changes. Any disputes shall be subject to the exclusive jurisdiction of the courts in that jurisdiction.</p>
+
+                <p style={{ margin: 0, color: C.muted, fontSize: 11 }}>Last updated: {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })} · © {new Date().getFullYear()} Unstuk.</p>
               </div>
             </Card>
 
@@ -3817,29 +3786,37 @@ function UnstukInner() {
           <FadeIn>
             <BackBtn onClick={() => setScreen("home")} />
             <div style={{ fontSize: 40, marginBottom: 20 }}>&#10024;</div>
-            <H size="lg">Better decisions are worth more than you think</H>
+            <H size="lg">You've used your free decision</H>
             <p style={{ fontFamily: F.b, fontSize: 14, color: C.muted, lineHeight: 1.7, margin: "16px 0 8px" }}>
-              McKinsey research shows that improving decision-making quality can increase business returns by 20%+. Unstuk Pro gives you the tools to make that happen.
-            </p>
-            <p style={{ fontFamily: F.b, fontSize: 11, color: C.sage, fontStyle: "italic", margin: "0 0 28px", lineHeight: 1.5 }}>
-              Currently in beta — early subscribers lock in the best price.
+              Every Unstuk user gets one decision of each type free — so you can experience the full process before committing. Upgrade to Pro for unlimited access.
             </p>
 
-            <Card style={{ padding: "24px 20px", marginBottom: 24, textAlign: "left" }}>
-              <div style={{ fontFamily: F.d, fontSize: 32, fontWeight: 700, color: C.text, marginBottom: 4, textAlign: "center" }}>$132</div>
-              <div style={{ fontFamily: F.b, fontSize: 12, color: C.muted, textAlign: "center", marginBottom: 18 }}>per month</div>
-              <div style={{ fontFamily: F.b, fontSize: 13, color: C.text, lineHeight: 2 }}>
-                <div style={{ marginBottom: 4 }}><span style={{ color: C.sage, marginRight: 8 }}>&#10003;</span>Unlimited decisions & analyses</div>
-                <div style={{ marginBottom: 4 }}><span style={{ color: C.sage, marginRight: 8 }}>&#10003;</span>AI-powered suggestions & insights</div>
-                <div style={{ marginBottom: 4 }}><span style={{ color: C.sage, marginRight: 8 }}>&#10003;</span>Team collaboration & alignment tools</div>
-                <div style={{ marginBottom: 4 }}><span style={{ color: C.sage, marginRight: 8 }}>&#10003;</span>Full decision history & reflection tracking</div>
-                <div style={{ marginBottom: 4 }}><span style={{ color: C.sage, marginRight: 8 }}>&#10003;</span>Growth insights & instinct accuracy</div>
-                <div><span style={{ color: C.sage, marginRight: 8 }}>&#10003;</span>Data export & priority support</div>
+            <Card style={{ padding: "20px 20px 10px", marginBottom: 18, textAlign: "left" }}>
+              <div style={{ fontFamily: F.b, fontSize: 13, color: C.muted, lineHeight: 1.8, marginBottom: 12 }}>
+                <div style={{ marginBottom: 2 }}><span style={{ marginRight: 8 }}>—</span>Free: 1 binary, 1 multi-option, 1 quick poll, 1 reflection</div>
+                <div><span style={{ marginRight: 8 }}>—</span>Pro: unlimited everything, forever</div>
               </div>
             </Card>
 
+            <Card style={{ padding: "24px 20px", marginBottom: 24, textAlign: "left" }}>
+              <div style={{ fontFamily: F.d, fontSize: 32, fontWeight: 700, color: C.text, marginBottom: 4, textAlign: "center" }}>$30</div>
+              <div style={{ fontFamily: F.b, fontSize: 12, color: C.muted, textAlign: "center", marginBottom: 18 }}>per month</div>
+              <div style={{ fontFamily: F.b, fontSize: 14, color: C.text, lineHeight: 2 }}>
+                <div style={{ marginBottom: 4 }}><span style={{ color: C.sage, marginRight: 8 }}>&#10003;</span>Unlimited decisions & analyses</div>
+                <div style={{ marginBottom: 4 }}><span style={{ color: C.sage, marginRight: 8 }}>&#10003;</span>AI-powered suggestions & insights</div>
+                <div style={{ marginBottom: 4 }}><span style={{ color: C.sage, marginRight: 8 }}>&#10003;</span>Team collaboration & quick polls</div>
+                <div style={{ marginBottom: 4 }}><span style={{ color: C.sage, marginRight: 8 }}>&#10003;</span>Full decision history & reflection tracking</div>
+                <div style={{ marginBottom: 4 }}><span style={{ color: C.sage, marginRight: 8 }}>&#10003;</span>Growth insights & instinct accuracy</div>
+                <div><span style={{ color: C.sage, marginRight: 8 }}>&#10003;</span>Priority support & data export</div>
+              </div>
+            </Card>
+
+            <p style={{ fontFamily: F.b, fontSize: 12, color: C.sage, fontStyle: "italic", margin: "0 0 20px", lineHeight: 1.5 }}>
+              McKinsey research shows better decisions can lift returns by 20%+. That's worth far more than $30 a month.
+            </p>
+
             <Btn onClick={() => { trackEvent("checkout_start"); startCheckout(); }} style={{ width: "100%", padding: "16px 28px", fontSize: 15, marginBottom: 12 }}>
-              Subscribe — $132/month
+              Subscribe — $30/month
             </Btn>
 
             {checkoutMsg && (
@@ -3851,7 +3828,7 @@ function UnstukInner() {
             <button onClick={() => setScreen("home")} style={{ fontFamily: F.b, fontSize: 12, color: C.muted, background: "none", border: "none", cursor: "pointer", padding: "8px 16px" }}>
               Back to home
             </button>
-            <p style={{ fontFamily: F.b, fontSize: 10, color: C.border, marginTop: 28, lineHeight: 1.6 }}>
+            <p style={{ fontFamily: F.b, fontSize: 11, color: C.border, marginTop: 28, lineHeight: 1.6 }}>
               Payments processed securely by Stripe. Cancel anytime. No data leaves your device.
             </p>
           </FadeIn>
