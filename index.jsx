@@ -100,7 +100,7 @@ async function fetchAiChipSuggestions({ step, picked, context, count = 8, histor
   } catch(e) { return []; }
 }
 
-function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext }) {
+function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, collapsed = false }) {
   const [chips, setChips] = useState([]);
   const [loading, setLoading] = useState(false);
   const mountedRef = useRef(true);
@@ -185,6 +185,14 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext }
   if (aiChips.length > 0) sections.push({ label: "Tailored for you", chips: aiChips, isAi: true });
 
   const chipStyle = { fontFamily: F.b, fontSize: 11, padding: "6px 12px", borderRadius: 20, border: `1.5px solid ${C.border}`, background: "#fff", color: C.text, cursor: "pointer", lineHeight: 1.2, transition: "border-color 0.15s, background 0.15s", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" };
+
+  if (collapsed) {
+    return (
+      <div style={{ marginTop: 6, marginBottom: 2, opacity: 0.45, transition: "opacity 0.3s", overflow: "hidden", maxHeight: 22, cursor: "default" }}>
+        <p style={{ fontFamily: F.b, fontSize: 9, color: C.taupe, margin: 0, fontStyle: "italic" }}>{"\u2713"} Done — suggestions for next field below</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ marginTop: 10, marginBottom: 4 }}>
@@ -1559,7 +1567,7 @@ function UnstukInner() {
             <p style={{ fontFamily: F.b, fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", fontWeight: 600 }}>Question</p>
             <TxtIn value={qvQuestion} onChange={setQvQuestion} placeholder="e.g. Which vendor should we shortlist?" maxLen={100} autoFocus={false} />
             <div style={{ marginTop: 10 }}>
-              <ChipPicker storageKey="qv-name" usedNames={qvQuestion ? [qvQuestion] : []} onPick={(name) => { setQvQuestion(name); }} aiContext={{ dName: "quick poll question", opts: [], crits: [], typed: "" }} />
+              <ChipPicker storageKey="qv-name" usedNames={qvQuestion ? [qvQuestion] : []} onPick={(name) => { setQvQuestion(name); }} aiContext={{ dName: "quick poll question", opts: [], crits: [], typed: qvQuestion }} collapsed={!!qvQuestion.trim()} focusNext="qvopt-0" />
             </div>
           </div>
           <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, padding: "18px 16px", marginBottom: 12 }}>
@@ -1583,7 +1591,7 @@ function UnstukInner() {
                 const emptyIdx = qvOptions.findIndex(o => !o.trim());
                 if (emptyIdx !== -1) { const n = [...qvOptions]; n[emptyIdx] = name; setQvOptions(n); }
                 else if (qvOptions.length < 6) setQvOptions([...qvOptions, name]);
-              }} aiContext={{ dName: qvQuestion || "poll options", opts: [], crits: [], typed: "" }} />
+              }} aiContext={{ dName: qvQuestion || "poll options", opts: [], crits: [], typed: "" }} collapsed={qvOptions.filter(o => o.trim()).length >= 2} focusNext={`qvopt-${qvOptions.findIndex(o => !o.trim()) !== -1 ? qvOptions.findIndex(o => !o.trim()) : qvOptions.length}`} />
             </div>
           </div>
           <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, padding: "18px 16px", marginBottom: 12 }}>
@@ -3542,7 +3550,7 @@ function UnstukInner() {
             }} disabled={!dName.trim()} style={{ padding: "12px 20px", fontSize: 13, whiteSpace: "nowrap", flexShrink: 0 }}>Next</Btn>
           </div>
           <ChipPicker storageKey="name" usedNames={dName ? [dName] : []} aiContext={{ dName, opts, crits, typed: dName }} onPick={(name) => setDName(name)}
-            onAiSuggestText={(txt) => { if (!dName.trim()) setDName(txt); }} />
+            collapsed={!!dName.trim()} />
         </FadeIn>
       );
     }
@@ -3614,7 +3622,7 @@ function UnstukInner() {
               <ChipPicker storageKey="opt" usedNames={[...opts.map((o) => o.name), newOpt].filter(Boolean)} aiContext={{ dName, opts, crits: [], typed: newOpt }} onPick={(name) => {
                 if (opts.length < 6) { const nid = uid(); setOpts((p) => [...p, { id: nid, name }]); setRewardTick((t) => t + 1); setAddFlash("option"); setTimeout(() => setAddFlash(null), 800); setLastAddedOpt(nid); setTimeout(() => setLastAddedOpt(null), 2500); }
               }}
-                onAiSuggestText={(txt) => { if (!newOpt.trim()) setNewOpt(txt); }} />
+                focusNext="multiOpt" />
             </>
           )}
           {atMax && <p style={{ fontFamily: F.b, fontSize: 12, color: C.taupe, margin: "4px 0" }}>Maximum 6 options. Remove one to add another.</p>}
@@ -3643,10 +3651,10 @@ function UnstukInner() {
             </div>
           </div>
           <ChipPicker storageKey="opt" usedNames={[bo1, bo2].filter(Boolean)} aiContext={{ dName, opts: [{name: bo1}, {name: bo2}].filter(o => o.name), crits, typed: !bo1.trim() ? bo1 : bo2 }} onPick={(name) => {
-            if (!bo1.trim()) { setBo1(name); setTimeout(() => document.getElementById("binB")?.focus(), 50); }
+            if (!bo1.trim()) setBo1(name);
             else if (!bo2.trim()) setBo2(name);
           }}
-            onAiSuggestText={(txt) => { if (!bo1.trim()) setBo1(txt); else if (!bo2.trim()) setBo2(txt); }} />
+            collapsed={!!bo1.trim() && !!bo2.trim()} focusNext={!bo1.trim() ? "binB" : undefined} />
         </FadeIn>
       );
     }
@@ -3710,7 +3718,7 @@ function UnstukInner() {
                 </div>
               </div>
               <ChipPicker storageKey="crit" usedNames={[...crits.map((cr) => cr.name), newCrit].filter(Boolean)} aiContext={{ dName, opts, crits, typed: newCrit }} onPick={(name) => { if (newImp !== null && crits.length < 10) { const cid = uid(); setCrits((p) => [...p, { id: cid, name: name.trim(), importance: newImp }]); setNewCrit(""); setRewardTick((t) => t + 1); setAddFlash("criteria"); setTimeout(() => setAddFlash(null), 800); setLastAddedCrit(cid); setTimeout(() => setLastAddedCrit(null), 1500); } else { setNewCrit(name); } }}
-                onAiSuggestText={(txt) => { if (!newCrit.trim()) setNewCrit(txt); }} />
+                />
             </>
           )}
           {atMax && <p style={{ fontFamily: F.b, fontSize: 12, color: C.taupe, margin: "4px 0" }}>Maximum 10 criteria. Remove one to add another.</p>}
