@@ -293,6 +293,35 @@ function synthesizeOptChips(dName, decisionType, existingOpts) {
     }
   }
 
+  // ─── Typed-text-aware generation: adapt chips to what user is currently typing ───
+  // This makes chips respond instantly to partial input like "yes", "no", "prod", etc.
+  const _typedChips = {
+    // Binary / yes-no patterns
+    "yes": { "Affirmative": ["Yes — Go Ahead", "Yes — With Conditions", "Yes — But Phased", "Yes — After Review", "Yes — Pilot First"], "Alternatives": ["Conditional Yes", "Yes If Budget Allows", "Yes With Timeline", "Strong Yes — Immediately", "Tentative Yes"] },
+    "no": { "Declining": ["No — Too Risky", "No — Not Now", "No — Wrong Timing", "No — Better Alternatives", "No — Insufficient Data"], "Alternatives": ["Not Yet — Revisit Later", "No — Redirect Resources", "No Unless Conditions Change", "Soft No — Deprioritise", "Hard No — Close It"] },
+    "maybe": { "Exploring": ["Maybe — Need More Data", "Maybe — Run a Pilot", "Maybe — If Budget Allows", "Maybe — Ask the Team", "Maybe — After Q Review"], "Leaning": ["Leaning Yes", "Leaning No", "Need One More Week", "Split Decision", "Depends on Outcome"] },
+    // Productivity patterns
+    "productiv": { "Productivity": ["Productivity Tools Upgrade", "Productivity Training", "Productivity Audit", "Deep Work Policy", "Async-First Communication"], "Approach": ["Remove Bottlenecks", "Automate Repetitive Tasks", "Reduce Meeting Load", "Focus Time Blocks", "Measure & Iterate"] },
+    "focus": { "Focus Areas": ["Revenue Focus", "Customer Focus", "Product Focus", "Efficiency Focus", "Growth Focus"], "Strategy": ["Single Priority", "Top 3 Priorities", "OKR Framework", "Quarterly Theme", "Team Decides"] },
+    "first": { "Priority": ["Customer First", "Revenue First", "Quality First", "Speed First", "People First"], "Sequencing": ["Do This First", "Test First", "Research First", "Align First", "Quick Win First"] },
+    // Common option words
+    "keep": { "Status Quo": ["Keep Current Approach", "Keep But Improve", "Keep Temporarily", "Keep & Monitor", "Keep What Works"], "Partial": ["Keep Core, Change Rest", "Keep Team, Change Process", "Keep Brand, Change Product"] },
+    "change": { "Change Scope": ["Full Change", "Incremental Change", "Change Process Only", "Change People Only", "Change Tools Only"], "Approach": ["Change Now", "Change Gradually", "Test Change First", "Change with Support", "Mandate the Change"] },
+    "wait": { "Timing": ["Wait 1 Month", "Wait for Data", "Wait for Budget", "Wait for Approval", "Wait for Market Signal"], "Active Wait": ["Wait & Prepare", "Wait & Research", "Wait & Build Consensus", "Set a Deadline to Decide"] },
+    "try": { "Experimentation": ["Try for 30 Days", "Try with Small Team", "Try One Market First", "Try Free Version", "Try Alongside Current"], "Scale": ["Small Pilot", "Limited Beta", "A/B Test", "Shadow Launch", "Internal Trial"] },
+    "stop": { "Stopping": ["Stop Immediately", "Wind Down Gradually", "Stop & Redirect", "Stop & Review", "Stop New, Finish Current"], "Replace": ["Stop & Replace", "Stop & Outsource", "Stop & Automate", "Stop — It's Not Working"] },
+    "more": { "Increase": ["More Budget", "More People", "More Time", "More Data", "More Research"], "Focus": ["More Automation", "More Training", "More Support", "More Flexibility", "More Structure"] },
+    "less": { "Reduce": ["Less Complexity", "Less Meetings", "Less Overhead", "Less Risk", "Less Bureaucracy"], "Simplify": ["Simplify Process", "Cut Features", "Reduce Scope", "Streamline Team", "Minimise Dependencies"] },
+  };
+
+  // Check if user's typed text matches any short-word pattern
+  const typedLower = name.toLowerCase().trim();
+  for (const [pattern, chips] of Object.entries(_typedChips)) {
+    if (typedLower.includes(pattern) || (typedLower.length >= 2 && pattern.startsWith(typedLower))) {
+      return filterExisting(chips);
+    }
+  }
+
   // Decision type-specific generation for binary
   if (decisionType === "binary" && obj.length > 0) {
     return filterExisting({
@@ -382,6 +411,31 @@ function synthesizeCritChips(dName, opts, existingCrits) {
         `${short} — Quality / Fit`,
         `${short} — Learning Curve`,
       ].filter(c => !critLower.includes(c.toLowerCase()));
+    }
+  }
+
+  // ─── Typed-text-aware criteria: adapt to what user is typing ───
+  const _typedCriteria = {
+    "need": { "Needs Analysis": ["Business Need Urgency", "Must-Have vs Nice-to-Have", "Stakeholder Need Alignment", "Unmet Need Size", "Need Validated by Data"], "Priority": ["Critical Need", "Important Need", "Deferrable Need", "Future Need", "Team Need vs Business Need"] },
+    "trust": { "Trust Factors": ["Track Record / Evidence", "Transparency Level", "Team Confidence", "Reference Quality", "Proven Reliability"], "Trust Building": ["Pilot to Build Trust", "Independent Verification", "Contractual Guarantees", "Peer Endorsement", "Data-Backed Trust"] },
+    "cost": { "Cost Analysis": ["Total Cost of Ownership", "Upfront vs Ongoing Cost", "Hidden Costs", "Cost vs Competitors", "Cost to Switch Later"], "Value": ["Cost per User", "ROI Timeline", "Cost Avoidance", "Opportunity Cost", "Cost of Inaction"] },
+    "time": { "Time Factors": ["Time to Implement", "Time to First Value", "Time Savings per Week", "Timeline Certainty", "Speed to Market"], "Urgency": ["Deadline Pressure", "Competitive Window", "Seasonal Timing", "Team Availability Window"] },
+    "risk": { "Risk Assessment": ["Probability of Failure", "Worst-Case Impact", "Reversibility", "Reputational Risk", "Compliance Risk"], "Mitigation": ["Fallback Plan Quality", "Risk Tolerance", "Insurance / Hedge", "Pilot Reduces Risk", "Diversification Possible"] },
+    "team": { "Team Impact": ["Team Morale Effect", "Workload Impact", "Skills Gap", "Team Buy-In Level", "Key Person Dependency"], "Capability": ["Team Capacity", "Training Required", "Hiring Needed", "Cross-Team Coordination", "Leadership Bandwidth"] },
+    "quality": { "Quality Measures": ["Output Quality", "Consistency / Reliability", "Quality vs Speed", "Quality vs Cost", "Long-Term Quality"], "Standards": ["Meets Requirements", "Exceeds Expectations", "Industry Benchmark", "Customer Perception", "Internal Standard"] },
+    "fit": { "Fit Assessment": ["Strategic Fit", "Culture Fit", "Technical Fit", "Market Fit", "Team Fit"], "Alignment": ["Values Alignment", "Vision Alignment", "Budget Alignment", "Timeline Alignment", "Customer Alignment"] },
+    "impact": { "Impact Areas": ["Revenue Impact", "Customer Impact", "Team Impact", "Brand Impact", "Operational Impact"], "Scale": ["Short-Term Impact", "Long-Term Impact", "Direct Impact", "Indirect Impact", "Measurability"] },
+    "value": { "Value Assessment": ["Business Value", "Customer Value", "Strategic Value", "Learning Value", "Brand Value"], "Comparison": ["Value vs Cost", "Value vs Effort", "Value vs Risk", "Value vs Alternatives", "Value Over Time"] },
+    "speed": { "Speed Factors": ["Implementation Speed", "Speed to Market", "Decision Speed Needed", "Speed vs Quality", "Speed vs Cost"], "Timeline": ["Days to Start", "Weeks to Complete", "Months to Full Value", "Competitive Timing", "Resource Availability Speed"] },
+    "scale": { "Scalability": ["Scales with Growth", "Scales with Team Size", "Scales Across Markets", "Technical Scalability", "Cost at Scale"], "Growth": ["10x Readiness", "Incremental Scaling", "Geographic Scale", "Feature Scale", "Support Scale"] },
+    "simple": { "Simplicity": ["Implementation Simplicity", "User Simplicity", "Maintenance Simplicity", "Integration Simplicity", "Communication Simplicity"], "Complexity": ["Complexity Reduction", "Moving Parts Count", "Dependencies", "Training Need", "Decision Reversibility"] },
+  };
+
+  const critTyped = name.toLowerCase().trim();
+  for (const [pattern, chips] of Object.entries(_typedCriteria)) {
+    if (critTyped.includes(pattern) || (critTyped.length >= 2 && pattern.startsWith(critTyped))) {
+      Object.assign(result, chips);
+      return filterUsed(result);
     }
   }
 
@@ -685,16 +739,24 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, 
   const aiChips = chips.filter(ch => !usedLower.includes(ch.toLowerCase()));
   const typed = (aiContext?.typed || "").trim().toLowerCase();
 
-  // Intelligent relevance scoring — rank chips by match quality
+  // Intelligent relevance scoring with synonym awareness
+  const _synonyms = { yes: ["proceed","approve","accept","go ahead","confirm"], no: ["reject","decline","stop","cancel","refuse"], need: ["require","must","essential","necessary","critical"], trust: ["reliable","confidence","proven","credible","dependable"], cost: ["price","budget","expense","spend","investment"], time: ["speed","timeline","duration","deadline","schedule"], risk: ["danger","threat","uncertainty","exposure","vulnerability"], quality: ["standard","excellence","grade","caliber","performance"], team: ["people","staff","group","crew","workforce"], keep: ["maintain","retain","continue","preserve","sustain"], change: ["modify","alter","transform","shift","update"], focus: ["priority","concentrate","target","emphasis","core"], simple: ["easy","straightforward","minimal","clean","basic"], fast: ["quick","rapid","swift","immediate","instant"] };
   const scoreChip = (chip) => {
     const cl = chip.toLowerCase();
     if (!typed || typed.length < 2) return 0;
     if (cl.startsWith(typed)) return 100;
-    if (cl.includes(typed)) return 70;
+    if (cl.includes(typed)) return 80;
     // Word-level matching
     const words = typed.split(/\s+/);
     let wordScore = 0;
-    for (const w of words) { if (w.length > 1 && cl.includes(w)) wordScore += 30; }
+    for (const w of words) {
+      if (w.length > 1 && cl.includes(w)) wordScore += 40;
+      // Synonym matching — boosts chips related to what user means
+      const syns = _synonyms[w] || [];
+      for (const s of syns) { if (cl.includes(s)) wordScore += 25; }
+      // Stem matching — "product" matches "productivity"
+      if (w.length > 3 && cl.includes(w.substring(0, Math.min(w.length, 5)))) wordScore += 20;
+    }
     return wordScore;
   };
 
@@ -3134,7 +3196,9 @@ function UnstukInner() {
   // ─── GROUP CREATED (show code to share) ───
   if (screen === "groupcreated" && groupCode) {
     const expiryLabel = groupExpiry < 1 ? `${Math.round(groupExpiry * 60)} mins` : groupExpiry <= 1 ? "1 hour" : groupExpiry <= 24 ? `${groupExpiry} hours` : `${Math.round(groupExpiry / 24)} days`;
-    const shareMsg = `Get thinking, get unstuk \u2014 Join our team decision on Unstuk!\n\nCode: ${groupCode}\n\nTap to join: https://unstuk.app?join=${groupCode}\n\nDeadline: ${expiryLabel}`;
+    const shareMsg = groupRequireCode
+      ? `Get thinking, get unstuk \u2014 Join our team decision on Unstuk!\n\nCode: ${groupCode}\n\nTap to join: https://unstuk.app?join=${groupCode}\n\nDeadline: ${expiryLabel}`
+      : `Get thinking, get unstuk \u2014 Join our team decision on Unstuk!\n\nTap to join: https://unstuk.app?join=${groupCode}\n\nDeadline: ${expiryLabel}`;
     return (
       <div style={{ minHeight: "100vh", background: C.bg, fontFamily: F.b }}>
         <div style={{ maxWidth: 440, margin: "0 auto", padding: "60px 24px", textAlign: "center" }}>
