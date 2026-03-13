@@ -765,8 +765,20 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, 
   const [manualExpand, setManualExpand] = useState(false);
   const skipTypedFilter = manualExpand && collapsed;
 
+  // Always load categorized fallbacks
+  const fallbackData = getContextualFallbacks(storageKey, aiContext);
+  const fallbackSections = [];
+  Object.keys(fallbackData).forEach(cat => {
+    const filtered = fallbackData[cat].filter(c => {
+      if (usedLower.includes(c.toLowerCase())) return false;
+      if (!skipTypedFilter && typed.length > 1) return c.toLowerCase().includes(typed);
+      return true;
+    });
+    if (filtered.length > 0) fallbackSections.push({ label: cat, chips: filtered });
+  });
+
   if (aiChips.length > 0) {
-    // Split AI chips: best matches first when user is typing
+    // AI chips first — scored by typing relevance
     if (typed.length >= 2) {
       const scored = aiChips.map(ch => ({ chip: ch, score: scoreChip(ch) }));
       const matches = scored.filter(s => s.score > 0).sort((a, b) => b.score - a.score).map(s => s.chip);
@@ -775,21 +787,20 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, 
         sections.push({ label: "Best matches", chips: matches, isAi: true, highlight: true });
         if (rest.length > 0) sections.push({ label: "More suggestions", chips: rest, isAi: true });
       } else {
-        sections.push({ label: "Suggested for you", chips: aiChips, isAi: true });
+        sections.push({ label: "AI suggestions", chips: aiChips, isAi: true });
       }
     } else {
-      sections.push({ label: "Suggested for you", chips: aiChips, isAi: true });
+      sections.push({ label: "AI suggestions", chips: aiChips, isAi: true });
+    }
+    // Also show categorized fallbacks below AI chips (deduped)
+    const aiLower = new Set(aiChips.map(c => c.toLowerCase()));
+    for (const sec of fallbackSections) {
+      const deduped = sec.chips.filter(c => !aiLower.has(c.toLowerCase()));
+      if (deduped.length > 0) sections.push({ label: sec.label, chips: deduped });
     }
   } else {
-    const fallbackData = getContextualFallbacks(storageKey, aiContext);
-    Object.keys(fallbackData).forEach(cat => {
-      const filtered = fallbackData[cat].filter(c => {
-        if (usedLower.includes(c.toLowerCase())) return false;
-        if (!skipTypedFilter && typed.length > 1) return c.toLowerCase().includes(typed);
-        return true;
-      });
-      if (filtered.length > 0) sections.push({ label: cat, chips: filtered });
-    });
+    // No AI chips — show all categorized fallbacks
+    sections.push(...fallbackSections);
   }
 
   const isCollapsed = collapsed && !manualExpand;
@@ -1032,6 +1043,60 @@ const F = {
   d: "'Cormorant Garamond', Georgia, serif",
   b: "'DM Sans', 'Helvetica Neue', sans-serif",
 };
+
+// ─── Usage tracking (IndexedDB — survives localStorage clears) ───
+const _idb = {
+  _db: null,
+  async open() {
+    if (this._db) return this._db;
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open("unstuk_usage", 1);
+      req.onupgradeneeded = () => { req.result.createObjectStore("kv"); };
+      req.onsuccess = () => { this._db = req.result; resolve(this._db); };
+      req.onerror = () => reject(req.error);
+    });
+  },
+  async get(key) {
+    const db = await this.open();
+    return new Promise((resolve) => {
+      const tx = db.transaction("kv", "readonly");
+      const req = tx.objectStore("kv").get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    });
+  },
+  async set(key, val) {
+    const db = await this.open();
+    return new Promise((resolve) => {
+      const tx = db.transaction("kv", "readwrite");
+      tx.objectStore("kv").put(val, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+  },
+};
+
+async function trackUsage(type) {
+  try {
+    const counts = (await _idb.get("usage_counts")) || {};
+    counts[type] = (counts[type] || 0) + 1;
+    counts._total = (counts._total || 0) + 1;
+    await _idb.set("usage_counts", counts);
+    return counts;
+  } catch(e) { return {}; }
+}
+
+async function getUsageCounts() {
+  try { return (await _idb.get("usage_counts")) || {}; } catch(e) { return {}; }
+}
+
+async function setUsageUnlocked() {
+  try { await _idb.set("pro_unlocked", true); } catch(e) {}
+}
+
+async function isUsageUnlocked() {
+  try { return (await _idb.get("pro_unlocked")) === true; } catch(e) { return false; }
+}
 
 // ─── Persistent storage ───
 async function loadHistory() {
@@ -1965,23 +2030,41 @@ function UnstukInner() {
         const u = await window.storage.get("unstuk_unlocked");
         try { const wd = await window.storage.get("unstuk_weekly"); if (wd) { const wp = JSON.parse(wd.value); setWeeklyDay(wp.day); setWeeklyTime(wp.time); setWeeklyGoal(wp.goal || 1); } } catch(e) {}
         try { const al = await window.storage.get("unstuk_analytics"); if (al) { const parsed = JSON.parse(al.value); if (Array.isArray(parsed)) parsed.forEach(e => _evtLog.push(e)); } } catch(e) {}
-        if (u && verifyUnlock(u.value)) setUnlocked(true);
+        // Check both localStorage and IndexedDB for unlock status
+        const idbUnlocked = await isUsageUnlocked();
+        if ((u && verifyUnlock(u.value)) || idbUnlocked) {
+          setUnlocked(true);
+          // Sync: if one has it, make sure both do
+          if (idbUnlocked && !(u && verifyUnlock(u.value))) {
+            try { await window.storage.set("unstuk_unlocked", makeUnlockToken()); } catch(e) {}
+          }
+          if (!idbUnlocked && u && verifyUnlock(u.value)) {
+            await setUsageUnlocked();
+          }
+        }
       } catch (e) { /* not unlocked */ }
 
-      // Deep linking: ?join=CODE goes straight to group join, ?poll=CODE goes straight to quick poll vote
+      // Deep linking: ?join=CODE, ?poll=CODE, ?upgrade=success
       try {
         const params = new URLSearchParams(window.location.search);
         const joinParam = params.get("join");
         const pollParam = params.get("poll");
-        if (joinParam && joinParam.length >= 4) {
+        const upgradeParam = params.get("upgrade");
+        if (upgradeParam === "success") {
+          // Stripe checkout completed — unlock pro in both localStorage and IndexedDB
+          const token = makeUnlockToken();
+          await window.storage.set("unstuk_unlocked", token);
+          await setUsageUnlocked();
+          setUnlocked(true);
+          setScreen("home");
+          window.history.replaceState({}, "", window.location.pathname);
+        } else if (joinParam && joinParam.length >= 4) {
           setJoinCode(joinParam.toUpperCase());
           setScreen("joingroup");
-          // Clean URL without reload
           window.history.replaceState({}, "", window.location.pathname);
         } else if (pollParam && pollParam.length >= 4) {
           setQvJoinCode(pollParam.toUpperCase());
           setScreen("qv_vote");
-          // Clean URL without reload
           window.history.replaceState({}, "", window.location.pathname);
         }
       } catch(e) {}
@@ -1991,9 +2074,11 @@ function UnstukInner() {
   const saveDec = (d) => {
     setHistory((prev) => {
       const next = [d, ...prev.filter((x) => x.id !== d.id)];
-      saveHistory(next); // persist
+      saveHistory(next);
       return next;
     });
+    // Track usage in IndexedDB (survives localStorage clear)
+    trackUsage(d.type || "decision");
   };
 
   const [screen, _setScreen] = useState("home");
@@ -2361,23 +2446,32 @@ function UnstukInner() {
   // ─── Screen guard redirects (useEffect to avoid setState during render) ───
   useEffect(() => {
     const rc = history.filter((d) => d.reflection).length;
-    if (screen === "reflect") {
-      const dec = history.find((d) => d.id === reflectId);
-      if (!dec) { setScreen("home"); return; }
-      if (rc >= 10 && !unlocked) { trackEvent("paywall"); setScreen("upgrade"); return; }
-    }
-    if (screen === "insight") {
-      const dec = history.find((d) => d.id === reflectId);
-      if (!dec?.reflection) { setScreen("home"); return; }
-    }
-    if (screen === "growth") {
-      if (rc >= 10 && !unlocked) { setScreen("upgrade"); return; }
-    }
-    if (screen === "review30") {
-      if (rc >= 10 && !unlocked) { setScreen("upgrade"); return; }
-      const dec = history.find((d) => d.id === reflectId);
-      if (!dec?.reflection) { setScreen("home"); return; }
-    }
+    const checkPaywall = async () => {
+      if (unlocked) return false;
+      // Double-check: also verify against IndexedDB usage counts (survives localStorage clear)
+      const counts = await getUsageCounts();
+      const totalUsage = counts._total || 0;
+      return rc >= 10 || totalUsage >= 30; // 30 total across all types via IDB
+    };
+    (async () => {
+      if (screen === "reflect") {
+        const dec = history.find((d) => d.id === reflectId);
+        if (!dec) { setScreen("home"); return; }
+        if (await checkPaywall()) { trackEvent("paywall"); setScreen("upgrade"); return; }
+      }
+      if (screen === "insight") {
+        const dec = history.find((d) => d.id === reflectId);
+        if (!dec?.reflection) { setScreen("home"); return; }
+      }
+      if (screen === "growth") {
+        if (await checkPaywall()) { setScreen("upgrade"); return; }
+      }
+      if (screen === "review30") {
+        if (await checkPaywall()) { setScreen("upgrade"); return; }
+        const dec = history.find((d) => d.id === reflectId);
+        if (!dec?.reflection) { setScreen("home"); return; }
+      }
+    })();
   }, [screen, history, reflectId, unlocked]);
 
   // ─── ONBOARDING ───
@@ -4808,12 +4902,17 @@ function UnstukInner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan: "pro_monthly" }),
       });
-      if (!res.ok) throw new Error("not available");
       const data = await res.json();
-      if (data.url && data.url.startsWith("https://checkout.stripe.com/")) window.location.href = data.url;
-      else throw new Error("no url");
+      if (data.url && data.url.startsWith("https://checkout.stripe.com/")) {
+        window.location.href = data.url;
+      } else if (data.error) {
+        setCheckoutMsg(data.error);
+        trackEvent("checkout_fail");
+      } else {
+        throw new Error("no url");
+      }
     } catch(e) {
-      setCheckoutMsg("Payment system coming soon. We\u2019re finalising Stripe integration.");
+      setCheckoutMsg("Payment system is being set up. Please try again shortly.");
       trackEvent("checkout_fail");
     }
   };
