@@ -2358,6 +2358,28 @@ function UnstukInner() {
     }
   `;
 
+  // ─── Screen guard redirects (useEffect to avoid setState during render) ───
+  useEffect(() => {
+    const rc = history.filter((d) => d.reflection).length;
+    if (screen === "reflect") {
+      const dec = history.find((d) => d.id === reflectId);
+      if (!dec) { setScreen("home"); return; }
+      if (rc >= 10 && !unlocked) { trackEvent("paywall"); setScreen("upgrade"); return; }
+    }
+    if (screen === "insight") {
+      const dec = history.find((d) => d.id === reflectId);
+      if (!dec?.reflection) { setScreen("home"); return; }
+    }
+    if (screen === "growth") {
+      if (rc >= 10 && !unlocked) { setScreen("upgrade"); return; }
+    }
+    if (screen === "review30") {
+      if (rc >= 10 && !unlocked) { setScreen("upgrade"); return; }
+      const dec = history.find((d) => d.id === reflectId);
+      if (!dec?.reflection) { setScreen("home"); return; }
+    }
+  }, [screen, history, reflectId, unlocked]);
+
   // ─── ONBOARDING ───
   const onboardPages = [
     { title: "Think carefully, faster", body: "Unstuk gives your thinking real structure: clear options, weighted criteria, honest comparison, clear result. Research by Hammond, Keeney & Raiffa (Harvard Business Review) shows that structured decision-making consistently outperforms intuition alone — especially under pressure. In under two minutes, Unstuk makes it happen." },
@@ -3796,9 +3818,9 @@ function UnstukInner() {
   // ─── REFLECT ───
   if (screen === "reflect") {
     const dec = history.find((d) => d.id === reflectId);
-    if (!dec) { setScreen("home"); return null; }
+    if (!dec) return null; // useEffect handles redirect
     const _rc = history.filter((d) => d.reflection).length;
-    if (_rc >= 10 && !unlocked) { trackEvent("paywall"); setScreen("upgrade"); return null; }
+    if (_rc >= 10 && !unlocked) return null; // useEffect handles redirect
     const w = dec.results ? [...dec.results].sort((a, b) => b.score - a.score)[0] : null;
     const daysSince = Math.floor((Date.now() - dec.timestamp) / 86400000);
 
@@ -3954,7 +3976,7 @@ function UnstukInner() {
   // ─── INSIGHT (single decision reflection result) ───
   if (screen === "insight") {
     const dec = history.find((d) => d.id === reflectId);
-    if (!dec?.reflection) { setScreen("home"); return null; }
+    if (!dec?.reflection) return null; // useEffect handles redirect
     const r = dec.reflection;
     const w = dec.results ? [...dec.results].sort((a, b) => b.score - a.score)[0] : null;
     const reflected = history.filter((d) => d.reflection);
@@ -4070,7 +4092,7 @@ function UnstukInner() {
   // ─── GROWTH ───
   if (screen === "growth") {
     const _rc2 = history.filter((d) => d.reflection).length;
-    if (_rc2 >= 10 && !unlocked) { setScreen("upgrade"); return null; }
+    if (_rc2 >= 10 && !unlocked) return null; // useEffect handles redirect
     // Growth screen renders below
     const reflected = history.filter((d) => d.reflection).sort((a, b) => a.timestamp - b.timestamp);
     const total = reflected.length;
@@ -4703,9 +4725,9 @@ function UnstukInner() {
 
   // ─── 30-DAY REVIEW ───
   if (screen === "review30") {
-    if (history.filter((d) => d.reflection).length >= 10 && !unlocked) { setScreen("upgrade"); return null; }
+    if (history.filter((d) => d.reflection).length >= 10 && !unlocked) return null; // useEffect handles redirect
     const dec = history.find((d) => d.id === reflectId);
-    if (!dec?.reflection) { setScreen("home"); return null; }
+    if (!dec?.reflection) return null; // useEffect handles redirect
     const w = dec.results ? [...dec.results].sort((a, b) => b.score - a.score)[0] : null;
     const r = dec.reflection;
 
