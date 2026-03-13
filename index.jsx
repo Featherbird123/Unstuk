@@ -40,15 +40,15 @@ class ErrorBoundary extends React.Component {
 // ─── Instant fallback chips (shown immediately while AI loads) ───
 const FALLBACK_CHIPS = {
   name: {
-    "Strategy & Growth": ["Market Expansion Plan", "Pricing Strategy Review", "Product Roadmap Priority", "Partnership Evaluation", "Competitive Positioning"],
-    "People & Talent": ["Head of Growth Hire", "Team Restructure", "Agency vs In-House", "Leadership Succession", "Remote Work Policy"],
-    "Operations & Finance": ["Tech Stack Migration", "Vendor Shortlist", "Budget Reallocation", "Office Relocation", "Process Automation"],
-    "Marketing & Sales": ["Brand Repositioning", "Channel Strategy", "CRM Platform Selection", "Campaign Budget Split", "Sales Territory Plan"],
+    "Strategy": ["Market Expansion Plan", "Pricing Model Overhaul", "AI Integration Roadmap", "Competitive Response Strategy", "Partnership vs Build"],
+    "People": ["Head of Growth Hire", "Team Restructure", "Agency vs In-House", "Engineering Lead Selection", "Remote Policy Update"],
+    "Operations": ["Tech Stack Migration", "Vendor Evaluation", "Budget Reallocation", "Process Automation", "Data Platform Choice"],
+    "Growth": ["New Market Entry", "Product Line Extension", "Channel Strategy Shift", "Customer Segment Focus", "Sustainability Initiative"],
   },
   "qv-name": {
-    "Team & Planning": ["Which launch date works best?", "Where should we hold the offsite?", "Which vendor should we shortlist?", "What should be our Q3 priority?"],
-    "Feedback": ["How should we handle this client issue?", "Which design direction do you prefer?", "What's blocking you most right now?", "Which meeting format works best?"],
-    "Strategy": ["Should we enter this market?", "Which feature should ship first?", "How should we allocate the budget?", "Which candidate should we advance?"],
+    "Team Decisions": ["Which launch date works best?", "Where should we hold the offsite?", "What should be our Q3 focus?", "Which candidate do you prefer?"],
+    "Quick Feedback": ["How should we handle this?", "Which design direction?", "What's blocking progress?", "Which format works best?"],
+    "Strategic Polls": ["Should we enter this market?", "Which feature ships first?", "How should we split the budget?", "Build vs buy for this?"],
   },
 };
 
@@ -183,6 +183,22 @@ const TOPIC_CHIPS = {
     opt: { "Strategy": ["Premium Support", "Self-Service Portal", "Dedicated Account Manager", "Community-Led", "AI Chatbot First"], "Focus": ["Onboarding Improvement", "Churn Reduction", "Upsell / Expand", "NPS Improvement", "Response Time"] },
     crit: { "Impact": ["Customer Satisfaction", "Retention Rate", "Revenue Per Customer", "Support Cost", "Brand Loyalty"], "Execution": ["Team Capacity", "Tool Requirements", "Training Need", "Implementation Time", "Measurement Clarity"] },
   },
+  ai: {
+    opt: { "Approach": ["Build Custom AI", "Off-the-Shelf AI Tool", "API Integration", "AI Copilot Layer", "Hire AI Team"], "Strategy": ["Full AI Transformation", "Targeted AI Use Cases", "AI Pilot Programme", "AI-Augmented Workflow", "Wait & Watch"] },
+    crit: { "Value": ["Accuracy / Quality", "Time Savings", "Cost per Query", "Hallucination Risk", "Data Privacy"], "Feasibility": ["Integration Complexity", "Training Data Quality", "Team AI Literacy", "Vendor Lock-In", "Regulatory Compliance"] },
+  },
+  sustainability: {
+    opt: { "Scope": ["Carbon Neutral Goal", "ESG Report First", "Supply Chain Audit", "Green Procurement", "Offset Programme"], "Approach": ["Internal Champion", "External Consultant", "Industry Framework", "Customer-Driven", "Regulatory Minimum"] },
+    crit: { "Impact": ["Carbon Reduction", "Brand Perception", "Regulatory Compliance", "Cost Savings", "Talent Attraction"], "Execution": ["Measurement Difficulty", "Capital Required", "Timeline to Impact", "Stakeholder Alignment", "Greenwashing Risk"] },
+  },
+  legal: {
+    opt: { "Action": ["Outside Counsel", "In-House Legal Hire", "Legal Tech Platform", "Insurance / Indemnity", "Negotiate Settlement"], "Strategy": ["Aggressive Defence", "Early Settlement", "Mediation", "Ignore & Monitor", "Counter-Claim"] },
+    crit: { "Risk": ["Financial Exposure", "Precedent Risk", "Reputation Impact", "Time Drain", "Win Probability"], "Practical": ["Legal Fees", "Timeline", "Discovery Burden", "Insurance Coverage", "Business Disruption"] },
+  },
+  data: {
+    opt: { "Platform": ["Modern Data Stack", "Cloud Warehouse", "Self-Service BI", "Custom Dashboard", "Embedded Analytics"], "Approach": ["Centralise First", "Domain-Driven", "Real-Time Pipeline", "Batch Processing", "Data Mesh"] },
+    crit: { "Technical": ["Query Performance", "Data Freshness", "Integration Coverage", "Scalability", "Data Quality"], "Business": ["User Adoption", "Time to Insight", "Cost per Query", "Self-Service Capability", "Governance & Access Control"] },
+  },
 };
 // Stem-to-topic mapping — multiple stems can point to the same topic for fuzzy matching
 const _TOPIC_STEMS = {};
@@ -219,14 +235,19 @@ const _STEM_ALIASES = {
   security: ["security", "cyber", "breach", "penetration", "vulnerability", "infosec", "data protect", "soc2", "soc 2", "pci"],
   customer: ["customer success", "customer experience", "cx", "support model", "churn", "nps", "csat", "onboard customer", "customer service", "help desk", "user experience", "ux"],
   supplier: ["supplier"],
+  // Additional coverage for common decision domains
+  ai: ["ai", "artificial intelligence", "machine learning", "ml", "llm", "gpt", "chatbot", "copilot", "generative"],
+  sustainability: ["sustainab", "esg", "carbon", "green", "environmental", "climate", "net zero"],
+  legal: ["legal", "lawsuit", "litigation", "attorney", "lawyer", "patent", "trademark", "ip ", "intellectual property"],
+  data: ["data", "analytics", "dashboard", "reporting", "warehouse", "pipeline", "etl", "bi ", "business intelligence"],
 };
 for (const [topic, stems] of Object.entries(_STEM_ALIASES)) {
   for (const s of stems) _TOPIC_STEMS[s] = topic;
 }
 
 const GENERIC_CONTEXTUAL = {
-  opt: { "Approaches": ["Proceed as Proposed", "Modified Approach", "Alternative Strategy", "Defer Decision", "Pilot First"], "Scale": ["Full Rollout", "Phased Approach", "Limited Trial", "Minimum Viable"] },
-  crit: { "Financial": ["Total Cost", "Revenue Impact", "Payback Period", "Budget Fit"], "Strategic": ["Time to Market", "Scalability", "Competitive Advantage", "Strategic Alignment"], "Risk": ["Risk Level", "Reversibility", "Stakeholder Buy-In", "Implementation Complexity"] },
+  opt: { "Core Choices": ["Proceed Full Speed", "Modified Approach", "Alternative Path", "Defer & Research", "Quick Pilot First"], "Creative Angles": ["Outsource It", "Partner with Expert", "Hybrid Solution", "Do the Opposite", "Let the Team Decide"] },
+  crit: { "Hard Factors": ["Total Cost", "Revenue Impact", "Time to Results", "Payback Period", "Resource Need"], "Soft Factors": ["Team Readiness", "Stakeholder Support", "Cultural Fit", "Learning Curve", "Morale Impact"], "Risk Lens": ["Worst-Case Downside", "Reversibility", "Opportunity Cost", "Competitive Risk", "Reputation Risk"] },
 };
 
 // ─── Dynamic chip synthesis — generates chips from decision text itself ───
@@ -538,33 +559,39 @@ function getContextualFallbacks(storageKey, aiContext) {
   return GENERIC_CONTEXTUAL[storageKey] || {};
 }
 
-async function fetchAiChipSuggestions({ step, picked, context, count = 8, history = [] }) {
+async function fetchAiChipSuggestions({ step, picked, context, count = 10, history = [] }) {
   try {
     const dName = context.dName || "";
-    const decisionType = context.decisionType || ""; // "binary", "multi", "qv"
+    const decisionType = context.decisionType || "";
     const decisionCtx = dName ? `Decision: "${dName}"` : "";
     const typeCtx = decisionType ? `\nDecision type: ${decisionType === "binary" ? "Binary (exactly 2 options — suggest opposing/contrasting choices)" : decisionType === "qv" ? "Quick Poll (team vote — suggest concrete, short answers)" : "Multi-option (3-6 distinct alternatives)"}` : "";
     const optsCtx = context.opts && context.opts.length ? `\nOptions already chosen: ${context.opts.map(o => o.name || o).join(", ")}` : "";
     const critsCtx = context.crits && context.crits.length ? `\nCriteria already chosen: ${context.crits.map(cr => cr.name || cr).join(", ")}` : "";
     const alreadyPicked = picked && picked.length ? `\nDo NOT repeat these: ${picked.join(", ")}` : "";
-    const typedCtx = context.typed && context.typed.trim() ? `\nUser is typing: "${context.typed.trim()}" — every suggestion MUST directly complete, relate to, or extend what they're typing. Match their intent precisely.` : "";
-    const historyCtx = history.length > 0 ? `\nUser's past decisions: ${history.slice(0, 5).join(", ")}. Weave 1-2 history-inspired suggestions in, but ${count - 2}+ must be fresh.` : "";
+    const typedCtx = context.typed && context.typed.trim()
+      ? `\nUser is currently typing: "${context.typed.trim()}"\nCRITICAL: The first 3-4 suggestions MUST be intelligent completions of what they're typing. Predict what they intend. If typing "sal" for a CRM decision, suggest "Salesforce Enterprise", "Sales Team Training", etc. Remaining suggestions should be complementary alternatives they haven't thought of.`
+      : "";
+    const historyCtx = history.length > 0 ? `\nUser's past decisions: ${history.slice(0, 5).join(", ")}. Include 1-2 suggestions that build on patterns from their history (e.g. if they often decide about hiring, suggest team-related angles).` : "";
+
+    // Enhanced step-specific prompts with deeper intelligence
     const typeHint = step === "name"
-      ? "decision names — specific, actionable business decisions (3-5 words, e.g. 'CRM Migration', 'Head of Growth Hire')"
+      ? `decision names — specific, actionable business decisions. Mix: 3 common decisions people face, 3 strategic/unusual decisions, 2 inspired by current business trends (AI adoption, remote work, sustainability). Format: 3-6 words, Title Case. E.g. "Q2 Engineering Headcount Plan", "AI Customer Support Rollout", "Series B Term Sheet Review"`
       : step === "opt" && decisionType === "binary"
-      ? `exactly ${count} concrete options for the binary decision "${dName}". Think about what the TWO most natural opposing choices would be for this decision, then suggest variations. E.g. for "Agency vs In-House": suggest "External Agency", "In-House Team", "Hybrid Model", "Freelancer Network". Each must be a REAL, SPECIFIC choice for THIS decision — not generic placeholders like "Option A".`
+      ? `exactly ${count} options for binary decision "${dName}". First 2 must be the most natural YES/NO or A/B framing. Next 2 should be smart alternatives (hybrid, conditional, phased). Remaining should be creative reframes a consultant would suggest. Each must be a REAL choice — never "Option A/B".`
       : step === "opt"
-      ? `exactly ${count} concrete, mutually-exclusive options for THIS SPECIFIC decision "${dName}". Each option must be a real, actionable choice someone would actually consider. Be deeply specific to the decision context. E.g. for "CRM Platform Selection": "Salesforce Enterprise", "HubSpot Pro", "Pipedrive", "Custom Build", "Keep Current System".`
+      ? `exactly ${count} concrete options for "${dName}". Think like a McKinsey consultant: what are the 3 obvious choices, 3 creative alternatives, and 2 reframes? Include one "status quo" option and one contrarian option. Each must be specific enough that a reader could guess the decision. E.g. for "CRM Platform": "Salesforce Enterprise", "HubSpot Pro", "Build Custom CRM", "Keep Spreadsheets", "Outsource to Agency".`
       : step === "qv-name"
-      ? "short poll questions as full sentences for business teams (e.g. 'Which launch date works best?', 'What should be our Q3 priority?')"
+      ? `poll questions for business teams. Mix: 3 strategic ("What should be our top Q3 priority?"), 3 operational ("Which meeting format works best?"), 2 team culture ("How should we celebrate the launch?"). Each must be a complete question ending with "?".`
       : step === "qv-opt"
-      ? `short poll answer options (2-4 words each) that are SPECIFIC, DIRECT ANSWERS to the question "${dName}". Each must be a real answer someone would vote for. NOT generic agreement scales — actual choices. E.g. for "Where should we hold the offsite?": "Lake House Venue", "City Hotel", "Mountain Lodge", "Company Office", "Virtual Only".${optsCtx}`
-      : `distinct evaluation criteria specifically for deciding "${dName}" with options [${(context.opts||[]).map(o=>o.name||o).join(", ")}]. Each criterion must be a real factor someone would weigh for this exact decision — not generic business jargon. E.g. for "CRM Platform Selection" with Salesforce/HubSpot: "Integration with Existing Stack", "Per-Seat Pricing at Scale", "Sales Team Adoption Ease".`;
-    const prompt = `You are an expert business advisor with deep domain knowledge. Generate exactly ${count} ${typeHint}.\n${decisionCtx}${typeCtx}${optsCtx}${critsCtx}${alreadyPicked}${typedCtx}${historyCtx}\n\nRules:\n- DEEPLY specific to this exact context — never generic\n- Each suggestion must only make sense for THIS decision/question — a reader should be able to guess the decision from the suggestions alone\n- 2-5 words, Title Case\n- Professional, evidence-based, current best practice\n- Mutually exclusive — no overlapping suggestions\nJSON only: {"chips":["item1","item2",...]}`;
+      ? `short poll answers (2-4 words) that are SPECIFIC answers to "${dName}". Each must be something a real person would vote for. Include 1 creative/unexpected option. NOT generic scales like "Agree/Disagree" — actual choices.${optsCtx}`
+      : `evaluation criteria for deciding "${dName}" with options [${(context.opts||[]).map(o=>o.name||o).join(", ")}]. Think like a decision analyst: include 3 quantitative factors (cost, time, ROI), 3 qualitative factors (team fit, risk, strategic alignment), and 2 often-overlooked factors unique to this specific decision. Each must be a real factor — not generic jargon.`;
+
+    const prompt = `You are a world-class business strategist and decision advisor. Generate exactly ${count} ${typeHint}.\n${decisionCtx}${typeCtx}${optsCtx}${critsCtx}${alreadyPicked}${typedCtx}${historyCtx}\n\nRules:\n- Hyper-specific to this exact context — a reader should immediately understand the decision from suggestions alone\n- 2-5 words, Title Case, professional\n- Mutually exclusive — zero overlap between suggestions\n- Order by relevance: most likely picks first\n- Mix obvious and creative — include at least 2 suggestions the user wouldn't think of on their own\nJSON only: {"chips":["item1","item2",...]}`;
+
     const response = await fetch("/api/ai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 200, messages: [{ role: "user", content: prompt }] })
+      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 300, messages: [{ role: "user", content: prompt }] })
     });
     const data = await response.json();
     const text = data.content?.[0]?.text || "";
@@ -577,9 +604,13 @@ async function fetchAiChipSuggestions({ step, picked, context, count = 8, histor
 function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, collapsed = false }) {
   const [chips, setChips] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [pickedChip, setPickedChip] = useState(null);
+  const [refreshSpin, setRefreshSpin] = useState(false);
+  const [expandedCats, setExpandedCats] = useState({});
   const mountedRef = useRef(true);
   const debounceRef = useRef(null);
   const lastContextRef = useRef(null);
+  const chipCountRef = useRef(0);
 
   // Load user history for personalisation
   const [history, setHistory] = useState([]);
@@ -598,11 +629,12 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, 
   const load = async (pickedSoFar = []) => {
     if (!mountedRef.current) return;
     setLoading(true);
+    chipCountRef.current += 1;
     const suggestions = await fetchAiChipSuggestions({
       step: storageKey,
       picked: [...(usedNames || []), ...pickedSoFar],
       context: aiContext || { dName: "", opts: [], crits: [] },
-      count: 8,
+      count: 10,
       history,
     });
     if (mountedRef.current) {
@@ -624,36 +656,69 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, 
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const isFirst = chips.length === 0 && !loading;
     const typed = (aiContext?.typed || "").trim();
-    // Faster debounce when user is typing (300ms) vs initial (0)
-    debounceRef.current = setTimeout(() => { load(); }, isFirst ? 0 : typed.length > 2 ? 300 : 500);
+    debounceRef.current = setTimeout(() => { load(); }, isFirst ? 0 : typed.length > 2 ? 250 : 400);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [aiContext?.dName, aiContext?.typed, (aiContext?.opts||[]).length, (aiContext?.crits||[]).length]);
 
   const handlePick = (name) => {
-    onPick(name);
-    load([name]);
-    // Focus next input and highlight it with accent border
-    if (focusNext) {
-      setTimeout(() => {
-        const el = typeof focusNext === "string" ? document.getElementById(focusNext) : null;
-        if (el) { el.focus(); el.style.borderColor = C.accent; el.style.boxShadow = `0 0 0 3px ${C.accent}25`; setTimeout(() => { el.style.borderColor = C.border; el.style.boxShadow = "0 1px 4px rgba(0,0,0,0.06)"; }, 1800); }
-      }, 80);
-    }
+    setPickedChip(name);
+    setTimeout(() => {
+      setPickedChip(null);
+      onPick(name);
+      load([name]);
+      if (focusNext) {
+        setTimeout(() => {
+          const el = typeof focusNext === "string" ? document.getElementById(focusNext) : null;
+          if (el) { el.focus(); el.style.borderColor = C.sage; el.style.boxShadow = `0 0 0 3px ${C.sage}20`; setTimeout(() => { el.style.borderColor = C.border; el.style.boxShadow = "0 1px 4px rgba(0,0,0,0.06)"; }, 1800); }
+        }, 60);
+      }
+    }, 220);
+  };
+
+  const handleRefresh = () => {
+    setRefreshSpin(true);
+    load();
+    setTimeout(() => setRefreshSpin(false), 600);
   };
 
   const usedLower = usedNames.map(n => n.toLowerCase());
   const aiChips = chips.filter(ch => !usedLower.includes(ch.toLowerCase()));
   const typed = (aiContext?.typed || "").trim().toLowerCase();
 
+  // Intelligent relevance scoring — rank chips by match quality
+  const scoreChip = (chip) => {
+    const cl = chip.toLowerCase();
+    if (!typed || typed.length < 2) return 0;
+    if (cl.startsWith(typed)) return 100;
+    if (cl.includes(typed)) return 70;
+    // Word-level matching
+    const words = typed.split(/\s+/);
+    let wordScore = 0;
+    for (const w of words) { if (w.length > 1 && cl.includes(w)) wordScore += 30; }
+    return wordScore;
+  };
+
   // Build sections: AI chips replace fallbacks when available
   const sections = [];
   const [manualExpand, setManualExpand] = useState(false);
   const skipTypedFilter = manualExpand && collapsed;
+
   if (aiChips.length > 0) {
-    // AI chips are the primary display — deeply contextual
-    sections.push({ label: "Suggested for you", chips: aiChips, isAi: true });
+    // Split AI chips: best matches first when user is typing
+    if (typed.length >= 2) {
+      const scored = aiChips.map(ch => ({ chip: ch, score: scoreChip(ch) }));
+      const matches = scored.filter(s => s.score > 0).sort((a, b) => b.score - a.score).map(s => s.chip);
+      const rest = scored.filter(s => s.score === 0).map(s => s.chip);
+      if (matches.length > 0) {
+        sections.push({ label: "Best matches", chips: matches, isAi: true, highlight: true });
+        if (rest.length > 0) sections.push({ label: "More suggestions", chips: rest, isAi: true });
+      } else {
+        sections.push({ label: "Suggested for you", chips: aiChips, isAi: true });
+      }
+    } else {
+      sections.push({ label: "Suggested for you", chips: aiChips, isAi: true });
+    }
   } else {
-    // Fallback chips while AI loads or if unavailable
     const fallbackData = getContextualFallbacks(storageKey, aiContext);
     Object.keys(fallbackData).forEach(cat => {
       const filtered = fallbackData[cat].filter(c => {
@@ -665,52 +730,184 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, 
     });
   }
 
-  const chipStyle = { fontFamily: F.b, fontSize: 11, padding: "6px 12px", borderRadius: 20, border: `1.5px solid ${C.border}`, background: "#fff", color: C.text, cursor: "pointer", lineHeight: 1.2, transition: "border-color 0.15s, background 0.15s", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" };
-
   const isCollapsed = collapsed && !manualExpand;
-  // Reset manual expand when collapsed changes to false (field cleared)
   useEffect(() => { if (!collapsed) setManualExpand(false); }, [collapsed]);
 
+  // Contextual hint based on step
+  const stepHints = { name: "What decision are you facing?", opt: "What are your choices?", crit: "What factors matter most?", "qv-name": "What do you want to ask?", "qv-opt": "What can people vote for?" };
+  const hint = stepHints[storageKey] || "Tap to add";
+
   if (isCollapsed) {
+    // Show mini preview chips in collapsed state
+    const previewChips = aiChips.slice(0, 3);
     return (
-      <div onClick={() => setManualExpand(true)} style={{ marginTop: 6, marginBottom: 2, opacity: 0.45, transition: "opacity 0.3s", overflow: "hidden", maxHeight: 22, cursor: "pointer" }}>
-        <p style={{ fontFamily: F.b, fontSize: 9, color: C.taupe, margin: 0, fontStyle: "italic" }}>{"\u2713"} Done — tap to see suggestions again</p>
+      <div onClick={() => setManualExpand(true)} style={{
+        marginTop: 8, marginBottom: 2, padding: "8px 12px", borderRadius: 10,
+        background: `linear-gradient(135deg, ${C.sageSoft}80, ${C.taupeSoft}60)`,
+        border: `1px solid ${C.sage}15`, cursor: "pointer",
+        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+      }}
+        onMouseEnter={e => { e.currentTarget.style.background = `linear-gradient(135deg, ${C.sageSoft}, ${C.taupeSoft})`; e.currentTarget.style.borderColor = `${C.sage}30`; }}
+        onMouseLeave={e => { e.currentTarget.style.background = `linear-gradient(135deg, ${C.sageSoft}80, ${C.taupeSoft}60)`; e.currentTarget.style.borderColor = `${C.sage}15`; }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, overflow: "hidden" }}>
+            <span style={{ fontFamily: F.b, fontSize: 9, color: C.sage, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", whiteSpace: "nowrap" }}>Suggestions</span>
+            {previewChips.length > 0 && (
+              <div style={{ display: "flex", gap: 4, overflow: "hidden" }}>
+                {previewChips.map(ch => (
+                  <span key={ch} style={{ fontFamily: F.b, fontSize: 9, color: C.muted, padding: "2px 8px", background: "#fff", borderRadius: 10, border: `1px solid ${C.border}80`, whiteSpace: "nowrap", maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis" }}>{ch}</span>
+                ))}
+              </div>
+            )}
+          </div>
+          <span style={{ fontFamily: F.b, fontSize: 10, color: C.sage, fontWeight: 500, opacity: 0.8, whiteSpace: "nowrap", marginLeft: 8 }}>Show ›</span>
+        </div>
       </div>
     );
   }
 
+  // Determine which categories are expanded (default: first 2 open)
+  const getExpanded = (label, idx) => {
+    if (expandedCats[label] !== undefined) return expandedCats[label];
+    return idx < 2;
+  };
+
   return (
     <div style={{ marginTop: 10, marginBottom: 4 }}>
-      <style>{`@keyframes ustk-dot-pulse { 0%, 80%, 100% { opacity: 0.2; transform: scale(0.7); } 40% { opacity: 1; transform: scale(1); } }`}</style>
-      <p style={{ fontFamily: F.b, fontSize: 10, color: C.sage, margin: "0 0 8px", fontWeight: 600, letterSpacing: "0.04em" }}>
-        {"\u2193"} Tap a suggestion below, or type your own above
-      </p>
-      {sections.length > 0 && sections.map(sec => (
-        <div key={sec.label} style={{ marginBottom: 8 }}>
-          <p style={{ fontFamily: F.b, fontSize: 9, color: sec.isAi ? C.sage : C.taupe, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 5px", fontWeight: 600 }}>{sec.label}</p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
-            {sec.chips.map(chip => (
-              <button key={chip} className="ustk-touch" onClick={() => handlePick(chip)} style={chipStyle}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = C.sage; e.currentTarget.style.background = C.sageSoft; e.currentTarget.style.color = C.sage; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = "#fff"; e.currentTarget.style.color = C.text; }}>
-                {chip}
-              </button>
-            ))}
-            {sec.isAi && (
-              <button onClick={() => load()} title="Refresh" aria-label="Refresh suggestions" style={{ fontSize: 12, padding: "6px 10px", borderRadius: 20, border: `1.5px solid ${C.border}40`, background: "transparent", color: C.border, cursor: "pointer", opacity: 0.7 }}>{"\u21BB"}</button>
-            )}
+      <style>{`
+        @keyframes ustk-dot-pulse { 0%, 80%, 100% { opacity: 0.2; transform: scale(0.7); } 40% { opacity: 1; transform: scale(1); } }
+        @keyframes ustk-chip-in { from { opacity: 0; transform: translateY(6px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes ustk-chip-pick { 0% { transform: scale(1); } 50% { transform: scale(0.88); opacity: 0.5; } 100% { transform: scale(0.8); opacity: 0; } }
+        @keyframes ustk-refresh-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes ustk-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+      `}</style>
+
+      {/* Header with collapse button */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <p style={{ fontFamily: F.b, fontSize: 10, color: C.sage, margin: 0, fontWeight: 600, letterSpacing: "0.04em" }}>
+          {typed.length > 2 ? `Matching "${typed}"` : hint}
+        </p>
+        {collapsed && manualExpand && (
+          <button onClick={() => setManualExpand(false)} style={{
+            fontFamily: F.b, fontSize: 9, color: C.taupe, background: "none", border: "none", cursor: "pointer", padding: "2px 6px", opacity: 0.7,
+          }}>Hide</button>
+        )}
+      </div>
+
+      {/* Sections */}
+      {sections.length > 0 && sections.map((sec, secIdx) => {
+        const isOpen = getExpanded(sec.label, secIdx);
+        const maxVisible = isOpen ? sec.chips.length : 0;
+        const hasMany = sec.chips.length > 6;
+
+        return (
+          <div key={sec.label} style={{ marginBottom: 10 }}>
+            {/* Section header — collapsible */}
+            <button onClick={() => setExpandedCats(prev => ({ ...prev, [sec.label]: !isOpen }))}
+              style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", padding: "2px 0", margin: "0 0 6px", width: "100%" }}>
+              <span style={{
+                fontFamily: F.b, fontSize: 9, color: sec.highlight ? C.sage : sec.isAi ? C.sage : C.taupe,
+                textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600,
+              }}>{sec.label}</span>
+              <span style={{ fontFamily: F.b, fontSize: 8, color: C.border, transition: "transform 0.2s", transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)" }}>{"\u25BE"}</span>
+              {sec.isAi && <span style={{ fontFamily: F.b, fontSize: 8, color: C.taupe, opacity: 0.6 }}>({sec.chips.length})</span>}
+              <div style={{ flex: 1 }} />
+              {sec.isAi && isOpen && (
+                <button onClick={(e) => { e.stopPropagation(); handleRefresh(); }} title="Refresh" aria-label="Refresh suggestions"
+                  style={{
+                    fontSize: 11, padding: "3px 8px", borderRadius: 12, border: `1px solid ${C.border}50`,
+                    background: "transparent", color: C.taupe, cursor: "pointer",
+                    animation: refreshSpin ? "ustk-refresh-spin 0.6s ease" : "none",
+                    transition: "color 0.2s, border-color 0.2s",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.color = C.sage; e.currentTarget.style.borderColor = C.sage + "50"; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = C.taupe; e.currentTarget.style.borderColor = C.border + "50"; }}
+                >{"\u21BB"}</button>
+              )}
+            </button>
+
+            {/* Chips container with smooth expand/collapse */}
+            <div style={{
+              display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center",
+              maxHeight: isOpen ? 400 : 0, overflow: "hidden",
+              transition: "max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s",
+              opacity: isOpen ? 1 : 0,
+            }}>
+              {sec.chips.slice(0, maxVisible).map((chip, chipIdx) => {
+                const isPicked = pickedChip === chip;
+                const isMatch = typed.length >= 2 && chip.toLowerCase().includes(typed);
+                return (
+                  <button key={chip} className="ustk-touch" onClick={() => handlePick(chip)}
+                    style={{
+                      fontFamily: F.b, fontSize: 11, padding: "7px 14px", borderRadius: 22,
+                      border: `1.5px solid ${isMatch ? C.sage + "60" : C.border}`,
+                      background: isMatch ? `linear-gradient(135deg, ${C.sageSoft}, #fff)` : "#fff",
+                      color: isMatch ? C.sage : C.text,
+                      cursor: "pointer", lineHeight: 1.2,
+                      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                      boxShadow: isMatch ? `0 2px 8px ${C.sage}15` : "0 1px 3px rgba(0,0,0,0.04)",
+                      animation: isPicked ? "ustk-chip-pick 0.22s ease forwards" : `ustk-chip-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) ${chipIdx * 0.04}s both`,
+                      fontWeight: isMatch ? 500 : 400,
+                    }}
+                    onMouseEnter={e => {
+                      if (!isPicked) {
+                        e.currentTarget.style.borderColor = C.sage;
+                        e.currentTarget.style.background = `linear-gradient(135deg, ${C.sageSoft}, #fff)`;
+                        e.currentTarget.style.color = C.sage;
+                        e.currentTarget.style.boxShadow = `0 2px 10px ${C.sage}20`;
+                        e.currentTarget.style.transform = "translateY(-1px)";
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (!isPicked) {
+                        e.currentTarget.style.borderColor = isMatch ? C.sage + "60" : C.border;
+                        e.currentTarget.style.background = isMatch ? `linear-gradient(135deg, ${C.sageSoft}, #fff)` : "#fff";
+                        e.currentTarget.style.color = isMatch ? C.sage : C.text;
+                        e.currentTarget.style.boxShadow = isMatch ? `0 2px 8px ${C.sage}15` : "0 1px 3px rgba(0,0,0,0.04)";
+                        e.currentTarget.style.transform = "translateY(0)";
+                      }
+                    }}
+                    onTouchStart={e => { e.currentTarget.style.transform = "scale(0.95)"; }}
+                    onTouchEnd={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                  >
+                    {chip}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
+
+      {/* Empty state */}
       {sections.length === 0 && !loading && (
-        <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, margin: "4px 0" }}>{typed ? "No matches — keep typing or clear to see all" : "Loading suggestions..."}</p>
+        <div style={{ padding: "10px 0" }}>
+          <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, margin: "4px 0" }}>
+            {typed.length > 2 ? `No matches for "${typed}" \u2014 try different words or clear to see all` : "Type above to get tailored suggestions"}
+          </p>
+        </div>
       )}
+
+      {/* Loading shimmer */}
       {loading && (
-        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6, paddingLeft: 2 }}>
-          <span style={{ fontFamily: F.b, fontSize: 9, color: C.taupe, marginRight: 4 }}>Tailoring</span>
-          {[0, 0.18, 0.36].map((delay, i) => (
-            <div key={i} style={{ width: 4, height: 4, borderRadius: "50%", background: C.sage, opacity: 0.2, animation: `ustk-dot-pulse 1.1s ease-in-out ${delay}s infinite` }} />
-          ))}
+        <div style={{ marginTop: 6 }}>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {[70, 90, 60, 80, 55, 75].map((w, i) => (
+              <div key={i} style={{
+                width: w, height: 28, borderRadius: 22,
+                background: `linear-gradient(90deg, ${C.border}30 25%, ${C.border}50 50%, ${C.border}30 75%)`,
+                backgroundSize: "200% 100%",
+                animation: `ustk-shimmer 1.5s ease infinite ${i * 0.12}s`,
+              }} />
+            ))}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 8, paddingLeft: 2 }}>
+            <span style={{ fontFamily: F.b, fontSize: 9, color: C.taupe, marginRight: 4 }}>Tailoring to your context</span>
+            {[0, 0.18, 0.36].map((delay, i) => (
+              <div key={i} style={{ width: 4, height: 4, borderRadius: "50%", background: C.sage, opacity: 0.2, animation: `ustk-dot-pulse 1.1s ease-in-out ${delay}s infinite` }} />
+            ))}
+          </div>
         </div>
       )}
     </div>
