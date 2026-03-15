@@ -1680,7 +1680,7 @@ function ResultsView({ results, dName, critCount, onDone, onBack, onImmediate, o
     "",
     "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500",
     "  Think to get unstuk — try it free.",
-    "  https://unstuk.app",
+    "  unstuk.app",
     "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500",
   ].join("\n");
 
@@ -2053,7 +2053,7 @@ function ShareSheet({ text, title, onClose }) {
     { label: "Telegram", icon: "\u2708", href: `https://t.me/share/url?text=${encoded}`, bg: "#229ED912" },
     { label: "X", icon: "\uD835\uDD4F", href: `https://twitter.com/intent/tweet?text=${encoded}`, bg: "#14171A12" },
     { label: "Facebook", icon: "\uD83D\uDC4D", href: `https://www.facebook.com/sharer/sharer.php?quote=${encoded}`, bg: "#1877F212" },
-    { label: "LinkedIn", icon: "\uD83D\uDCE2", href: `https://www.linkedin.com/sharing/share-offsite/?url=https://unstuk.app&summary=${encoded}`, bg: "#0A66C212" },
+    { label: "LinkedIn", icon: "\uD83D\uDCE2", href: `https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Funstuk.app&summary=${encoded}`, bg: "#0A66C212" },
   ];
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 1000 }} onClick={onClose}>
@@ -2340,7 +2340,7 @@ function UnstukInner() {
     try { await window.storage.set("unstuk_active_qvCode", code); } catch(e) {}
     trackEvent("quickvote_create");
     const exL = qvExpiry === 0 ? "No time limit" : qvExpiry < 1 ? `${Math.round(qvExpiry * 60)} mins` : qvExpiry <= 1 ? "1 hour" : qvExpiry <= 24 ? `${qvExpiry} hours` : `${Math.round(qvExpiry / 24)} days`;
-    const qvShareText = `📊 Quick Poll: ${sanitize(qvQuestion.trim())}\n\nOptions:\n${opts.map((o, i) => `${i + 1}. ${o}`).join("\n")}\n\nVote here: https://unstuk.app?poll=${code}${qvExpiry > 0 ? `\n\nCloses in: ${exL}` : ""}`;
+    const qvShareText = `📊 Quick Poll: ${sanitize(qvQuestion.trim())}\n\nOptions:\n${opts.map((o, i) => `${i + 1}. ${o}`).join("\n")}\n\nVote here: unstuk.app?poll=${code}${qvExpiry > 0 ? `\n\nCloses in: ${exL}` : ""}`;
     setShareSheetData({ text: qvShareText, title: "Share Quick Poll", afterClose: () => setScreen("home") });
     setScreen("qv_share");
   };
@@ -2724,7 +2724,7 @@ function UnstukInner() {
               {qvExpiry > 0 && <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, margin: "8px 0" }}>Closes in {expiryLabel}</p>}
               <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
                 <Btn v="sage" onClick={() => {
-                  const text = `\uD83D\uDCA1 Quick Poll: ${qvQuestion}\n\nOptions:\n${qvOptions.filter(Boolean).map((o, i) => `${i + 1}. ${o}`).join("\n")}\n\nVote here: https://unstuk.app?poll=${qvCode}`;
+                  const text = `\uD83D\uDCA1 Quick Poll: ${qvQuestion}\n\nOptions:\n${qvOptions.filter(Boolean).map((o, i) => `${i + 1}. ${o}`).join("\n")}\n\nVote here: unstuk.app?poll=${qvCode}`;
                   setShareSheetData({ text, title: "Share Quick Poll" });
                 }} style={{ flex: 1 }}>Share vote</Btn>
                 <Btn onClick={async () => {
@@ -3182,7 +3182,7 @@ function UnstukInner() {
 
           <FadeIn delay={300}>
             <button onClick={() => {
-              setShareSheetData({ text: "I\u2019ve been using Unstuk to make better decisions \u2014 and I think you\u2019d find it useful too.\n\nIt structures your thinking with weighted criteria so you can cut through the noise and decide with confidence. Takes about 2 minutes.\n\nTry it free: https://unstuk.app", title: "Gift Unstuk to a friend" });
+              setShareSheetData({ text: "I\u2019ve been using Unstuk to make better decisions \u2014 and I think you\u2019d find it useful too.\n\nIt structures your thinking with weighted criteria so you can cut through the noise and decide with confidence. Takes about 2 minutes.\n\nTry it free: unstuk.app", title: "Gift Unstuk to a friend" });
             }} style={{
               width: "100%", marginTop: 36, padding: "16px 18px", borderRadius: 12,
               background: `linear-gradient(135deg, ${C.sageSoft}, ${C.card})`,
@@ -3476,8 +3476,8 @@ function UnstukInner() {
   if (screen === "groupcreated" && groupCode) {
     const expiryLabel = groupExpiry < 1 ? `${Math.round(groupExpiry * 60)} mins` : groupExpiry <= 1 ? "1 hour" : groupExpiry <= 24 ? `${groupExpiry} hours` : `${Math.round(groupExpiry / 24)} days`;
     const shareMsg = groupRequireCode
-      ? `Get thinking, get unstuk \u2014 Join our team decision on Unstuk!\n\nCode: ${groupCode}\n\nTap to join: https://unstuk.app?join=${groupCode}\n\nDeadline: ${expiryLabel}`
-      : `Get thinking, get unstuk \u2014 Join our team decision on Unstuk!\n\nTap to join: https://unstuk.app?join=${groupCode}\n\nDeadline: ${expiryLabel}`;
+      ? `Get thinking, get unstuk \u2014 Join our team decision on Unstuk!\n\nCode: ${groupCode}\n\nTap to join: unstuk.app?join=${groupCode}\n\nDeadline: ${expiryLabel}`
+      : `Get thinking, get unstuk \u2014 Join our team decision on Unstuk!\n\nTap to join: unstuk.app?join=${groupCode}\n\nDeadline: ${expiryLabel}`;
     return (
       <div style={{ minHeight: "100vh", background: C.bg, fontFamily: F.b }}>
         <div style={{ maxWidth: 440, margin: "0 auto", padding: "60px 24px", textAlign: "center" }}>
@@ -5368,7 +5368,7 @@ function UnstukInner() {
         setIsGroupMode(false);
         trackEvent("group");
         const exL = groupExpiry < 1 ? `${Math.round(groupExpiry*60)} mins` : groupExpiry <= 1 ? "1 hour" : groupExpiry <= 24 ? `${groupExpiry} hours` : `${Math.round(groupExpiry/24)} days`;
-        const msg = `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk!\n\nDecision: ${dName}\nCode: ${code}\n\nTap to join: https://unstuk.app?join=${code}\n\nDeadline: ${exL}`;
+        const msg = `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk!\n\nDecision: ${dName}\nCode: ${code}\n\nTap to join: unstuk.app?join=${code}\n\nDeadline: ${exL}`;
         setShareSheetData({ text: msg, title: "Invite to Team Decision", afterClose: () => setScreen("home") });
       };
       return (
@@ -5422,7 +5422,7 @@ function UnstukInner() {
       if (!cur) {
         if (!res) { setTimeout(() => setRes(scoreBin()), 0); return null; }
         /* Results ready */
-                return <ResultsView results={res} dName={dName} critCount={crits.length} onDone={isGroupMode && groupCode ? async () => { const data = await loadGroupResults(groupCode); if (data) { setGroupData(data); setScreen("groupresults"); } else setScreen("home"); } : () => { setIsGroupMode(false); setScreen("home"); }} onBack={() => { setRes(null); setSavedId(null); setBCh((prev) => prev.slice(0, -1)); setBIdx(crits.length - 1); setBPick(null); }} onImmediate={saveImmediate} gutDoneExternal={resultsGutDone} setGutDoneExternal={setResultsGutDone} groupCreatedExternal={resultsGroupCreated} setGroupCreatedExternal={setResultsGroupCreated} groupErr={groupSubmitErr} setGroupExpiry={setGroupExpiry} groupExpiryVal={groupExpiry} setGroupHideIndiv={setGroupHideIndiv} groupHideIndivVal={groupHideIndiv} onOpenShareSheet={setShareSheetData} onGroup={!groupCode ? async () => { const code = await createGroup({ name: dName, type: "binary", criteria: crits, binaryOption1: bo1, binaryOption2: bo2 }, res, "Creator", groupExpiry); if (code) { setGroupCode(code); try { await window.storage.set("unstuk_active_groupCode", code); } catch(e) {} setIsGroupMode(false); trackEvent("group"); const exL = groupExpiry < 1 ? `${Math.round(groupExpiry*60)} mins` : groupExpiry<=1 ? "1 hour" : groupExpiry<=24 ? `${groupExpiry} hours` : `${Math.round(groupExpiry/24)} days`; const msg = groupRequireCode ? `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\nJoin code: ${code}\n\nTap to join: https://unstuk.app?join=${code}\n\nDeadline: ${exL}` : `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\n\nTap to join: https://unstuk.app?join=${code}\n\nDeadline: ${exL}`; setShareSheetData({ text: msg, title: "Invite to Team Decision" }); } } : null} />;
+                return <ResultsView results={res} dName={dName} critCount={crits.length} onDone={isGroupMode && groupCode ? async () => { const data = await loadGroupResults(groupCode); if (data) { setGroupData(data); setScreen("groupresults"); } else setScreen("home"); } : () => { setIsGroupMode(false); setScreen("home"); }} onBack={() => { setRes(null); setSavedId(null); setBCh((prev) => prev.slice(0, -1)); setBIdx(crits.length - 1); setBPick(null); }} onImmediate={saveImmediate} gutDoneExternal={resultsGutDone} setGutDoneExternal={setResultsGutDone} groupCreatedExternal={resultsGroupCreated} setGroupCreatedExternal={setResultsGroupCreated} groupErr={groupSubmitErr} setGroupExpiry={setGroupExpiry} groupExpiryVal={groupExpiry} setGroupHideIndiv={setGroupHideIndiv} groupHideIndivVal={groupHideIndiv} onOpenShareSheet={setShareSheetData} onGroup={!groupCode ? async () => { const code = await createGroup({ name: dName, type: "binary", criteria: crits, binaryOption1: bo1, binaryOption2: bo2 }, res, "Creator", groupExpiry); if (code) { setGroupCode(code); try { await window.storage.set("unstuk_active_groupCode", code); } catch(e) {} setIsGroupMode(false); trackEvent("group"); const exL = groupExpiry < 1 ? `${Math.round(groupExpiry*60)} mins` : groupExpiry<=1 ? "1 hour" : groupExpiry<=24 ? `${groupExpiry} hours` : `${Math.round(groupExpiry/24)} days`; const msg = groupRequireCode ? `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\nJoin code: ${code}\n\nTap to join: unstuk.app?join=${code}\n\nDeadline: ${exL}` : `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\n\nTap to join: unstuk.app?join=${code}\n\nDeadline: ${exL}`; setShareSheetData({ text: msg, title: "Invite to Team Decision" }); } } : null} />;
 
       }
       if (bPick === null) {
@@ -5523,7 +5523,7 @@ function UnstukInner() {
       if (mIdx >= mPairs.length) {
         if (!res) { setTimeout(() => setRes(scoreMul()), 0); return null; }
         /* Multi results ready */
-                return <ResultsView results={res} dName={dName} critCount={crits.length} onDone={isGroupMode && groupCode ? async () => { const data = await loadGroupResults(groupCode); if (data) { setGroupData(data); setScreen("groupresults"); } else setScreen("home"); } : () => { setIsGroupMode(false); setScreen("home"); }} onBack={() => { setRes(null); setSavedId(null); setMCo((prev) => prev.slice(0, -1)); setMIdx(mPairs.length - 1); }} onImmediate={saveImmediate} gutDoneExternal={resultsGutDone} setGutDoneExternal={setResultsGutDone} groupCreatedExternal={resultsGroupCreated} setGroupCreatedExternal={setResultsGroupCreated} groupErr={groupSubmitErr} setGroupExpiry={setGroupExpiry} groupExpiryVal={groupExpiry} setGroupHideIndiv={setGroupHideIndiv} groupHideIndivVal={groupHideIndiv} onOpenShareSheet={setShareSheetData} onGroup={!groupCode ? async () => { const code = await createGroup({ name: dName, type: "multi", criteria: crits, options: opts, baseOption: baseOpt }, res, "Creator", groupExpiry); if (code) { setGroupCode(code); try { await window.storage.set("unstuk_active_groupCode", code); } catch(e) {} setIsGroupMode(false); trackEvent("group"); const exL = groupExpiry < 1 ? `${Math.round(groupExpiry*60)} mins` : groupExpiry<=1 ? "1 hour" : groupExpiry<=24 ? `${groupExpiry} hours` : `${Math.round(groupExpiry/24)} days`; const msg = groupRequireCode ? `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\nJoin code: ${code}\n\nTap to join: https://unstuk.app?join=${code}\n\nDeadline: ${exL}` : `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\n\nTap to join: https://unstuk.app?join=${code}\n\nDeadline: ${exL}`; setShareSheetData({ text: msg, title: "Invite to Team Decision" }); } } : null} />;
+                return <ResultsView results={res} dName={dName} critCount={crits.length} onDone={isGroupMode && groupCode ? async () => { const data = await loadGroupResults(groupCode); if (data) { setGroupData(data); setScreen("groupresults"); } else setScreen("home"); } : () => { setIsGroupMode(false); setScreen("home"); }} onBack={() => { setRes(null); setSavedId(null); setMCo((prev) => prev.slice(0, -1)); setMIdx(mPairs.length - 1); }} onImmediate={saveImmediate} gutDoneExternal={resultsGutDone} setGutDoneExternal={setResultsGutDone} groupCreatedExternal={resultsGroupCreated} setGroupCreatedExternal={setResultsGroupCreated} groupErr={groupSubmitErr} setGroupExpiry={setGroupExpiry} groupExpiryVal={groupExpiry} setGroupHideIndiv={setGroupHideIndiv} groupHideIndivVal={groupHideIndiv} onOpenShareSheet={setShareSheetData} onGroup={!groupCode ? async () => { const code = await createGroup({ name: dName, type: "multi", criteria: crits, options: opts, baseOption: baseOpt }, res, "Creator", groupExpiry); if (code) { setGroupCode(code); try { await window.storage.set("unstuk_active_groupCode", code); } catch(e) {} setIsGroupMode(false); trackEvent("group"); const exL = groupExpiry < 1 ? `${Math.round(groupExpiry*60)} mins` : groupExpiry<=1 ? "1 hour" : groupExpiry<=24 ? `${groupExpiry} hours` : `${Math.round(groupExpiry/24)} days`; const msg = groupRequireCode ? `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\nJoin code: ${code}\n\nTap to join: unstuk.app?join=${code}\n\nDeadline: ${exL}` : `Get thinking, get unstuk \u2014 You're invited to a team decision on Unstuk.\n\nDecision: ${dName}\n\nTap to join: unstuk.app?join=${code}\n\nDeadline: ${exL}`; setShareSheetData({ text: msg, title: "Invite to Team Decision" }); } } : null} />;
       }
       const pair = mPairs[mIdx];
       const op = opts.find((o) => o.id === pair.oId);
