@@ -44,11 +44,17 @@ const FALLBACK_CHIPS = {
     "People": ["Head of Growth Hire", "Team Restructure", "Agency vs In-House", "Engineering Lead Selection", "Remote Policy Update"],
     "Operations": ["Tech Stack Migration", "Vendor Evaluation", "Budget Reallocation", "Process Automation", "Data Platform Choice"],
     "Growth": ["New Market Entry", "Product Line Extension", "Channel Strategy Shift", "Customer Segment Focus", "Sustainability Initiative"],
+    "Finance": ["Investment Allocation", "Cost Reduction Plan", "Revenue Model Change", "Pricing Strategy Review", "Budget Reforecast"],
+    "Product": ["Feature Prioritisation", "MVP Scope Decision", "Platform Architecture", "UX Redesign Direction", "Technical Debt Plan"],
+    "Customer": ["Customer Segment Pivot", "Support Model Change", "Retention Strategy", "Onboarding Overhaul", "Churn Reduction Plan"],
+    "Technology": ["Cloud Migration Path", "Security Upgrade Plan", "API Strategy", "Build vs Buy Tool", "Data Infrastructure Choice"],
   },
   "qv-name": {
     "Team Decisions": ["Which launch date works best?", "Where should we hold the offsite?", "What should be our Q3 focus?", "Which candidate do you prefer?"],
     "Quick Feedback": ["How should we handle this?", "Which design direction?", "What's blocking progress?", "Which format works best?"],
     "Strategic Polls": ["Should we enter this market?", "Which feature ships first?", "How should we split the budget?", "Build vs buy for this?"],
+    "Planning": ["What's our top priority this quarter?", "Which project should we pause?", "How should we split team time?", "What's our biggest risk right now?"],
+    "Culture & Team": ["What would improve team culture?", "Which perk matters most?", "How should we celebrate this win?", "What's our best team ritual?"],
   },
 };
 
@@ -246,8 +252,23 @@ for (const [topic, stems] of Object.entries(_STEM_ALIASES)) {
 }
 
 const GENERIC_CONTEXTUAL = {
-  opt: { "Core Choices": ["Proceed Full Speed", "Modified Approach", "Alternative Path", "Defer & Research", "Quick Pilot First"], "Creative Angles": ["Outsource It", "Partner with Expert", "Hybrid Solution", "Do the Opposite", "Let the Team Decide"] },
-  crit: { "Hard Factors": ["Total Cost", "Revenue Impact", "Time to Results", "Payback Period", "Resource Need"], "Soft Factors": ["Team Readiness", "Stakeholder Support", "Cultural Fit", "Learning Curve", "Morale Impact"], "Risk Lens": ["Worst-Case Downside", "Reversibility", "Opportunity Cost", "Competitive Risk", "Reputation Risk"] },
+  opt: {
+    "Core Choices": ["Proceed Full Speed", "Modified Approach", "Alternative Path", "Defer & Research", "Quick Pilot First"],
+    "Creative Angles": ["Outsource It", "Partner with Expert", "Hybrid Solution", "Do the Opposite", "Let the Team Decide"],
+    "Timing": ["Start Now", "Start Next Month", "Wait for More Data", "Align with Next Quarter", "Set a Deadline First"],
+    "Scale": ["Go All In", "Start Small & Expand", "Limited Pilot", "Single Team First", "Phased Rollout"],
+    "Stakeholders": ["Get Board Approval First", "Team Vote", "Customer Feedback First", "Expert Consultation", "Advisory Input"],
+    "Resources": ["Within Current Budget", "Request Additional Funding", "Reallocate Existing", "Bootstrap It", "Seek External Investment"],
+  },
+  crit: {
+    "Hard Factors": ["Total Cost", "Revenue Impact", "Time to Results", "Payback Period", "Resource Need"],
+    "Soft Factors": ["Team Readiness", "Stakeholder Support", "Cultural Fit", "Learning Curve", "Morale Impact"],
+    "Risk Lens": ["Worst-Case Downside", "Reversibility", "Opportunity Cost", "Competitive Risk", "Reputation Risk"],
+    "Strategic": ["Market Timing", "Competitive Advantage", "Long-Term Value", "Brand Alignment", "Innovation Potential"],
+    "People": ["Talent Availability", "Team Capacity", "Leadership Buy-In", "User Adoption", "Training Need"],
+    "Execution": ["Implementation Speed", "Technical Feasibility", "Dependency Count", "Measurement Clarity", "Maintenance Effort"],
+    "Financial": ["Budget Impact", "Cash Flow Effect", "Margin Protection", "Investment Required", "Revenue Dependency"],
+  },
 };
 
 // ─── Dynamic chip synthesis — generates chips from decision text itself ───
@@ -660,7 +681,8 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, 
   const [loading, setLoading] = useState(false);
   const [pickedChip, setPickedChip] = useState(null);
   const [refreshSpin, setRefreshSpin] = useState(false);
-  const [expandedCats, setExpandedCats] = useState({});
+  const [chipPanelOpen, setChipPanelOpen] = useState("closed");
+  const [activeCat, setActiveCat] = useState(null);
   const mountedRef = useRef(true);
   const debounceRef = useRef(null);
   const lastContextRef = useRef(null);
@@ -760,25 +782,39 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, 
     return wordScore;
   };
 
-  // Build sections: AI chips replace fallbacks when available
+  // Build sections: AI chips first, then generic broad categories, then topic-specific
   const sections = [];
-  const [manualExpand, setManualExpand] = useState(false);
-  const skipTypedFilter = manualExpand && collapsed;
+  const tabsRef = useRef(null);
 
-  // Always load categorized fallbacks
+  // Load categorized fallbacks (topic-specific or generic)
   const fallbackData = getContextualFallbacks(storageKey, aiContext);
   const fallbackSections = [];
+
+  // For opt/crit, prepend generic broad categories before topic-specific ones
+  if (storageKey === "opt" || storageKey === "crit") {
+    const genericData = GENERIC_CONTEXTUAL[storageKey] || {};
+    const topicCats = new Set(Object.keys(fallbackData));
+    Object.keys(genericData).forEach(cat => {
+      if (topicCats.has(cat)) return;
+      const filtered = genericData[cat].filter(c => {
+        if (usedLower.includes(c.toLowerCase())) return false;
+        if (chipPanelOpen === "open" && typed.length > 1) return c.toLowerCase().includes(typed);
+        return true;
+      });
+      if (filtered.length > 0) fallbackSections.push({ label: cat, chips: filtered, isGeneric: true });
+    });
+  }
+
   Object.keys(fallbackData).forEach(cat => {
     const filtered = fallbackData[cat].filter(c => {
       if (usedLower.includes(c.toLowerCase())) return false;
-      if (!skipTypedFilter && typed.length > 1) return c.toLowerCase().includes(typed);
+      if (chipPanelOpen === "open" && typed.length > 1) return c.toLowerCase().includes(typed);
       return true;
     });
     if (filtered.length > 0) fallbackSections.push({ label: cat, chips: filtered });
   });
 
   if (aiChips.length > 0) {
-    // AI chips first — scored by typing relevance
     if (typed.length >= 2) {
       const scored = aiChips.map(ch => ({ chip: ch, score: scoreChip(ch) }));
       const matches = scored.filter(s => s.score > 0).sort((a, b) => b.score - a.score).map(s => s.chip);
@@ -792,60 +828,83 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, 
     } else {
       sections.push({ label: "AI suggestions", chips: aiChips, isAi: true });
     }
-    // Also show categorized fallbacks below AI chips (deduped)
     const aiLower = new Set(aiChips.map(c => c.toLowerCase()));
     for (const sec of fallbackSections) {
       const deduped = sec.chips.filter(c => !aiLower.has(c.toLowerCase()));
-      if (deduped.length > 0) sections.push({ label: sec.label, chips: deduped });
+      if (deduped.length > 0) sections.push({ label: sec.label, chips: deduped, isGeneric: sec.isGeneric });
     }
   } else {
-    // No AI chips — show all categorized fallbacks
     sections.push(...fallbackSections);
   }
 
-  const isCollapsed = collapsed && !manualExpand;
-  useEffect(() => { if (!collapsed) setManualExpand(false); }, [collapsed]);
+  // Active category tab — auto-select first if current selection is gone
+  const effectiveCat = sections.find(s => s.label === activeCat) ? activeCat : (sections[0]?.label || null);
 
-  // Contextual hint based on step
-  const stepHints = { name: "What decision are you facing?", opt: "What are your choices?", crit: "What factors matter most?", "qv-name": "What do you want to ask?", "qv-opt": "What can people vote for?" };
-  const hint = stepHints[storageKey] || "Tap to add";
+  // Scroll helpers for category tabs
+  const scrollTabs = (dir) => {
+    if (tabsRef.current) tabsRef.current.scrollBy({ left: dir * 140, behavior: "smooth" });
+  };
 
-  if (isCollapsed) {
-    // Show mini preview chips in collapsed state
-    const previewChips = aiChips.slice(0, 3);
+  const totalChips = sections.reduce((n, s) => n + s.chips.length, 0);
+  const catCount = sections.length;
+
+  // ── Collapsed state: beautiful teaser banner ──
+  if (chipPanelOpen !== "open") {
     return (
-      <div onClick={() => setManualExpand(true)} style={{
-        marginTop: 8, marginBottom: 2, padding: "8px 12px", borderRadius: 10,
-        background: `linear-gradient(135deg, ${C.sageSoft}80, ${C.taupeSoft}60)`,
-        border: `1px solid ${C.sage}15`, cursor: "pointer",
-        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-      }}
-        onMouseEnter={e => { e.currentTarget.style.background = `linear-gradient(135deg, ${C.sageSoft}, ${C.taupeSoft})`; e.currentTarget.style.borderColor = `${C.sage}30`; }}
-        onMouseLeave={e => { e.currentTarget.style.background = `linear-gradient(135deg, ${C.sageSoft}80, ${C.taupeSoft}60)`; e.currentTarget.style.borderColor = `${C.sage}15`; }}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, overflow: "hidden" }}>
-            <span style={{ fontFamily: F.b, fontSize: 9, color: C.sage, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", whiteSpace: "nowrap" }}>Suggestions</span>
-            {previewChips.length > 0 && (
-              <div style={{ display: "flex", gap: 4, overflow: "hidden" }}>
-                {previewChips.map(ch => (
-                  <span key={ch} style={{ fontFamily: F.b, fontSize: 9, color: C.muted, padding: "2px 8px", background: "#fff", borderRadius: 10, border: `1px solid ${C.border}80`, whiteSpace: "nowrap", maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis" }}>{ch}</span>
-                ))}
-              </div>
-            )}
+      <div style={{ marginTop: 10, marginBottom: 4 }}>
+        <style>{`
+          @keyframes ustk-teaser-shimmer { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+          @keyframes ustk-teaser-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        `}</style>
+        <button onClick={() => setChipPanelOpen("open")}
+          className="ustk-touch"
+          style={{
+            width: "100%", padding: "12px 16px", borderRadius: 14,
+            background: `linear-gradient(135deg, ${C.sageSoft}, #f0f5ee, ${C.taupeSoft}40)`,
+            backgroundSize: "200% 200%",
+            animation: "ustk-teaser-shimmer 6s ease infinite, ustk-teaser-in 0.4s ease",
+            border: `1.5px solid ${C.sage}20`,
+            cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 12,
+            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+            boxShadow: `0 2px 12px ${C.sage}08`,
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = C.sage + "40"; e.currentTarget.style.boxShadow = `0 4px 20px ${C.sage}15`; e.currentTarget.style.transform = "translateY(-1px)"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = C.sage + "20"; e.currentTarget.style.boxShadow = `0 2px 12px ${C.sage}08`; e.currentTarget.style.transform = "translateY(0)"; }}
+        >
+          {/* Icon */}
+          <div style={{
+            width: 32, height: 32, borderRadius: 10,
+            background: `linear-gradient(135deg, ${C.sage}18, ${C.sage}08)`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0,
+          }}>
+            <span style={{ fontSize: 16, lineHeight: 1 }}>{"\u2728"}</span>
           </div>
-          <span style={{ fontFamily: F.b, fontSize: 10, color: C.sage, fontWeight: 500, opacity: 0.8, whiteSpace: "nowrap", marginLeft: 8 }}>Show ›</span>
-        </div>
+          {/* Text */}
+          <div style={{ flex: 1, textAlign: "left" }}>
+            <div style={{ fontFamily: F.b, fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 2, letterSpacing: "0.01em" }}>
+              Need ideas? Browse suggestions
+            </div>
+            <div style={{ fontFamily: F.b, fontSize: 10, color: C.muted, lineHeight: 1.3 }}>
+              {totalChips > 0 ? `${totalChips} ideas across ${catCount} categories \u2014 tap to explore` : "Tap to see tailored suggestions"}
+            </div>
+          </div>
+          {/* Arrow */}
+          <div style={{
+            width: 28, height: 28, borderRadius: 8,
+            background: C.sage + "12",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0, transition: "background 0.2s",
+          }}>
+            <span style={{ fontFamily: F.b, fontSize: 14, color: C.sage, fontWeight: 300, lineHeight: 1 }}>{"\u203A"}</span>
+          </div>
+        </button>
       </div>
     );
   }
 
-  // Determine which categories are expanded (default: first 2 open)
-  const getExpanded = (label, idx) => {
-    if (expandedCats[label] !== undefined) return expandedCats[label];
-    return idx < 2;
-  };
-
+  // ── Expanded state: full chip browser ──
   return (
     <div style={{ marginTop: 10, marginBottom: 4 }}>
       <style>{`
@@ -854,135 +913,213 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, 
         @keyframes ustk-chip-pick { 0% { transform: scale(1); } 50% { transform: scale(0.88); opacity: 0.5; } 100% { transform: scale(0.8); opacity: 0; } }
         @keyframes ustk-refresh-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes ustk-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        @keyframes ustk-panel-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .ustk-cat-scroll::-webkit-scrollbar { display: none; }
       `}</style>
 
-      {/* Header with collapse button */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-        <p style={{ fontFamily: F.b, fontSize: 10, color: C.sage, margin: 0, fontWeight: 600, letterSpacing: "0.04em" }}>
-          {typed.length > 2 ? `Matching "${typed}"` : hint}
-        </p>
-        {collapsed && manualExpand && (
-          <button onClick={() => setManualExpand(false)} style={{
-            fontFamily: F.b, fontSize: 9, color: C.taupe, background: "none", border: "none", cursor: "pointer", padding: "2px 6px", opacity: 0.7,
-          }}>Hide</button>
-        )}
-      </div>
+      <div style={{
+        borderRadius: 16,
+        background: `linear-gradient(180deg, ${C.sageSoft}40, #fff 40%)`,
+        border: `1.5px solid ${C.sage}18`,
+        padding: "14px 14px 12px",
+        animation: "ustk-panel-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        boxShadow: `0 4px 24px ${C.sage}06`,
+      }}>
 
-      {/* Sections */}
-      {sections.length > 0 && sections.map((sec, secIdx) => {
-        const isOpen = getExpanded(sec.label, secIdx);
-        const maxVisible = isOpen ? sec.chips.length : 0;
-        const hasMany = sec.chips.length > 6;
+        {/* Header: label + refresh + close */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 14, lineHeight: 1 }}>{"\u2728"}</span>
+            <p style={{ fontFamily: F.b, fontSize: 11, color: C.sage, margin: 0, fontWeight: 600, letterSpacing: "0.02em" }}>
+              {typed.length > 2 ? `Ideas matching "${typed}"` : "Tap any idea to use it"}
+            </p>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {sections.some(s => s.isAi) && (
+              <button onClick={handleRefresh} title="Refresh" aria-label="Refresh suggestions"
+                style={{
+                  fontSize: 13, padding: "4px 8px", borderRadius: 8, border: "none",
+                  background: C.sage + "10", color: C.sage, cursor: "pointer", lineHeight: 1,
+                  animation: refreshSpin ? "ustk-refresh-spin 0.6s ease" : "none",
+                  transition: "background 0.2s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = C.sage + "20"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = C.sage + "10"; }}
+              >{"\u21BB"}</button>
+            )}
+            <button onClick={() => setChipPanelOpen("closed")}
+              style={{
+                fontFamily: F.b, fontSize: 10, padding: "4px 10px", borderRadius: 8,
+                border: "none", background: C.taupe + "10", color: C.taupe,
+                cursor: "pointer", fontWeight: 500, transition: "background 0.2s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = C.taupe + "20"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = C.taupe + "10"; }}
+            >Close</button>
+          </div>
+        </div>
 
-        return (
-          <div key={sec.label} style={{ marginBottom: 10 }}>
-            {/* Section header — collapsible */}
-            <button onClick={() => setExpandedCats(prev => ({ ...prev, [sec.label]: !isOpen }))}
-              style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", padding: "2px 0", margin: "0 0 6px", width: "100%" }}>
-              <span style={{
-                fontFamily: F.b, fontSize: 9, color: sec.highlight ? C.sage : sec.isAi ? C.sage : C.taupe,
-                textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600,
-              }}>{sec.label}</span>
-              <span style={{ fontFamily: F.b, fontSize: 8, color: C.border, transition: "transform 0.2s", transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)" }}>{"\u25BE"}</span>
-              {sec.isAi && <span style={{ fontFamily: F.b, fontSize: 8, color: C.taupe, opacity: 0.6 }}>({sec.chips.length})</span>}
-              <div style={{ flex: 1 }} />
-              {sec.isAi && isOpen && (
-                <button onClick={(e) => { e.stopPropagation(); handleRefresh(); }} title="Refresh" aria-label="Refresh suggestions"
-                  style={{
-                    fontSize: 11, padding: "3px 8px", borderRadius: 12, border: `1px solid ${C.border}50`,
-                    background: "transparent", color: C.taupe, cursor: "pointer",
-                    animation: refreshSpin ? "ustk-refresh-spin 0.6s ease" : "none",
-                    transition: "color 0.2s, border-color 0.2s",
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.color = C.sage; e.currentTarget.style.borderColor = C.sage + "50"; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = C.taupe; e.currentTarget.style.borderColor = C.border + "50"; }}
-                >{"\u21BB"}</button>
-              )}
-            </button>
+        {/* Category tabs — scrollable with arrow nav */}
+        {sections.length > 0 && (
+          <div style={{ position: "relative", marginBottom: 10 }}>
+            {/* Left arrow */}
+            {sections.length > 3 && (
+              <button onClick={() => scrollTabs(-1)} aria-label="Scroll left"
+                style={{
+                  position: "absolute", left: -4, top: "50%", transform: "translateY(-50%)",
+                  zIndex: 2, width: 26, height: 26, borderRadius: "50%",
+                  background: "#fff", border: `1px solid ${C.border}60`,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                  color: C.taupe, fontSize: 12, fontWeight: 600, lineHeight: 1,
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = C.sage; e.currentTarget.style.color = C.sage; e.currentTarget.style.boxShadow = `0 2px 12px ${C.sage}20`; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border + "60"; e.currentTarget.style.color = C.taupe; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.08)"; }}
+              >{"\u2039"}</button>
+            )}
 
-            {/* Chips container with smooth expand/collapse */}
-            <div style={{
-              display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center",
-              maxHeight: isOpen ? 400 : 0, overflow: "hidden",
-              transition: "max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s",
-              opacity: isOpen ? 1 : 0,
+            {/* Scrollable tabs */}
+            <div ref={tabsRef} className="ustk-cat-scroll" style={{
+              display: "flex", gap: 6, overflowX: "auto", padding: "2px 0",
+              WebkitOverflowScrolling: "touch", scrollbarWidth: "none",
+              scrollSnapType: "x proximity",
+              marginLeft: sections.length > 3 ? 22 : 0,
+              marginRight: sections.length > 3 ? 22 : 0,
             }}>
-              {sec.chips.slice(0, maxVisible).map((chip, chipIdx) => {
+              {sections.map(sec => {
+                const isActive = effectiveCat === sec.label;
+                return (
+                  <button key={sec.label} onClick={() => setActiveCat(sec.label)}
+                    className="ustk-touch"
+                    style={{
+                      fontFamily: F.b, fontSize: 11, padding: "7px 14px", borderRadius: 20,
+                      border: `1.5px solid ${isActive ? C.sage : "transparent"}`,
+                      background: isActive ? "#fff" : C.sage + "06",
+                      color: isActive ? C.sage : C.taupe,
+                      cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
+                      fontWeight: isActive ? 600 : 400,
+                      transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                      letterSpacing: "0.01em",
+                      scrollSnapAlign: "start",
+                      boxShadow: isActive ? `0 2px 8px ${C.sage}12` : "none",
+                    }}
+                    onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = C.sage + "10"; e.currentTarget.style.color = C.sage; } }}
+                    onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = C.sage + "06"; e.currentTarget.style.color = C.taupe; } }}
+                  >
+                    {sec.isAi && <span style={{ marginRight: 4, fontSize: 10 }}>{"\u2726"}</span>}{sec.label}
+                    <span style={{ fontFamily: F.b, fontSize: 9, opacity: 0.4, marginLeft: 5 }}>{sec.chips.length}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Right arrow */}
+            {sections.length > 3 && (
+              <button onClick={() => scrollTabs(1)} aria-label="Scroll right"
+                style={{
+                  position: "absolute", right: -4, top: "50%", transform: "translateY(-50%)",
+                  zIndex: 2, width: 26, height: 26, borderRadius: "50%",
+                  background: "#fff", border: `1px solid ${C.border}60`,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                  color: C.taupe, fontSize: 12, fontWeight: 600, lineHeight: 1,
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = C.sage; e.currentTarget.style.color = C.sage; e.currentTarget.style.boxShadow = `0 2px 12px ${C.sage}20`; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border + "60"; e.currentTarget.style.color = C.taupe; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.08)"; }}
+              >{"\u203A"}</button>
+            )}
+          </div>
+        )}
+
+        {/* Active category's chips */}
+        {(() => {
+          const sec = sections.find(s => s.label === effectiveCat);
+          if (!sec) return null;
+          return (
+            <div key={effectiveCat} style={{
+              display: "flex", flexWrap: "wrap", gap: 7, alignItems: "center",
+              padding: "6px 2px 4px",
+              minHeight: 36,
+            }}>
+              {sec.chips.map((chip, chipIdx) => {
                 const isPicked = pickedChip === chip;
                 const isMatch = typed.length >= 2 && chip.toLowerCase().includes(typed);
                 return (
                   <button key={chip} className="ustk-touch" onClick={() => handlePick(chip)}
                     style={{
-                      fontFamily: F.b, fontSize: 11, padding: "7px 14px", borderRadius: 22,
-                      border: `1.5px solid ${isMatch ? C.sage + "60" : C.border}`,
+                      fontFamily: F.b, fontSize: 12, padding: "8px 16px", borderRadius: 24,
+                      border: `1.5px solid ${isMatch ? C.sage + "50" : C.border}60`,
                       background: isMatch ? `linear-gradient(135deg, ${C.sageSoft}, #fff)` : "#fff",
                       color: isMatch ? C.sage : C.text,
                       cursor: "pointer", lineHeight: 1.2,
                       transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                      boxShadow: isMatch ? `0 2px 8px ${C.sage}15` : "0 1px 3px rgba(0,0,0,0.04)",
-                      animation: isPicked ? "ustk-chip-pick 0.22s ease forwards" : `ustk-chip-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) ${chipIdx * 0.04}s both`,
+                      boxShadow: isMatch ? `0 2px 10px ${C.sage}12` : "0 1px 4px rgba(0,0,0,0.04)",
+                      animation: isPicked ? "ustk-chip-pick 0.22s ease forwards" : `ustk-chip-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) ${chipIdx * 0.03}s both`,
                       fontWeight: isMatch ? 500 : 400,
+                      letterSpacing: "0.01em",
                     }}
                     onMouseEnter={e => {
                       if (!isPicked) {
-                        e.currentTarget.style.borderColor = C.sage;
+                        e.currentTarget.style.borderColor = C.sage + "80";
                         e.currentTarget.style.background = `linear-gradient(135deg, ${C.sageSoft}, #fff)`;
                         e.currentTarget.style.color = C.sage;
-                        e.currentTarget.style.boxShadow = `0 2px 10px ${C.sage}20`;
-                        e.currentTarget.style.transform = "translateY(-1px)";
+                        e.currentTarget.style.boxShadow = `0 3px 12px ${C.sage}18`;
+                        e.currentTarget.style.transform = "translateY(-2px)";
                       }
                     }}
                     onMouseLeave={e => {
                       if (!isPicked) {
-                        e.currentTarget.style.borderColor = isMatch ? C.sage + "60" : C.border;
+                        e.currentTarget.style.borderColor = isMatch ? C.sage + "50" : C.border + "60";
                         e.currentTarget.style.background = isMatch ? `linear-gradient(135deg, ${C.sageSoft}, #fff)` : "#fff";
                         e.currentTarget.style.color = isMatch ? C.sage : C.text;
-                        e.currentTarget.style.boxShadow = isMatch ? `0 2px 8px ${C.sage}15` : "0 1px 3px rgba(0,0,0,0.04)";
+                        e.currentTarget.style.boxShadow = isMatch ? `0 2px 10px ${C.sage}12` : "0 1px 4px rgba(0,0,0,0.04)";
                         e.currentTarget.style.transform = "translateY(0)";
                       }
                     }}
-                    onTouchStart={e => { e.currentTarget.style.transform = "scale(0.95)"; }}
-                    onTouchEnd={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                    onTouchStart={e => { e.currentTarget.style.transform = "scale(0.95)"; e.currentTarget.style.boxShadow = "0 0 0 rgba(0,0,0,0)"; }}
+                    onTouchEnd={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,0.04)"; }}
                   >
                     {chip}
                   </button>
                 );
               })}
             </div>
-          </div>
-        );
-      })}
+          );
+        })()}
 
-      {/* Empty state */}
-      {sections.length === 0 && !loading && (
-        <div style={{ padding: "10px 0" }}>
-          <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, margin: "4px 0" }}>
-            {typed.length > 2 ? `No matches for "${typed}" \u2014 try different words or clear to see all` : "Type above to get tailored suggestions"}
-          </p>
-        </div>
-      )}
+        {/* Empty state */}
+        {sections.length === 0 && !loading && (
+          <div style={{ padding: "10px 4px" }}>
+            <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, margin: "4px 0" }}>
+              {typed.length > 2 ? `No matches for "${typed}" \u2014 try different words or clear to see all` : "Type above to get tailored suggestions"}
+            </p>
+          </div>
+        )}
 
-      {/* Loading shimmer */}
-      {loading && (
-        <div style={{ marginTop: 6 }}>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {[70, 90, 60, 80, 55, 75].map((w, i) => (
-              <div key={i} style={{
-                width: w, height: 28, borderRadius: 22,
-                background: `linear-gradient(90deg, ${C.border}30 25%, ${C.border}50 50%, ${C.border}30 75%)`,
-                backgroundSize: "200% 100%",
-                animation: `ustk-shimmer 1.5s ease infinite ${i * 0.12}s`,
-              }} />
-            ))}
+        {/* Loading shimmer */}
+        {loading && (
+          <div style={{ marginTop: 4 }}>
+            <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+              {[72, 92, 64, 84, 58, 78].map((w, i) => (
+                <div key={i} style={{
+                  width: w, height: 32, borderRadius: 24,
+                  background: `linear-gradient(90deg, ${C.border}20 25%, ${C.border}40 50%, ${C.border}20 75%)`,
+                  backgroundSize: "200% 100%",
+                  animation: `ustk-shimmer 1.5s ease infinite ${i * 0.12}s`,
+                }} />
+              ))}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 8, paddingLeft: 2 }}>
+              <span style={{ fontFamily: F.b, fontSize: 9, color: C.taupe, marginRight: 4 }}>Tailoring to your context</span>
+              {[0, 0.18, 0.36].map((delay, i) => (
+                <div key={i} style={{ width: 4, height: 4, borderRadius: "50%", background: C.sage, opacity: 0.2, animation: `ustk-dot-pulse 1.1s ease-in-out ${delay}s infinite` }} />
+              ))}
+            </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 8, paddingLeft: 2 }}>
-            <span style={{ fontFamily: F.b, fontSize: 9, color: C.taupe, marginRight: 4 }}>Tailoring to your context</span>
-            {[0, 0.18, 0.36].map((delay, i) => (
-              <div key={i} style={{ width: 4, height: 4, borderRadius: "50%", background: C.sage, opacity: 0.2, animation: `ustk-dot-pulse 1.1s ease-in-out ${delay}s infinite` }} />
-            ))}
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -1456,6 +1593,28 @@ function UnstukAnim({ tie, skip }) {
 }
 
 // ─── Results ───
+function AiDisclaimer({ compact = false }) {
+  return (
+    <div style={{
+      padding: compact ? "6px 10px" : "8px 14px",
+      borderRadius: 8,
+      background: "#fefce8",
+      border: "1px solid #fde68a",
+      marginBottom: compact ? 8 : 12,
+    }}>
+      <p style={{
+        fontFamily: F.b,
+        fontSize: compact ? 9 : 10,
+        color: "#92400e",
+        margin: 0,
+        lineHeight: 1.5,
+      }}>
+        This tool provides a structured framework for thinking through decisions. It is not professional advice. Results are based on the inputs and criteria you provide and may not capture all relevant factors. AI-generated suggestions can be inaccurate. Always apply your own judgment.
+      </p>
+    </div>
+  );
+}
+
 function ResultsView({ results, dName, critCount, onDone, onBack, onImmediate, onGroup, groupErr, setGroupExpiry, groupExpiryVal, setGroupHideIndiv, groupHideIndivVal, groupRequireCode, setGroupRequireCode, onOpenShareSheet, gutDoneExternal, setGutDoneExternal, groupCreatedExternal, setGroupCreatedExternal }) {
   const [showGroupSetup, setShowGroupSetup] = useState(false);
   const groupCreated = groupCreatedExternal || false;
@@ -1487,7 +1646,7 @@ function ResultsView({ results, dName, critCount, onDone, onBack, onImmediate, o
   // Strength of result
   const gap = tie ? 0 : sorted.length > 1 ? sorted[0].pct - sorted[1].pct : 100;
   const strength = tie ? "tie" : gap >= 30 ? "clear" : gap >= 10 ? "moderate" : "close";
-  const strengthMsg = { clear: "This is a clear result.", moderate: "A meaningful difference, though not overwhelming.", close: "This is a close call \u2014 see the strategies below.", tie: null };
+  const strengthMsg = { clear: "A significant difference based on your criteria.", moderate: "A meaningful difference, though not overwhelming.", close: "A close result \u2014 consider the strategies below.", tie: null };
 
   // Shareable summary — two versions
   const bar = (pct) => {
@@ -1509,12 +1668,12 @@ function ResultsView({ results, dName, critCount, onDone, onBack, onImmediate, o
     ),
     "",
     tie
-      ? "  Result: Too close to call"
+      ? "  Result: Too close to separate"
       : strength === "close"
-        ? "  Result: Close call \u2014 " + sorted[0].name + " edges ahead"
+        ? "  Result: Close result \u2014 " + sorted[0].name + " scored slightly higher"
         : strength === "moderate"
-          ? "  Result: " + sorted[0].name + " is the stronger choice"
-          : "  Result: " + sorted[0].name + " is the clear winner",
+          ? "  Result: " + sorted[0].name + " scored highest"
+          : "  Result: " + sorted[0].name + " scored highest based on your criteria",
     "",
     "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500",
     "  Think to get unstuk — try it free.",
@@ -1546,8 +1705,9 @@ function ResultsView({ results, dName, critCount, onDone, onBack, onImmediate, o
           <UnstukAnim tie={tie} skip={ph >= 2} />
         </div>
         {ph < 2 && <p style={{ fontFamily: F.b, fontSize: 10, color: C.border, margin: "0 0 12px", cursor: "pointer" }}>tap to skip</p>}
+        <AiDisclaimer compact />
         <H size="xl">{tie ? "It\u2019s a tie" : sorted[0].name}</H>
-        {!tie && <p style={{ fontFamily: F.b, fontSize: 14, color: C.muted, marginTop: 6 }}>is the stronger choice — your thinking, your call</p>}
+        {!tie && <p style={{ fontFamily: F.b, fontSize: 14, color: C.muted, marginTop: 6 }}>scored highest based on your criteria</p>}
 
         {strengthMsg[strength] && (
           <p style={{ fontFamily: F.b, fontSize: 12, color: strength === "clear" ? C.sage : C.taupe, marginTop: 10, fontStyle: "italic" }}>
@@ -1606,10 +1766,10 @@ function ResultsView({ results, dName, critCount, onDone, onBack, onImmediate, o
                   <div style={{ background: C.bg, borderRadius: 8, padding: "10px 14px" }}>
                     <p style={{ fontFamily: F.b, fontSize: 11, color: C.text, margin: 0, lineHeight: 1.6 }}>
                       {strength === "clear"
-                        ? `${sorted[0].name} dominates across your criteria. Even re-weighting wouldn't change this.`
+                        ? `${sorted[0].name} scored consistently high across your criteria. Re-weighting is unlikely to change the ordering.`
                         : strength === "moderate"
-                          ? `${sorted[0].name} leads, but adjusting 1-2 criteria weights could narrow the gap.`
-                          : `This is razor-thin — ${sorted[0].name} and ${sorted[1].name} are nearly tied. One missing criterion could flip the result.`}
+                          ? `${sorted[0].name} is ahead, but adjusting 1\u20132 criteria weights could narrow the gap.`
+                          : `${sorted[0].name} and ${sorted[1].name} are very close. A different weighting or an additional criterion could change the ordering.`}
                     </p>
                   </div>
                 )}
@@ -1621,10 +1781,10 @@ function ResultsView({ results, dName, critCount, onDone, onBack, onImmediate, o
               <div style={{ marginTop: 10, background: C.sageSoft, borderRadius: 10, border: `1px solid ${C.sage}20`, padding: "14px 16px" }}>
                 <p style={{ fontFamily: F.b, fontSize: 10, color: C.sage, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px", fontWeight: 600 }}>Recommended next step</p>
                 <p style={{ fontFamily: F.b, fontSize: 12, color: C.text, margin: 0, lineHeight: 1.6 }}>
-                  {tie ? "Sleep on it. When the analysis can't separate options, your instinct — plus one new piece of information — is the tiebreaker."
-                    : strength === "close" ? "Pressure-test this: if you had to defend picking " + sorted[1].name + " instead, what argument would you make? If it's strong, you may be missing a criterion."
-                    : strength === "moderate" ? "Commit and set a 3-day growth checkpoint. When you reflect on this decision, you'll build your instinct for next time."
-                    : "Move fast. A clear result means your criteria aligned strongly. Trust the analysis and execute."}
+                  {tie ? "Consider what additional information or perspective might help differentiate these options. A conversation with a trusted colleague or one new data point may provide clarity."
+                    : strength === "close" ? "Consider: if you had to defend picking " + sorted[1].name + " instead, what argument would you make? If it's strong, you may be missing a criterion."
+                    : strength === "moderate" ? "Consider setting a reflection checkpoint. When you revisit this decision in a few days, you may gain useful perspective for future decisions."
+                    : "Your criteria aligned consistently. Consider how this result fits with your broader context and any factors not captured in the analysis."}
                 </p>
               </div>
             </FadeIn>
@@ -1842,7 +2002,7 @@ function HowItWorks() {
             <p style={{ margin: "0 0 10px" }}><span style={{ color: C.sage }}>&#9679;</span> Name what matters before you compare. Choosing criteria first prevents you from retrofitting reasons to justify an instinctive preference.</p>
             <p style={{ margin: "0 0 10px" }}><span style={{ color: C.sage }}>&#9679;</span> Weight honestly. If salary matters more than commute, say so. Pretending everything is equally important produces useless results.</p>
             <p style={{ margin: "0 0 10px" }}><span style={{ color: C.sage }}>&#9679;</span> Close calls are information. If two options score within 10%, the data is telling you both are viable. Use other signals — reversibility, timing, energy — to break it.</p>
-            <p style={{ margin: "0 0 0" }}><span style={{ color: C.sage }}>&#9679;</span> Decide, then commit. Research shows that people who commit fully to a choice report higher satisfaction than those who keep second-guessing, even when the choices are identical.</p>
+            <p style={{ margin: "0 0 0" }}><span style={{ color: C.sage }}>&#9679;</span> Once you've decided, move forward with confidence. Research shows that people who follow through on a choice report higher satisfaction than those who keep second-guessing, even when the choices are similar.</p>
           </div>
         </FadeIn>
       )}
@@ -3958,25 +4118,25 @@ function UnstukInner() {
         else if (imm === "confident") tips.push("Confidence plus a bad outcome often means a missing criterion. What surprised you? That's your hidden factor.");
         else tips.push("Next time, ask: what could go wrong that I'm not measuring?");
       } else if (a.outcome === "Better than expected" && a.followedApp === "No, I went with my instinct") {
-        insights.push("You overrode the analysis and it worked out. Your intuition picked up on something the structured criteria missed.");
-        if (imm === "confident") tips.push("Strong instinct + good outcome = real signal. Consider what what your instinct was responding to — it might deserve to be a criterion.");
-        else tips.push("Pay attention to what what your instinct was responding to — it might be a criterion worth adding explicitly next time.");
+        insights.push("You chose differently from the analysis and it worked out. Your intuition may have picked up on something the structured criteria didn't capture.");
+        if (imm === "confident") tips.push("Consider what your instinct was responding to \u2014 it might be worth adding as an explicit criterion next time.");
+        else tips.push("Consider what your instinct was responding to \u2014 it might be worth adding as an explicit criterion next time.");
       } else if (a.outcome === "Worse than expected" && a.followedApp === "No, I went with my instinct") {
-        insights.push("Your instinct led you away from the analysis, and the outcome was disappointing. The criteria you set might have been wiser than the feeling in the moment.");
-        if (imm === "confident") tips.push("You felt confident going against the analysis, but it didn't work out. Overconfidence in instinct decisions is a common pattern — the analysis exists to challenge exactly this.");
-        else tips.push("When instinct and analysis disagree, try adding the instinct as an explicit criterion and re-running the comparison.");
+        insights.push("You chose differently from the analysis and the outcome was disappointing. The criteria you set may have captured important factors.");
+        if (imm === "confident") tips.push("When instinct and analysis disagree, consider adding your instinct as an explicit criterion and re-running the comparison.");
+        else tips.push("When instinct and analysis disagree, consider adding the instinct as an explicit criterion and re-running the comparison.");
       } else if (a.outcome === "About as expected" && a.followedApp === "Yes") {
         insights.push("The outcome matched your expectations and you followed the analysis. Your mental model of this decision was accurate.");
         tips.push("This kind of predictability means your criteria selection was on point.");
       } else if (a.outcome === "About as expected" && a.followedApp === "No, I went with my instinct") {
         insights.push("You went with your instinct and the outcome was about what you expected. The analysis and your intuition may have been closer than you thought.");
-        tips.push("Check if the analysis actually agreed with your gut. If it did, you can trust both channels.");
+        tips.push("It may be worth checking if the analysis actually pointed in the same direction as your instinct.");
       } else if (a.outcome === "About as expected" && a.followedApp === "Partly \u2014 it influenced me") {
-        insights.push("You blended analysis with intuition and got a predictable result. This balanced approach often produces the most consistent outcomes.");
-        tips.push("Blending structured and intuitive thinking is a strength. Keep doing it.");
+        insights.push("You blended analysis with intuition and got a predictable result. This balanced approach can produce consistent outcomes.");
+        tips.push("Blending structured and intuitive thinking is a common approach among experienced decision-makers.");
       } else if (a.outcome === "Better than expected" && a.followedApp === "Partly \u2014 it influenced me") {
-        insights.push("You took the analysis as input rather than gospel, and it paid off. The best decisions often combine structure with judgement.");
-        tips.push("This approach — analysis as input, not answer — is how experts make decisions.");
+        insights.push("You used the analysis as one input among others, and the result was positive. Many experienced decision-makers take a similar approach.");
+        tips.push("Using structured analysis as input rather than a definitive answer is one approach to decision-making.");
       } else if (a.outcome === "Worse than expected" && a.followedApp === "Partly \u2014 it influenced me") {
         insights.push("A mixed approach led to a disappointing result. It's worth asking: did you override the right parts or the wrong parts of the analysis?");
         tips.push("Review which criteria you weighed differently in your head vs in the app. That gap is where the lesson lives.");
@@ -3996,7 +4156,7 @@ function UnstukInner() {
         tips.push("Before your next decision, list what you'd need to know and how long it would take. If it's under a day, get it. If it's a week, decide without it.");
       } else if (a.lesson === "I'd consider more options") {
         insights.push("Feeling like you missed an option suggests the framing was too narrow. Good decisions start with good option generation.");
-        tips.push("Spend 5 minutes brainstorming options before you commit to comparing them. Often the best choice is one you almost didn't consider.");
+        tips.push("Spending a few minutes brainstorming options before comparing them can surface choices you might otherwise overlook.");
       }
 
       return { insights, tips };
@@ -4086,8 +4246,9 @@ function UnstukInner() {
               <p style={{ fontFamily: F.b, fontSize: 9, color: C.sage, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 6px" }}>Growth · Insight</p>
               <H size="lg">Insight earned</H>
               <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, marginTop: 6, lineHeight: 1.6 }}>
-                You just closed the loop on a real decision. This is how expert-level judgment is built — one reflection at a time.
+                You reflected on a real decision. Reflection is one way to build perspective over time.
               </p>
+              <AiDisclaimer compact />
               <p style={{ fontFamily: F.b, fontSize: 12, color: C.text, fontWeight: 500, marginTop: 6 }}>{dec.name}</p>
             </div>
 
@@ -4127,9 +4288,9 @@ function UnstukInner() {
                       (dec.immediate.feeling === "uneasy" && r.outcome === "Worse than expected");
                     const gutWrong = (dec.immediate.feeling === "confident" && r.outcome === "Worse than expected") ||
                       (dec.immediate.feeling === "uneasy" && r.outcome === "Better than expected");
-                    if (gutRight) return <p style={{ fontFamily: F.b, fontSize: 12, color: C.sage, margin: "12px 0 0", textAlign: "center", fontStyle: "italic" }}>Your instinct was right. It picked up on something real.</p>;
-                    if (gutWrong) return <p style={{ fontFamily: F.b, fontSize: 12, color: C.taupe, margin: "12px 0 0", textAlign: "center", fontStyle: "italic" }}>Your instinct misread this one. The criteria may have been wiser.</p>;
-                    return <p style={{ fontFamily: F.b, fontSize: 12, color: C.muted, margin: "12px 0 0", textAlign: "center", fontStyle: "italic" }}>Mixed signals — both instinct and outcome were ambiguous here.</p>;
+                    if (gutRight) return <p style={{ fontFamily: F.b, fontSize: 12, color: C.sage, margin: "12px 0 0", textAlign: "center", fontStyle: "italic" }}>Your initial feeling aligned with the outcome.</p>;
+                    if (gutWrong) return <p style={{ fontFamily: F.b, fontSize: 12, color: C.taupe, margin: "12px 0 0", textAlign: "center", fontStyle: "italic" }}>Your initial feeling didn't match the outcome. This is common and can be useful information for future decisions.</p>;
+                    return <p style={{ fontFamily: F.b, fontSize: 12, color: C.muted, margin: "12px 0 0", textAlign: "center", fontStyle: "italic" }}>Mixed signals \u2014 both feeling and outcome were ambiguous here.</p>;
                   })()}
                 </div>
               </FadeIn>
@@ -4522,7 +4683,7 @@ function UnstukInner() {
                         "I'd weigh different criteria": { title: "Sharpen your criteria", tip: "Before your next decision, list criteria FIRST — before looking at options. This reduces bias from anchoring on a favourite." },
                         "I'd decide faster": { title: "Speed up your process", tip: "Set a time cap before starting. Most decisions don't improve with more deliberation — they improve with better criteria upfront." },
                         "I'd get more information first": { title: "Close information gaps", tip: "Before deciding, ask: 'What would change my mind?' If you can find that info in under a day, get it. Otherwise, decide now." },
-                        "I'd consider more options": { title: "Expand your option set", tip: "Spend 5 minutes brainstorming before committing to options. Ask 'What would [someone I respect] consider?' to break your frame." },
+                        "I'd consider more options": { title: "Expand your option set", tip: "Spend a few minutes brainstorming before narrowing down options. Ask 'What would [someone I respect] consider?' to broaden your perspective." },
                       };
                       const rec = tips[topLesson[0]];
                       if (rec) recs.push({ ...rec, count: topLesson[1] });
@@ -4830,7 +4991,7 @@ function UnstukInner() {
         options: ["It was the right call", "Mixed feelings", "I wish I'd chosen differently", "Still too early to say"]
       },
       { key: "whatLearned", q: "What's the biggest thing you've learned from this decision?",
-        options: ["Trust the analysis more", "Trust my instinct more", "I need better criteria", "Speed matters more than I thought", "Nothing new — it confirmed what I knew"]
+        options: ["Lean more on structured analysis", "Lean more on instinct", "I need better criteria", "Speed matters more than I thought", "Nothing new \u2014 it confirmed what I knew"]
       },
     ];
 
@@ -4926,7 +5087,7 @@ function UnstukInner() {
             <div style={{ fontSize: 40, marginBottom: 20 }}>&#10024;</div>
             <H size="lg">You've used your free decision</H>
             <p style={{ fontFamily: F.b, fontSize: 14, color: C.muted, lineHeight: 1.7, margin: "16px 0 8px" }}>
-              Every Unstuk user gets 10 decisions of each type free — so you can experience the full process before committing. Upgrade to Pro for unlimited access.
+              Every Unstuk user gets 10 decisions of each type free \u2014 so you can experience the full process before upgrading. Upgrade to Pro for unlimited access.
             </p>
 
             <Card style={{ padding: "20px 20px 10px", marginBottom: 18, textAlign: "left" }}>
