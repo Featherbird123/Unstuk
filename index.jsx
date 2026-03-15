@@ -848,144 +848,166 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, 
   const totalChips = sections.reduce((n, s) => n + s.chips.length, 0);
   const catCount = sections.length;
 
-  // ── Collapsed state: beautiful teaser banner ──
+  // ── Collapsed state: inviting teaser ──
   if (chipPanelOpen !== "open") {
     return (
-      <div style={{ marginTop: 10, marginBottom: 4 }}>
+      <div style={{ marginTop: 12, marginBottom: 6 }}>
         <style>{`
-          @keyframes ustk-teaser-shimmer { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-          @keyframes ustk-teaser-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+          @keyframes ustk-glow { 0%, 100% { box-shadow: 0 2px 16px rgba(74,103,65,0.06); } 50% { box-shadow: 0 4px 24px rgba(74,103,65,0.12); } }
+          @keyframes ustk-teaser-in { from { opacity: 0; transform: translateY(6px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+          @keyframes ustk-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
         `}</style>
         <button onClick={() => setChipPanelOpen("open")}
           className="ustk-touch"
           style={{
-            width: "100%", padding: "12px 16px", borderRadius: 14,
-            background: `linear-gradient(135deg, ${C.sageSoft}, #f0f5ee, ${C.taupeSoft}40)`,
-            backgroundSize: "200% 200%",
-            animation: "ustk-teaser-shimmer 6s ease infinite, ustk-teaser-in 0.4s ease",
-            border: `1.5px solid ${C.sage}20`,
+            width: "100%", padding: "14px 18px", borderRadius: 16,
+            background: "#fff",
+            border: `1px solid ${C.sage}15`,
             cursor: "pointer",
-            display: "flex", alignItems: "center", gap: 12,
-            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-            boxShadow: `0 2px 12px ${C.sage}08`,
+            display: "flex", alignItems: "center", gap: 14,
+            transition: "all 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
+            animation: "ustk-glow 3s ease-in-out infinite, ustk-teaser-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)",
           }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = C.sage + "40"; e.currentTarget.style.boxShadow = `0 4px 20px ${C.sage}15`; e.currentTarget.style.transform = "translateY(-1px)"; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = C.sage + "20"; e.currentTarget.style.boxShadow = `0 2px 12px ${C.sage}08`; e.currentTarget.style.transform = "translateY(0)"; }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = C.sage + "35"; e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 8px 30px ${C.sage}14`; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = C.sage + "15"; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = ""; }}
         >
-          {/* Icon */}
+          {/* Animated icon */}
           <div style={{
-            width: 32, height: 32, borderRadius: 10,
-            background: `linear-gradient(135deg, ${C.sage}18, ${C.sage}08)`,
+            width: 38, height: 38, borderRadius: 12,
+            background: `linear-gradient(145deg, ${C.sageSoft}, #fff)`,
+            border: `1px solid ${C.sage}10`,
             display: "flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0,
+            flexShrink: 0, animation: "ustk-float 3s ease-in-out infinite",
           }}>
-            <span style={{ fontSize: 16, lineHeight: 1 }}>{"\u2728"}</span>
+            <span style={{ fontSize: 18, lineHeight: 1 }}>{"\uD83D\uDCA1"}</span>
           </div>
           {/* Text */}
           <div style={{ flex: 1, textAlign: "left" }}>
-            <div style={{ fontFamily: F.b, fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 2, letterSpacing: "0.01em" }}>
-              Need ideas? Browse suggestions
+            <div style={{ fontFamily: F.d, fontSize: 15, fontWeight: 600, color: C.text, marginBottom: 3, letterSpacing: "0.01em" }}>
+              Need inspiration?
             </div>
-            <div style={{ fontFamily: F.b, fontSize: 10, color: C.muted, lineHeight: 1.3 }}>
-              {totalChips > 0 ? `${totalChips} ideas across ${catCount} categories \u2014 tap to explore` : "Tap to see tailored suggestions"}
+            <div style={{ fontFamily: F.b, fontSize: 10.5, color: C.muted, lineHeight: 1.4 }}>
+              {totalChips > 0
+                ? <>{catCount} categories of ideas to explore <span style={{ color: C.sage, fontWeight: 500 }}>&middot; tap to browse</span></>
+                : <span>Tailored suggestions ready <span style={{ color: C.sage, fontWeight: 500 }}>&middot; tap to browse</span></span>
+              }
             </div>
           </div>
-          {/* Arrow */}
+          {/* Chevron */}
           <div style={{
-            width: 28, height: 28, borderRadius: 8,
-            background: C.sage + "12",
+            width: 30, height: 30, borderRadius: 10,
+            background: `linear-gradient(135deg, ${C.sage}10, ${C.sage}05)`,
             display: "flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0, transition: "background 0.2s",
+            flexShrink: 0, transition: "all 0.3s",
           }}>
-            <span style={{ fontFamily: F.b, fontSize: 14, color: C.sage, fontWeight: 300, lineHeight: 1 }}>{"\u203A"}</span>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ opacity: 0.6 }}>
+              <path d="M3.5 1.5L7 5L3.5 8.5" stroke={C.sage} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </div>
         </button>
       </div>
     );
   }
 
-  // ── Expanded state: full chip browser ──
+  // ── Expanded state: full idea browser ──
   return (
-    <div style={{ marginTop: 10, marginBottom: 4 }}>
+    <div style={{ marginTop: 12, marginBottom: 6 }}>
       <style>{`
         @keyframes ustk-dot-pulse { 0%, 80%, 100% { opacity: 0.2; transform: scale(0.7); } 40% { opacity: 1; transform: scale(1); } }
-        @keyframes ustk-chip-in { from { opacity: 0; transform: translateY(6px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        @keyframes ustk-chip-pick { 0% { transform: scale(1); } 50% { transform: scale(0.88); opacity: 0.5; } 100% { transform: scale(0.8); opacity: 0; } }
+        @keyframes ustk-chip-in { from { opacity: 0; transform: translateY(5px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes ustk-chip-pick { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(74,103,65,0.3); } 40% { transform: scale(0.92); box-shadow: 0 0 0 6px rgba(74,103,65,0); } 100% { transform: scale(0.85); opacity: 0; } }
         @keyframes ustk-refresh-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes ustk-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-        @keyframes ustk-panel-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes ustk-panel-in { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes ustk-tab-underline { from { transform: scaleX(0); } to { transform: scaleX(1); } }
         .ustk-cat-scroll::-webkit-scrollbar { display: none; }
       `}</style>
 
       <div style={{
-        borderRadius: 16,
-        background: `linear-gradient(180deg, ${C.sageSoft}40, #fff 40%)`,
-        border: `1.5px solid ${C.sage}18`,
-        padding: "14px 14px 12px",
-        animation: "ustk-panel-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)",
-        boxShadow: `0 4px 24px ${C.sage}06`,
+        borderRadius: 18,
+        background: "#fff",
+        border: `1px solid ${C.sage}12`,
+        padding: 0,
+        animation: "ustk-panel-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        boxShadow: `0 4px 28px ${C.sage}08, 0 1px 3px rgba(0,0,0,0.04)`,
+        overflow: "hidden",
       }}>
 
-        {/* Header: label + refresh + close */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        {/* Header bar */}
+        <div style={{
+          padding: "12px 16px 10px",
+          background: `linear-gradient(135deg, ${C.sageSoft}50, ${C.taupeSoft}25)`,
+          borderBottom: `1px solid ${C.sage}08`,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+        }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 14, lineHeight: 1 }}>{"\u2728"}</span>
-            <p style={{ fontFamily: F.b, fontSize: 11, color: C.sage, margin: 0, fontWeight: 600, letterSpacing: "0.02em" }}>
-              {typed.length > 2 ? `Ideas matching "${typed}"` : "Tap any idea to use it"}
-            </p>
+            <span style={{ fontSize: 15, lineHeight: 1 }}>{"\uD83D\uDCA1"}</span>
+            <div>
+              <p style={{ fontFamily: F.b, fontSize: 11.5, color: C.text, margin: 0, fontWeight: 600, letterSpacing: "0.01em" }}>
+                {typed.length > 2 ? `Ideas matching "${typed}"` : "Tap any idea to use it"}
+              </p>
+              <p style={{ fontFamily: F.b, fontSize: 9, color: C.muted, margin: "2px 0 0", opacity: 0.7 }}>
+                Swipe categories \u2022 tap to add
+              </p>
+            </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
             {sections.some(s => s.isAi) && (
-              <button onClick={handleRefresh} title="Refresh" aria-label="Refresh suggestions"
+              <button onClick={handleRefresh} title="Refresh ideas" aria-label="Refresh suggestions"
                 style={{
-                  fontSize: 13, padding: "4px 8px", borderRadius: 8, border: "none",
-                  background: C.sage + "10", color: C.sage, cursor: "pointer", lineHeight: 1,
+                  width: 30, height: 30, borderRadius: 10, border: "none",
+                  background: "rgba(255,255,255,0.8)", color: C.sage,
+                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 14, lineHeight: 1,
                   animation: refreshSpin ? "ustk-refresh-spin 0.6s ease" : "none",
-                  transition: "background 0.2s",
+                  transition: "all 0.2s", backdropFilter: "blur(4px)",
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = C.sage + "20"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = C.sage + "10"; }}
+                onMouseEnter={e => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.boxShadow = `0 2px 8px ${C.sage}15`; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.8)"; e.currentTarget.style.boxShadow = "none"; }}
               >{"\u21BB"}</button>
             )}
             <button onClick={() => setChipPanelOpen("closed")}
               style={{
-                fontFamily: F.b, fontSize: 10, padding: "4px 10px", borderRadius: 8,
-                border: "none", background: C.taupe + "10", color: C.taupe,
-                cursor: "pointer", fontWeight: 500, transition: "background 0.2s",
+                width: 30, height: 30, borderRadius: 10, border: "none",
+                background: "rgba(255,255,255,0.8)", color: C.taupe,
+                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 13, lineHeight: 1,
+                transition: "all 0.2s", backdropFilter: "blur(4px)",
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = C.taupe + "20"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = C.taupe + "10"; }}
-            >Close</button>
+              onMouseEnter={e => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.06)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.8)"; e.currentTarget.style.boxShadow = "none"; }}
+            >{"\u2715"}</button>
           </div>
         </div>
 
         {/* Category tabs — scrollable with arrow nav */}
         {sections.length > 0 && (
-          <div style={{ position: "relative", marginBottom: 10 }}>
-            {/* Left arrow */}
+          <div style={{ position: "relative", padding: "10px 0 0" }}>
+            {/* Left fade + arrow */}
             {sections.length > 3 && (
               <button onClick={() => scrollTabs(-1)} aria-label="Scroll left"
                 style={{
-                  position: "absolute", left: -4, top: "50%", transform: "translateY(-50%)",
-                  zIndex: 2, width: 26, height: 26, borderRadius: "50%",
-                  background: "#fff", border: `1px solid ${C.border}60`,
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                  position: "absolute", left: 4, top: "50%", transform: "translateY(-40%)",
+                  zIndex: 2, width: 28, height: 28, borderRadius: "50%",
+                  background: "#fff", border: `1px solid ${C.border}40`,
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
                   cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                  color: C.taupe, fontSize: 12, fontWeight: 600, lineHeight: 1,
                   transition: "all 0.2s",
                 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = C.sage; e.currentTarget.style.color = C.sage; e.currentTarget.style.boxShadow = `0 2px 12px ${C.sage}20`; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border + "60"; e.currentTarget.style.color = C.taupe; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.08)"; }}
-              >{"\u2039"}</button>
+                onMouseEnter={e => { e.currentTarget.style.borderColor = C.sage + "60"; e.currentTarget.style.boxShadow = `0 3px 14px ${C.sage}18`; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border + "40"; e.currentTarget.style.boxShadow = "0 2px 10px rgba(0,0,0,0.08)"; }}
+              >
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M5 1L2 4L5 7" stroke={C.taupe} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </button>
             )}
 
             {/* Scrollable tabs */}
             <div ref={tabsRef} className="ustk-cat-scroll" style={{
-              display: "flex", gap: 6, overflowX: "auto", padding: "2px 0",
+              display: "flex", gap: 4, overflowX: "auto", padding: "2px 16px 10px",
               WebkitOverflowScrolling: "touch", scrollbarWidth: "none",
               scrollSnapType: "x proximity",
-              marginLeft: sections.length > 3 ? 22 : 0,
-              marginRight: sections.length > 3 ? 22 : 0,
+              marginLeft: sections.length > 3 ? 20 : 0,
+              marginRight: sections.length > 3 ? 20 : 0,
             }}>
               {sections.map(sec => {
                 const isActive = effectiveCat === sec.label;
@@ -993,42 +1015,43 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, 
                   <button key={sec.label} onClick={() => setActiveCat(sec.label)}
                     className="ustk-touch"
                     style={{
-                      fontFamily: F.b, fontSize: 11, padding: "7px 14px", borderRadius: 20,
-                      border: `1.5px solid ${isActive ? C.sage : "transparent"}`,
-                      background: isActive ? "#fff" : C.sage + "06",
-                      color: isActive ? C.sage : C.taupe,
+                      fontFamily: F.b, fontSize: 11, padding: "7px 14px", borderRadius: 22,
+                      border: "none",
+                      background: isActive ? C.sage : "transparent",
+                      color: isActive ? "#fff" : C.muted,
                       cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
                       fontWeight: isActive ? 600 : 400,
                       transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                       letterSpacing: "0.01em",
                       scrollSnapAlign: "start",
-                      boxShadow: isActive ? `0 2px 8px ${C.sage}12` : "none",
+                      boxShadow: isActive ? `0 2px 10px ${C.sage}25` : "none",
                     }}
-                    onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = C.sage + "10"; e.currentTarget.style.color = C.sage; } }}
-                    onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = C.sage + "06"; e.currentTarget.style.color = C.taupe; } }}
+                    onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = C.sageSoft; e.currentTarget.style.color = C.sage; } }}
+                    onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.muted; } }}
                   >
-                    {sec.isAi && <span style={{ marginRight: 4, fontSize: 10 }}>{"\u2726"}</span>}{sec.label}
-                    <span style={{ fontFamily: F.b, fontSize: 9, opacity: 0.4, marginLeft: 5 }}>{sec.chips.length}</span>
+                    {sec.isAi && <span style={{ marginRight: 4, fontSize: 9, opacity: 0.8 }}>{"\u2726"}</span>}{sec.label}
+                    <span style={{ fontFamily: F.b, fontSize: 9, opacity: isActive ? 0.7 : 0.35, marginLeft: 5 }}>{sec.chips.length}</span>
                   </button>
                 );
               })}
             </div>
 
-            {/* Right arrow */}
+            {/* Right fade + arrow */}
             {sections.length > 3 && (
               <button onClick={() => scrollTabs(1)} aria-label="Scroll right"
                 style={{
-                  position: "absolute", right: -4, top: "50%", transform: "translateY(-50%)",
-                  zIndex: 2, width: 26, height: 26, borderRadius: "50%",
-                  background: "#fff", border: `1px solid ${C.border}60`,
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                  position: "absolute", right: 4, top: "50%", transform: "translateY(-40%)",
+                  zIndex: 2, width: 28, height: 28, borderRadius: "50%",
+                  background: "#fff", border: `1px solid ${C.border}40`,
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
                   cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                  color: C.taupe, fontSize: 12, fontWeight: 600, lineHeight: 1,
                   transition: "all 0.2s",
                 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = C.sage; e.currentTarget.style.color = C.sage; e.currentTarget.style.boxShadow = `0 2px 12px ${C.sage}20`; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border + "60"; e.currentTarget.style.color = C.taupe; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.08)"; }}
-              >{"\u203A"}</button>
+                onMouseEnter={e => { e.currentTarget.style.borderColor = C.sage + "60"; e.currentTarget.style.boxShadow = `0 3px 14px ${C.sage}18`; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border + "40"; e.currentTarget.style.boxShadow = "0 2px 10px rgba(0,0,0,0.08)"; }}
+              >
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M3 1L6 4L3 7" stroke={C.taupe} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </button>
             )}
           </div>
         )}
@@ -1039,9 +1062,9 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, 
           if (!sec) return null;
           return (
             <div key={effectiveCat} style={{
-              display: "flex", flexWrap: "wrap", gap: 7, alignItems: "center",
-              padding: "6px 2px 4px",
-              minHeight: 36,
+              display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center",
+              padding: "4px 16px 14px",
+              minHeight: 40,
             }}>
               {sec.chips.map((chip, chipIdx) => {
                 const isPicked = pickedChip === chip;
@@ -1049,37 +1072,37 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, 
                 return (
                   <button key={chip} className="ustk-touch" onClick={() => handlePick(chip)}
                     style={{
-                      fontFamily: F.b, fontSize: 12, padding: "8px 16px", borderRadius: 24,
-                      border: `1.5px solid ${isMatch ? C.sage + "50" : C.border}60`,
-                      background: isMatch ? `linear-gradient(135deg, ${C.sageSoft}, #fff)` : "#fff",
+                      fontFamily: F.b, fontSize: 12.5, padding: "9px 18px", borderRadius: 26,
+                      border: `1px solid ${isMatch ? C.sage + "40" : C.border}50`,
+                      background: isMatch ? `linear-gradient(135deg, ${C.sageSoft}, #fff)` : "#FAFAF8",
                       color: isMatch ? C.sage : C.text,
                       cursor: "pointer", lineHeight: 1.2,
-                      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                      boxShadow: isMatch ? `0 2px 10px ${C.sage}12` : "0 1px 4px rgba(0,0,0,0.04)",
-                      animation: isPicked ? "ustk-chip-pick 0.22s ease forwards" : `ustk-chip-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) ${chipIdx * 0.03}s both`,
+                      transition: "all 0.22s cubic-bezier(0.4, 0, 0.2, 1)",
+                      boxShadow: isMatch ? `0 2px 12px ${C.sage}10` : "0 1px 3px rgba(0,0,0,0.03)",
+                      animation: isPicked ? "ustk-chip-pick 0.28s ease forwards" : `ustk-chip-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) ${chipIdx * 0.035}s both`,
                       fontWeight: isMatch ? 500 : 400,
                       letterSpacing: "0.01em",
                     }}
                     onMouseEnter={e => {
                       if (!isPicked) {
-                        e.currentTarget.style.borderColor = C.sage + "80";
+                        e.currentTarget.style.borderColor = C.sage + "60";
                         e.currentTarget.style.background = `linear-gradient(135deg, ${C.sageSoft}, #fff)`;
                         e.currentTarget.style.color = C.sage;
-                        e.currentTarget.style.boxShadow = `0 3px 12px ${C.sage}18`;
-                        e.currentTarget.style.transform = "translateY(-2px)";
+                        e.currentTarget.style.boxShadow = `0 4px 16px ${C.sage}14`;
+                        e.currentTarget.style.transform = "translateY(-2px) scale(1.02)";
                       }
                     }}
                     onMouseLeave={e => {
                       if (!isPicked) {
-                        e.currentTarget.style.borderColor = isMatch ? C.sage + "50" : C.border + "60";
-                        e.currentTarget.style.background = isMatch ? `linear-gradient(135deg, ${C.sageSoft}, #fff)` : "#fff";
+                        e.currentTarget.style.borderColor = isMatch ? C.sage + "40" : C.border + "50";
+                        e.currentTarget.style.background = isMatch ? `linear-gradient(135deg, ${C.sageSoft}, #fff)` : "#FAFAF8";
                         e.currentTarget.style.color = isMatch ? C.sage : C.text;
-                        e.currentTarget.style.boxShadow = isMatch ? `0 2px 10px ${C.sage}12` : "0 1px 4px rgba(0,0,0,0.04)";
-                        e.currentTarget.style.transform = "translateY(0)";
+                        e.currentTarget.style.boxShadow = isMatch ? `0 2px 12px ${C.sage}10` : "0 1px 3px rgba(0,0,0,0.03)";
+                        e.currentTarget.style.transform = "translateY(0) scale(1)";
                       }
                     }}
-                    onTouchStart={e => { e.currentTarget.style.transform = "scale(0.95)"; e.currentTarget.style.boxShadow = "0 0 0 rgba(0,0,0,0)"; }}
-                    onTouchEnd={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,0.04)"; }}
+                    onTouchStart={e => { e.currentTarget.style.transform = "scale(0.95)"; e.currentTarget.style.background = C.sageSoft; }}
+                    onTouchEnd={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.background = isMatch ? `linear-gradient(135deg, ${C.sageSoft}, #fff)` : "#FAFAF8"; }}
                   >
                     {chip}
                   </button>
@@ -1091,30 +1114,30 @@ function ChipPicker({ onPick, usedNames = [], storageKey, aiContext, focusNext, 
 
         {/* Empty state */}
         {sections.length === 0 && !loading && (
-          <div style={{ padding: "10px 4px" }}>
-            <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, margin: "4px 0" }}>
-              {typed.length > 2 ? `No matches for "${typed}" \u2014 try different words or clear to see all` : "Type above to get tailored suggestions"}
+          <div style={{ padding: "16px 20px" }}>
+            <p style={{ fontFamily: F.b, fontSize: 11, color: C.muted, margin: 0, textAlign: "center" }}>
+              {typed.length > 2 ? `No matches for "${typed}" \u2014 try different words` : "Type above to get tailored ideas"}
             </p>
           </div>
         )}
 
         {/* Loading shimmer */}
         {loading && (
-          <div style={{ marginTop: 4 }}>
-            <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
-              {[72, 92, 64, 84, 58, 78].map((w, i) => (
+          <div style={{ padding: "8px 16px 14px" }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {[74, 94, 66, 88, 60, 80].map((w, i) => (
                 <div key={i} style={{
-                  width: w, height: 32, borderRadius: 24,
-                  background: `linear-gradient(90deg, ${C.border}20 25%, ${C.border}40 50%, ${C.border}20 75%)`,
+                  width: w, height: 34, borderRadius: 26,
+                  background: `linear-gradient(90deg, ${C.border}15 25%, ${C.border}30 50%, ${C.border}15 75%)`,
                   backgroundSize: "200% 100%",
                   animation: `ustk-shimmer 1.5s ease infinite ${i * 0.12}s`,
                 }} />
               ))}
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 8, paddingLeft: 2 }}>
-              <span style={{ fontFamily: F.b, fontSize: 9, color: C.taupe, marginRight: 4 }}>Tailoring to your context</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 10, justifyContent: "center" }}>
+              <span style={{ fontFamily: F.b, fontSize: 9, color: C.taupe }}>Finding ideas for you</span>
               {[0, 0.18, 0.36].map((delay, i) => (
-                <div key={i} style={{ width: 4, height: 4, borderRadius: "50%", background: C.sage, opacity: 0.2, animation: `ustk-dot-pulse 1.1s ease-in-out ${delay}s infinite` }} />
+                <div key={i} style={{ width: 3.5, height: 3.5, borderRadius: "50%", background: C.sage, opacity: 0.25, animation: `ustk-dot-pulse 1.1s ease-in-out ${delay}s infinite` }} />
               ))}
             </div>
           </div>
