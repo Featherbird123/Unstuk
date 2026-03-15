@@ -1596,20 +1596,23 @@ function UnstukAnim({ tie, skip }) {
 function AiDisclaimer({ compact = false }) {
   return (
     <div style={{
-      padding: compact ? "6px 10px" : "8px 14px",
-      borderRadius: 8,
-      background: "#fefce8",
-      border: "1px solid #fde68a",
-      marginBottom: compact ? 8 : 12,
+      padding: compact ? "8px 12px" : "12px 16px",
+      borderRadius: compact ? 10 : 12,
+      background: `linear-gradient(135deg, ${C.sageSoft}60, ${C.taupeSoft}40)`,
+      border: `1px solid ${C.sage}12`,
+      marginBottom: compact ? 10 : 14,
+      display: "flex", alignItems: "flex-start", gap: compact ? 8 : 10,
     }}>
+      <span style={{ fontSize: compact ? 12 : 14, lineHeight: 1, flexShrink: 0, marginTop: 1, opacity: 0.7 }}>{"\u2139\uFE0F"}</span>
       <p style={{
         fontFamily: F.b,
         fontSize: compact ? 9 : 10,
-        color: "#92400e",
+        color: C.taupe,
         margin: 0,
-        lineHeight: 1.5,
+        lineHeight: 1.6,
+        letterSpacing: "0.01em",
       }}>
-        This tool provides a structured framework for thinking through decisions. It is not professional advice. Results are based on the inputs and criteria you provide and may not capture all relevant factors. AI-generated suggestions can be inaccurate. Always apply your own judgment.
+        This tool helps structure your thinking — it is not professional advice. Results reflect the inputs and criteria you provide and may not capture all relevant factors. AI suggestions can be inaccurate. Always apply your own judgment.
       </p>
     </div>
   );
